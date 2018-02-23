@@ -1,14 +1,15 @@
 plugins {
   base
+//  java
   kotlin("jvm") version "1.2.21" apply false
 }
 
-//allprojects {
-//  group = "io.mass-power"
-//  version = "1.0"
-//}
+if(false)allprojects {
+  group = "io.mass-power"
+  version = "1.0"
+}
 
-dependencies {
+if(false)dependencies {
   // Make the root project archives configuration depend on every sub-project
   subprojects.forEach {
     archives(it)
