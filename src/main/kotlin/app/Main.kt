@@ -1,5 +1,6 @@
 package app
 
+import core.*
 import spark.Spark
 import spark.Spark.*
 
@@ -9,6 +10,6 @@ object Main {
     System.getenv("PORT")?.let {
       Spark.port(it.toInt())
     }
-    get("/") { req, res -> "Hello World!" }
+    get("/") { req, res -> "Hello World! ${DeepThought.compute()}" }
   }
 }

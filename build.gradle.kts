@@ -14,14 +14,20 @@ buildscript {
   }
 }
 
-repositories {
-  mavenCentral()
+allprojects {
+  group = "io.mass-power"
+  version = "1.0"
+  repositories {
+    mavenCentral()
+    jcenter()
+  }
 }
 
 dependencies {
-  compile("org.jetbrains.kotlin:kotlin-stdlib:1.2.21")
+  if(true) compile(kotlin("stdlib")) else compile("org.jetbrains.kotlin:kotlin-stdlib:1.2.21")
   compile("com.sparkjava:spark-core:+")
   compile("org.slf4j:slf4j-simple:+")
+  compile(project(":core"))
 }
 
 task("copyToLib") {
