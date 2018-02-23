@@ -1,9 +1,8 @@
 import org.gradle.kotlin.dsl.*
 
 plugins {
-//  base
 //  java
-//  kotlin("jvm") /*version "1.2.21"*/// apply false
+//  kotlin("jvm") version "1.2.21"// apply false
   id("kotlin-platform-jvm")
 }
 //version = "1.0-SNAPSHOT"
@@ -18,35 +17,18 @@ plugins {
 //    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.21")
 //  }
 //}
-allprojects {
-  group = "io.mass-power"
-  version = "1.0"
-  repositories {
-    mavenCentral()
-    jcenter()
-  }
+repositories {
+  mavenCentral()
+  jcenter()
 }
+//allprojects {
+//  group = "io.mass-power"
+//  version = "1.0"
+//}
 dependencies {
   if(true) compile(kotlin("stdlib")) else compile("org.jetbrains.kotlin:kotlin-stdlib:1.2.21")
-  compile("com.sparkjava:spark-core:+")
-  compile("org.slf4j:slf4j-simple:+")
+  compile("com.sparkjava:spark-core:2.7.1")
+  compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
   compile(project(":core"))
   expectedBy(project(":server-common"))
 }
-
-//task("copyToLib") {
-//  doLast {
-//    copy {
-//      into("${parent!!.buildDir}/libs")
-//      from(configurations.compile)
-//    }
-//  }
-//}
-//
-//task("stage") {
-//  dependsOn.add("clean")
-//  dependsOn.add("build")
-//  dependsOn.add("copyToLib")
-//}
-
-//tasks["build"].mustRunAfter(tasks["clean"])//in groovy: build.mustRunAfter clean
