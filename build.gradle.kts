@@ -9,13 +9,6 @@ if(false)allprojects {
   version = "1.0"
 }
 
-if(false)dependencies {
-  // Make the root project archives configuration depend on every sub-project
-  subprojects.forEach {
-    archives(it)
-  }
-}
-
 task("copyToLib") {
   dependsOn("heroku-jvm:build")
   doLast {
