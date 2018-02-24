@@ -12,6 +12,6 @@ dependencies {
   if(false) compile("org.jetbrains.kotlin:kotlin-stdlib:1.2.21")
   compile("com.sparkjava:spark-core:2.7.1")
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
-  compile(project(":jvm-lib"))
+  compile(project(":lib-jvm"))
   expectedBy(project(":server-common"))
 }

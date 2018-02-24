@@ -1,6 +1,5 @@
 package app
 
-import common.*
 import spark.Spark
 import spark.Spark.*
 
@@ -10,6 +9,6 @@ object Main {
     System.getenv("PORT")?.let {
       Spark.port(it.toInt())
     }
-    get("/") { req, res -> "Hello World! ${JvmLib.test()} ${ServerCommon.test()}" }
+    get("/") { req, res -> "heroku-jvm: ${JvmLib.test()} ${ServerCommon.test()}" }
   }
 }

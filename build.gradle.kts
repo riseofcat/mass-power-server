@@ -1,7 +1,7 @@
 plugins {
   base
-//  java
   kotlin("jvm") version "1.2.21" apply false
+  if(false)java
 }
 
 if(false)allprojects {
@@ -28,4 +28,3 @@ task("stage") {
   mustRunAfter("clean")
   dependsOn("copyToLib")
 }
-//todo test clean before build
