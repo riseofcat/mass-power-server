@@ -28,3 +28,4 @@ task("stage") {
   mustRunAfter("clean")
   dependsOn("copyToLib")
 }
+//todo test clean before build
