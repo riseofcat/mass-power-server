@@ -4,7 +4,7 @@ import spark.Spark
 import spark.Spark.*
 
 
-object Main {
+object ServerMain {
   @JvmStatic fun main(args: Array<String>) {
     System.getenv("PORT")?.let {
       Spark.port(it.toInt())
