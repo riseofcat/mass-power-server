@@ -17,7 +17,7 @@ dependencies {
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
 
   val ktorVersion = "0.3.1"//todo обновить
-  val gdxVersion = "1.9.6"
+  val gdxVersion by project
   compile("org.jetbrains.ktor:ktor-websockets:$ktorVersion")
   compile("org.jetbrains.ktor:ktor-netty:$ktorVersion")
   compile("org.jetbrains.ktor:ktor-jetty:$ktorVersion")
