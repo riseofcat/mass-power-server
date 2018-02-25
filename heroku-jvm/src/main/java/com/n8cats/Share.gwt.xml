@@ -1,0 +1,10 @@
+<module>
+    <inherits name='com.n8cats.LibAll'/>
+    <source path="share"/>
+    <extend-configuration-property name="gdx.reflect.include" value="com.n8cats.share" /><!--todo remove-->
+    <extend-configuration-property name="gdx.reflect.include" value="com.n8cats.share.reflect" />
+    <extend-configuration-property name="gdx.reflect.include" value="java.util.HashMap" />
+    <extend-configuration-property name="gdx.reflect.include" value="java.util.TreeMap" />
+    <extend-configuration-property name="gdx.reflect.include" value="java.util.ArrayList" />
+    <extend-configuration-property name="gdx.reflect.include" value="java.util.HashSet" />
+</module>
