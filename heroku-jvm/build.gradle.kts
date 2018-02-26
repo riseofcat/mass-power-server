@@ -16,15 +16,30 @@ dependencies {
   compile("com.sparkjava:spark-core:2.7.1")
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
 
-  val ktorVersion = "0.3.1"//todo обновить
+  val old=true
+  val oldKtorVersion = "0.3.1"
+  val ktorVersion = "0.9.1"
   val gdxVersion by project
-  compile("org.jetbrains.ktor:ktor-websockets:$ktorVersion")
-  compile("org.jetbrains.ktor:ktor-netty:$ktorVersion")
-  compile("org.jetbrains.ktor:ktor-jetty:$ktorVersion")
-  compile("org.jetbrains.ktor:ktor-freemarker:$ktorVersion")
+  if(!old) {
+    compile("io.ktor:ktor-server-core:$ktorVersion")
+    compile("io.ktor:ktor-server-netty:$ktorVersion")
+    compile("io.ktor:ktor-server-jetty:$ktorVersion")
+  } else {
+    compile("org.jetbrains.ktor:ktor-websockets:$oldKtorVersion")
+    compile("org.jetbrains.ktor:ktor-netty:$oldKtorVersion")
+    compile("org.jetbrains.ktor:ktor-jetty:$oldKtorVersion")
+    compile("org.jetbrains.ktor:ktor-freemarker:$oldKtorVersion")
+  }
+
   compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.3")
   compile("com.badlogicgames.gdx:gdx:$gdxVersion")
 
   compile(project(":lib-jvm"))
   expectedBy(project(":server-common"))
+
+//  kotlin {//todo groovy to kts
+//    experimental {
+//      coroutines "enable"
+//    }
+//  }
 }
