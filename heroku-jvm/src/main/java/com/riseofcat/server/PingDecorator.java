@@ -27,12 +27,12 @@ public void close(Ses session) {
 }
 public void message(Ses session, ClientSay<C> say) {
 	PingSes s = map.get(session);
-	if(say.pong && s.lastPingTime != null) {
+	if(say.getPong() && s.lastPingTime != null) {
 		long l = (System.currentTimeMillis() - s.lastPingTime + 1) / 2;
 		s.latency = (int) l;
 	}
-	if(say.payload != null) {
-		server.message(s, say.payload);
+	if(say.getPayload() != null) {
+		server.message(s, say.getPayload());
 	}
 }
 
@@ -52,12 +52,12 @@ private class PingSes extends SesServ<C, S>.Ses {
 	}
 	public void send(S payload) {
 		ServerSay<S> say = new ServerSay<>();
-		say.latency = latency;
+		say.setLatency(latency);
 		if(lastPingTime == null || System.currentTimeMillis() > lastPingTime + pingIntervalMs) {
-			say.ping = true;
+			say.setPing(true);
 			lastPingTime = System.currentTimeMillis();
 		}
-		say.payload = payload;
+		say.setPayload(payload);
 		sess.send(say);
 	}
 	protected TypeMap getTypeMap() {

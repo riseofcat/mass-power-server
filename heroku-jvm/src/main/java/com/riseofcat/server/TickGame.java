@@ -6,6 +6,11 @@ import com.n8cats.share.Params;
 import com.n8cats.share.ServerPayload;
 import com.n8cats.share.ShareTodo;
 import com.n8cats.share.Tick;
+import com.n8cats.share.data.BigAction;
+import com.n8cats.share.data.NewCarAction;
+import com.n8cats.share.data.PlayerAction;
+import com.n8cats.share.data.PlayerId;
+import com.n8cats.share.data.State;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -20,22 +25,22 @@ public class TickGame {
 private final long startTime = System.currentTimeMillis();
 private int previousActionsVersion = 0;
 volatile private int tick = 0;//todo volatile redundant? //todo float
-private Logic.State state = new Logic.State();
+private State state = new State();
 private DefaultValueMap<Tick, List<Action>> actions = new DefaultValueMap<>(new ConcurrentHashMap<>(), ArrayList::new);
-private Map<Logic.Player.Id, Integer> mapPlayerVersion = new ConcurrentHashMap<>();
+private Map<PlayerId, Integer> mapPlayerVersion = new ConcurrentHashMap<>();
 public TickGame(ConcreteRoomsServer.Room room) {
 	room.onPlayerAdded.add(player -> {
 		synchronized(TickGame.this) {
 			int d = 1;
-			actions.getExistsOrPutDefault(new Tick(tick + d)).add(new Action(++previousActionsVersion, new Logic.NewCarAction(player.getId()).toBig()));
+			actions.getExistsOrPutDefault(new Tick(tick + d)).add(new Action(++previousActionsVersion, new NewCarAction(player.getId()).toBig()));
 			ServerPayload payload = createStablePayload();
 			payload.welcome = new ServerPayload.Welcome();
 			payload.welcome.id = player.getId();
 			payload.actions = new ArrayList<>();
 			for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
-				ArrayList<Logic.BigAction> temp = new ArrayList<>();
+				ArrayList<BigAction> temp = new ArrayList<>();
 				for(Action a : entry.getValue()) temp.add(a.pa);
-				payload.actions.add(new ServerPayload.TickActions(entry.getKey().tick, temp));
+				payload.actions.add(new ServerPayload.TickActions(entry.getKey().getTick(), temp));
 			}
 			player.session.send(payload);
 			mapPlayerVersion.put(player.getId(), previousActionsVersion);
@@ -44,28 +49,28 @@ public TickGame(ConcreteRoomsServer.Room room) {
 	});
 	room.onMessage.add(message -> {
 		synchronized(TickGame.this) {
-			if(message.payload.actions != null) {
-				for(ClientPayload.ClientAction a : message.payload.actions) {
+			if(message.payload.getActions() != null) {
+				for(ClientPayload.ClientAction a : message.payload.getActions()) {
 					ServerPayload payload = new ServerPayload();
 					payload.tick = tick;
 					int delay = 0;
-					if(a.tick < getStableTick().tick) {
-						if(a.tick < getRemoveBeforeTick()) {
+					if(a.getTick() < getStableTick().getTick()) {
+						if(a.getTick() < getRemoveBeforeTick()) {
 							payload.canceled = new HashSet<>();
-							payload.canceled.add(a.aid);
+							payload.canceled.add(a.getAid());
 							message.player.session.send(payload);//todo move out of for
 							continue;
-						} else delay = getStableTick().tick - a.tick;
-					} else if(a.tick > getFutureTick()) {
+						} else delay = getStableTick().getTick() - a.getTick();
+					} else if(a.getTick() > getFutureTick()) {
 						payload.canceled = new HashSet<>();
-						payload.canceled.add(a.aid);
+						payload.canceled.add(a.getAid());
 						message.player.session.send(payload);//todo move out of for
 						continue;
 					}
 					payload.apply = new ArrayList<>();
-					payload.apply.add(new ServerPayload.AppliedActions(a.aid, delay));
-					actions.getExistsOrPutDefault(new Tick(a.tick + delay)).add(new Action(++previousActionsVersion, new Logic.PlayerAction(message.player.getId(), a.action).toBig()));
-					if(ShareTodo.SIMPLIFY) updatePlayerInPayload(payload, message.player);
+					payload.apply.add(new ServerPayload.AppliedActions(a.getAid(), delay));
+					actions.getExistsOrPutDefault(new Tick(a.getTick() + delay)).add(new Action(++previousActionsVersion, new PlayerAction(message.player.getId(), a.getAction()).toBig()));
+					if(ShareTodo.INSTANCE.getSIMPLIFY()) updatePlayerInPayload(payload, message.player);
 					message.player.session.send(payload);//todo move out of for
 				}
 			}
@@ -109,9 +114,9 @@ private void updatePlayerInPayload(ServerPayload payload, RoomsDecorator<ClientP
 	synchronized(this) {
 		payload.tick = tick;
 		for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
-			ArrayList<Logic.BigAction> temp = new ArrayList<>();
-			for(Action a : entry.getValue()) if(ShareTodo.SIMPLIFY || a.pa.p == null || !a.pa.p.id.equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
-			if(temp.size() > 0) payload.actions.add(new ServerPayload.TickActions(entry.getKey().tick, temp));
+			ArrayList<BigAction> temp = new ArrayList<>();
+			for(Action a : entry.getValue()) if(ShareTodo.INSTANCE.getSIMPLIFY() || a.pa.p == null || !a.pa.p.getId().equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
+			if(temp.size() > 0) payload.actions.add(new ServerPayload.TickActions(entry.getKey().getTick(), temp));
 		}
 		mapPlayerVersion.put(p.getId(), previousActionsVersion);
 	}
@@ -120,28 +125,28 @@ ServerPayload createStablePayload() {
 	ServerPayload result = new ServerPayload();
 	result.tick = tick;
 	result.stable = new ServerPayload.Stable();
-	result.stable.tick = getStableTick().tick;
+	result.stable.tick = getStableTick().getTick();
 	result.stable.state = state;
 	return result;
 }
 private Tick getStableTick() {
-	int result = tick - Params.DELAY_TICKS + 1;
+	int result = tick - Params.INSTANCE.getDELAY_TICKS() + 1;
 	if(result < 0) return new Tick(0);
 	return new Tick(result);
 }
 private int getRemoveBeforeTick() {
-	return tick - Params.REMOVE_TICKS + 1;
+	return tick - Params.INSTANCE.getREMOVE_TICKS() + 1;
 }
 private int getFutureTick() {
-	return tick + Params.FUTURE_TICKS;
+	return tick + Params.INSTANCE.getFUTURE_TICKS();
 }
 private static class ConcreteRoomsServer extends RoomsDecorator<ClientPayload, ServerPayload> {
 
 }
 private class Action {
 	public int actionVersion;
-	public Logic.BigAction pa;
-	public Action(int actionVersion, Logic.BigAction pa) {
+	public BigAction pa;
+	public Action(int actionVersion, BigAction pa) {
 		this.actionVersion = actionVersion;
 		this.pa = pa;
 	}

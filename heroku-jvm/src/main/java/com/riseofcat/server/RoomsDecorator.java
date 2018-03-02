@@ -2,6 +2,7 @@ package com.riseofcat.server;
 
 import com.n8cats.lib_gwt.Signal;
 import com.n8cats.share.Logic;
+import com.n8cats.share.data.PlayerId;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -74,13 +75,13 @@ public class Room {
 			onPlayerRemoved.dispatch(remove);
 		}
 	}
-	public class Player extends Logic.Player {
+	public class Player {
 		public final Ses session;
 		public Player(Ses session) {
 			this.session = session;
 		}
-		public Id getId() {
-			return new Id(session.getId());
+		public PlayerId getId() {
+			return new PlayerId(session.getId());
 		}
 	}
 }

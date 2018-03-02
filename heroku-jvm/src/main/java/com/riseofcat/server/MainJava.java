@@ -1,6 +1,6 @@
 package com.riseofcat.server;
 
-import com.badlogic.gdx.utils.Json;
+import com.google.gson.Gson;
 import com.n8cats.lib.LibAll;
 import com.n8cats.share.ClientPayload;
 import com.n8cats.share.ServerPayload;
@@ -23,14 +23,14 @@ public static void main(String[] args) {
 	}
 	Spark.staticFiles.location("/public");
 	Spark.staticFiles.expireTime(600);
-	final Json json = new Json();
+	final Gson gson = new Gson();
 	Spark.webSocket("/socket", new SparkWebSocket(
 			new UsageMonitorDecorator<>(
 			new ConvertDecorator<>(
 			new PingDecorator<>(
 			new RoomsDecorator<ClientPayload, ServerPayload>(TickGame::new), 1000),
-			obj -> json.fromJson(ClientSayC.class, obj),
-			json::toJson))));
+			obj -> gson.fromJson(obj, ClientSayC.class),
+			gson::toJson))));
 	Spark.get("/", new Route() {
 		@Override
 		public Object handle(Request request, Response response) {
