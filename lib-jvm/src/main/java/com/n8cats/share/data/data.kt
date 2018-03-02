@@ -6,14 +6,20 @@ import com.n8cats.share.*
 val BASE_WIDTH = 1000
 val BASE_HEIGHT = 1000
 
+interface PosObject {
+  var pos:XY
+}
+interface SpeedObject:PosObject {
+  var speed:XY
+}
+interface EatMe:SpeedObject {
+  var size:Int
+  fun radius() = (Math.sqrt(size.toDouble())*5f).toFloat()+Logic.MIN_RADIUS
+}
+
 data class Action (var direction:Angle)
 data class Angle(var radians:Float) {
   init {
-    fix()
-  }
-  val degrees:Float get() = (radians*180/Math.PI).toFloat()
-  val transformRotation:Float get() = degrees
-  private fun fix() {
     val circles = (radians/(2*Math.PI)).toInt()
     if(Math.abs(circles)>0) {
       val a = 1+1//todo breakpoint
@@ -23,21 +29,15 @@ data class Angle(var radians:Float) {
     //		radians += 2 * Math.PI;
     //	}
   }
+  val degrees:Float get() = (radians*180/Math.PI).toFloat()
+  val gdxTransformRotation:Float get() = degrees
   fun sin() = Math.sin(radians.toDouble()).toFloat()
   fun cos() = Math.cos(radians.toDouble()).toFloat()
   fun xy():XY = XY(cos(),sin())
-  fun add(radians:Float) = Angle(this.radians+radians)
-  fun addThis(radians:Double) {
-    this.radians += radians.toFloat()
-    fix()
-    throw RuntimeException("bad")//todo
-  }
   fun add(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
   fun subtract(sub:Angle) = Angle(this.radians-sub.radians)
-
   companion object {
-    @JvmStatic
-    fun degreesAngle(degrees:Float) = Angle(degrees/180*Math.PI.toFloat())
+    @JvmStatic fun degreesAngle(degrees:Float) = Angle(degrees/180*Math.PI.toFloat())
   }
 }
 
@@ -46,14 +46,7 @@ data class Car(var owner:PlayerId, override var size:Int,override var speed:XY,o
 data class Food(
   override var size:Int,
   override var speed:XY,
-  override var pos:XY):EatMe {
-
-}
-
-interface EatMe:SpeedObject {
-  var size:Int
-  fun radius() = (Math.sqrt(size.toDouble())*5f).toFloat()+Logic.MIN_RADIUS
-}
+  override var pos:XY):EatMe
 
 data class NewCarAction(var id:PlayerId):Logic.InStateAction {
   override fun act(state:State,getCar:Logic.GetCarById) {
@@ -64,7 +57,6 @@ data class NewCarAction(var id:PlayerId):Logic.InStateAction {
 }
 
 open class PlayerAction(var id:PlayerId,var action:Action):Logic.InStateAction {
-
   override fun act(state:State,getCar:Logic.GetCarById) {
     val scl = 100f
     val car = getCar.getCar(id) ?: return //todo handle null ?
@@ -75,9 +67,6 @@ open class PlayerAction(var id:PlayerId,var action:Action):Logic.InStateAction {
   }
   fun toBig() = BigAction().also{it.p=this}
 }
-
-interface PosObject { var pos:XY }
-interface SpeedObject:PosObject { var speed:XY }
 
 data class Reactive(
   var owner:PlayerId,
