@@ -1,6 +1,7 @@
 package com.n8cats.share
 
 import com.n8cats.lib_gwt.LibAllGwt
+import com.n8cats.share.data.*
 
 object Params {
   val TITLE = "mass-power.io"

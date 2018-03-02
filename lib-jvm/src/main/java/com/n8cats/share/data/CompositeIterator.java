@@ -1,4 +1,4 @@
-package com.n8cats.share;
+package com.n8cats.share.data;
 
 import java.util.Collection;
 import java.util.Iterator;

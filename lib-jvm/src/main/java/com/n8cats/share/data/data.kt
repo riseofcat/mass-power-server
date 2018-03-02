@@ -1,11 +1,16 @@
 package com.n8cats.share.data
 
-import com.n8cats.lib_gwt.*
-import com.n8cats.share.*
+import kotlin.math.*
 
 val BASE_WIDTH = 1000
 val BASE_HEIGHT = 1000
 
+interface GetCarById {
+  fun getCar(id:PlayerId):Car?
+}
+interface InStateAction {
+  fun act(state:State,getCar:GetCarById)
+}
 interface PosObject {
   var pos:XY
 }
@@ -41,23 +46,24 @@ data class Angle(var radians:Float) {
   }
 }
 
-data class Car(var owner:PlayerId, override var size:Int,override var speed:XY,override var pos:XY):EatMe
+data class Car(var owner:PlayerId
+  , override var size:Int,override var speed:XY,override var pos:XY):EatMe
 //		size = FOOD_SIZE;//todo fixed size
 data class Food(
   override var size:Int,
   override var speed:XY,
   override var pos:XY):EatMe
 
-data class NewCarAction(var id:PlayerId):Logic.InStateAction {
-  override fun act(state:State,getCar:Logic.GetCarById) {
+data class NewCarAction(var id:PlayerId):InStateAction {
+  override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
     state.cars.add(Car(id,Logic.MIN_SIZE*6,XY(true),XY()))
   }
   fun toBig() = BigAction().also {it.n = this}
 }
 
-open class PlayerAction(var id:PlayerId,var action:Action):Logic.InStateAction {
-  override fun act(state:State,getCar:Logic.GetCarById) {
+open class PlayerAction(var id:PlayerId,var action:Action):InStateAction {
+  override fun act(state:State,getCar:GetCarById) {
     val scl = 100f
     val car = getCar.getCar(id) ?: return //todo handle null ?
     car.speed = car.speed.add(action.direction.xy(),scl)
@@ -83,8 +89,8 @@ data class State(
   var size:Int = 0) {
   fun width() = (BASE_WIDTH+size).toFloat()
   fun height() = (BASE_HEIGHT+size).toFloat()
-  fun act(iterator:Iterator<Logic.InStateAction>):State {
-    class Cache:Logic.GetCarById {
+  fun act(iterator:Iterator<InStateAction>):State {
+    class Cache:GetCarById {
       override fun getCar(id:PlayerId):Car? {
         for(car in cars) if(id==car.owner) return car
         return null
@@ -224,7 +230,7 @@ data class XY(var x:Float,var y:Float) {
       try {
         Angle(Math.atan((y/x).toDouble()).toFloat()).add(Angle.degreesAngle(if(x<0) 180f else 0f))
       } catch(t:Throwable) {
-        Angle.degreesAngle(LibAllGwt.Fun.sign(y)*90f)
+        Angle.degreesAngle(y.sign*90f)
       }
 
   }

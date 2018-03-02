@@ -1,7 +1,6 @@
 package com.riseofcat.server;
 
 import com.n8cats.lib_gwt.Signal;
-import com.n8cats.share.Logic;
 import com.n8cats.share.data.PlayerId;
 
 import java.util.Collection;

@@ -1,7 +1,8 @@
 package com.riseofcat.server;
 import com.n8cats.lib_gwt.DefaultValueMap;
 import com.n8cats.share.ClientPayload;
-import com.n8cats.share.Logic;
+import com.n8cats.share.data.InStateAction;
+import com.n8cats.share.data.Logic;
 import com.n8cats.share.Params;
 import com.n8cats.share.ServerPayload;
 import com.n8cats.share.ShareTodo;
@@ -81,7 +82,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 	timer.schedule(new TimerTask() {
 		@Override
 		public void run() {
-			class Adapter implements Iterator<Logic.InStateAction> {
+			class Adapter implements Iterator<InStateAction> {
 				private Iterator<Action> iterator;
 				public Adapter(List<Action> arr) {
 					if(arr != null) iterator = arr.iterator();
@@ -89,11 +90,11 @@ public TickGame(ConcreteRoomsServer.Room room) {
 				public boolean hasNext() {
 					return iterator != null && iterator.hasNext();
 				}
-				public Logic.InStateAction next() {
+				public InStateAction next() {
 					return iterator.next().pa;
 				}
 			}
-			while(System.currentTimeMillis() - startTime > tick * Logic.UPDATE_MS) {
+			while(System.currentTimeMillis() - startTime > tick * Logic.getUPDATE_MS()) {
 				synchronized(TickGame.this) {
 					state.act(new Adapter(actions.map.get(getStableTick()))).tick();
 					TickGame.this.actions.map.remove(getStableTick());
@@ -102,7 +103,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 				}
 			}
 		}
-	}, 0, Logic.UPDATE_MS / 2);
+	}, 0, Logic.getUPDATE_MS() / 2);
 }
 private void updatePlayer(RoomsDecorator<ClientPayload, ServerPayload>.Room.Player p) {
 	ServerPayload payload = new ServerPayload();
@@ -115,7 +116,7 @@ private void updatePlayerInPayload(ServerPayload payload, RoomsDecorator<ClientP
 		payload.tick = tick;
 		for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
 			ArrayList<BigAction> temp = new ArrayList<>();
-			for(Action a : entry.getValue()) if(ShareTodo.INSTANCE.getSIMPLIFY() || a.pa.p == null || !a.pa.p.getId().equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
+			for(Action a : entry.getValue()) if(ShareTodo.INSTANCE.getSIMPLIFY() || a.pa.getP() == null || !a.pa.getP().getId().equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
 			if(temp.size() > 0) payload.actions.add(new ServerPayload.TickActions(entry.getKey().getTick(), temp));
 		}
 		mapPlayerVersion.put(p.getId(), previousActionsVersion);
