@@ -1,6 +1,7 @@
 package com.riseofcat.server;
 import com.n8cats.lib_gwt.DefaultValueMap;
 import com.n8cats.share.ClientPayload;
+import com.n8cats.share.TickActions;
 import com.n8cats.share.data.InStateAction;
 import com.n8cats.share.data.Logic;
 import com.n8cats.share.Params;
@@ -35,13 +36,13 @@ public TickGame(ConcreteRoomsServer.Room room) {
 			int d = 1;
 			actions.getExistsOrPutDefault(new Tick(tick + d)).add(new Action(++previousActionsVersion, new NewCarAction(player.getId()).toBig()));
 			ServerPayload payload = createStablePayload();
-			payload.welcome = new ServerPayload.Welcome();
-			payload.welcome.id = player.getId();
-			payload.actions = new ArrayList<>();
+			payload.setWelcome(new ServerPayload.Welcome());
+			payload.getWelcome().setId(player.getId());
+			payload.setActions(new ArrayList<>());
 			for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
 				ArrayList<BigAction> temp = new ArrayList<>();
 				for(Action a : entry.getValue()) temp.add(a.pa);
-				payload.actions.add(new ServerPayload.TickActions(entry.getKey().getTick(), temp));
+				payload.getActions().add(new TickActions(entry.getKey().getTick(), temp));
 			}
 			player.session.send(payload);
 			mapPlayerVersion.put(player.getId(), previousActionsVersion);
@@ -53,23 +54,23 @@ public TickGame(ConcreteRoomsServer.Room room) {
 			if(message.payload.getActions() != null) {
 				for(ClientPayload.ClientAction a : message.payload.getActions()) {
 					ServerPayload payload = new ServerPayload();
-					payload.tick = tick;
+					payload.setTick(tick);
 					int delay = 0;
 					if(a.getTick() < getStableTick().getTick()) {
 						if(a.getTick() < getRemoveBeforeTick()) {
-							payload.canceled = new HashSet<>();
-							payload.canceled.add(a.getAid());
+							payload.setCanceled(new HashSet<>());
+							payload.getCanceled().add(a.getAid());
 							message.player.session.send(payload);//todo move out of for
 							continue;
 						} else delay = getStableTick().getTick() - a.getTick();
 					} else if(a.getTick() > getFutureTick()) {
-						payload.canceled = new HashSet<>();
-						payload.canceled.add(a.getAid());
+						payload.setCanceled(new HashSet<>());
+						payload.getCanceled().add(a.getAid());
 						message.player.session.send(payload);//todo move out of for
 						continue;
 					}
-					payload.apply = new ArrayList<>();
-					payload.apply.add(new ServerPayload.AppliedActions(a.getAid(), delay));
+					payload.setApply(new ArrayList<>());
+					payload.getApply().add(new ServerPayload.AppliedActions(a.getAid(), delay));
 					actions.getExistsOrPutDefault(new Tick(a.getTick() + delay)).add(new Action(++previousActionsVersion, new PlayerAction(message.player.getId(), a.getAction()).toBig()));
 					if(ShareTodo.INSTANCE.getSIMPLIFY()) updatePlayerInPayload(payload, message.player);
 					message.player.session.send(payload);//todo move out of for
@@ -111,23 +112,23 @@ private void updatePlayer(RoomsDecorator<ClientPayload, ServerPayload>.Room.Play
 	p.session.send(payload);
 }
 private void updatePlayerInPayload(ServerPayload payload, RoomsDecorator<ClientPayload, ServerPayload>.Room.Player p) {
-	payload.actions = new ArrayList<>();
+	payload.setActions(new ArrayList<>());
 	synchronized(this) {
-		payload.tick = tick;
+		payload.setTick(tick);
 		for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
 			ArrayList<BigAction> temp = new ArrayList<>();
 			for(Action a : entry.getValue()) if(ShareTodo.INSTANCE.getSIMPLIFY() || a.pa.getP() == null || !a.pa.getP().getId().equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
-			if(temp.size() > 0) payload.actions.add(new ServerPayload.TickActions(entry.getKey().getTick(), temp));
+			if(temp.size() > 0) payload.getActions().add(new TickActions(entry.getKey().getTick(), temp));
 		}
 		mapPlayerVersion.put(p.getId(), previousActionsVersion);
 	}
 }
 ServerPayload createStablePayload() {
 	ServerPayload result = new ServerPayload();
-	result.tick = tick;
-	result.stable = new ServerPayload.Stable();
-	result.stable.tick = getStableTick().getTick();
-	result.stable.state = state;
+	result.setTick(tick);
+	result.setStable(new ServerPayload.Stable());
+	result.getStable().setTick(getStableTick().getTick());
+	result.getStable().setState(state);
 	return result;
 }
 private Tick getStableTick() {
