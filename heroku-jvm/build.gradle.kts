@@ -69,11 +69,9 @@ dependencies {
 
   compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.3")
 //  compile("com.badlogicgames.gdx:gdx:$gdxVersion")
-  compile("com.google.code.gson:gson:2.7")
-
 
   compile(project(":lib-jvm"))
-  expectedBy(project(":server-common"))
+  if(false)expectedBy(project(":server-common"))//эта зависимост идёт через lib-jvm
 
 //  kotlin {//todo groovy to kts
 //    experimental {
