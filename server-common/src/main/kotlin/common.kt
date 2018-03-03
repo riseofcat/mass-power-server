@@ -5,3 +5,6 @@ object ServerCommon {
     return "$k $m"
   }
 }
+
+expect fun Any.toJson():String
+expect fun <T>String.fromJson():T
