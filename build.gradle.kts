@@ -4,11 +4,6 @@ plugins {
   if(false)java
 }
 
-if(false)allprojects {
-  group = "io.mass-power"
-  version = "1.0"
-}
-
 task("copyToLib") {
   dependsOn("heroku-jvm:build")
   doLast {

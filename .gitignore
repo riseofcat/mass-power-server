@@ -3,3 +3,4 @@
 build
 lib-jvm/out
 server-common/out
+*.iml

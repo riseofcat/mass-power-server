@@ -11,6 +11,9 @@ plugins {
 application { //needs only for local launch
   mainClassName = "com.riseofcat.server.MainJava"
 }
+
+version = "1.0" //Если изменить версию, то поменяется имя jar-ника
+
 tasks.withType<Jar> {
   manifest {
 //    attributes["Implementation-Version"] = "version_from_jar_task"
