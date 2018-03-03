@@ -13,7 +13,7 @@ class PlayerId {
   }
 
   override fun equals(o:Any?):Boolean {
-    return o!=null&&(o===this||o.javaClass==PlayerId::class.java&&(o as PlayerId).id==id)
+    return o!=null&&(o===this||o is PlayerId&&o.id==id)
   }
 
   override fun toString():String {

@@ -94,7 +94,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 					return iterator.next().pa;
 				}
 			}
-			while(System.currentTimeMillis() - startTime > tick * Logic.getUPDATE_MS()) {
+			while(System.currentTimeMillis() - startTime > tick * Logic.Companion.getUPDATE_MS()) {
 				synchronized(TickGame.this) {
 					state.act(new Adapter(actions.map.get(getStableTick()))).tick();
 					TickGame.this.actions.map.remove(getStableTick());
@@ -103,7 +103,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 				}
 			}
 		}
-	}, 0, Logic.getUPDATE_MS() / 2);
+	}, 0, Logic.Companion.getUPDATE_MS() / 2);
 }
 private void updatePlayer(RoomsDecorator<ClientPayload, ServerPayload>.Room.Player p) {
 	ServerPayload payload = new ServerPayload();

@@ -19,14 +19,14 @@ interface SpeedObject:PosObject {
 }
 interface EatMe:SpeedObject {
   var size:Int
-  fun radius() = (Math.sqrt(size.toDouble())*5f).toFloat()+Logic.MIN_RADIUS
+  fun radius() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+Logic.MIN_RADIUS
 }
 
 data class Action (var direction:Angle)
 data class Angle(var radians:Float) {
   init {
-    val circles = (radians/(2*Math.PI)).toInt()
-    if(Math.abs(circles)>0) {
+    val circles = (radians/(2*kotlin.math.PI)).toInt()
+    if(kotlin.math.abs(circles)>0) {
       val a = 1+1//todo breakpoint
     }
     //	radians -= circles * 2 * Math.PI;
@@ -34,15 +34,15 @@ data class Angle(var radians:Float) {
     //		radians += 2 * Math.PI;
     //	}
   }
-  val degrees:Float get() = (radians*180/Math.PI).toFloat()
+  val degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
   val gdxTransformRotation:Float get() = degrees
-  fun sin() = Math.sin(radians.toDouble()).toFloat()
-  fun cos() = Math.cos(radians.toDouble()).toFloat()
+  fun sin() = kotlin.math.sin(radians.toDouble()).toFloat()
+  fun cos() = kotlin.math.cos(radians.toDouble()).toFloat()
   fun xy():XY = XY(cos(),sin())
   fun add(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
   fun subtract(sub:Angle) = Angle(this.radians-sub.radians)
   companion object {
-    @JvmStatic fun degreesAngle(degrees:Float) = Angle(degrees/180*Math.PI.toFloat())
+    fun degreesAngle(degrees:Float) = Angle(degrees/180*kotlin.math.PI.toFloat())
   }
 }
 
@@ -104,11 +104,11 @@ data class State(
     return this
   }
   private fun distance(a:XY,b:XY):Float {
-    var dx = Math.min(Math.abs(b.x-a.x),b.x+width()-a.x)
-    dx = Math.min(dx,a.x+width()-b.x)
-    var dy = Math.min(Math.abs(b.y-a.y),b.y+height()-a.y)
-    dy = Math.min(dy,a.y+height()-b.y)
-    return Math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
+    var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width()-a.x)
+    dx = kotlin.math.min(dx,a.x+width()-b.x)
+    var dy = kotlin.math.min(kotlin.math.abs(b.y-a.y),b.y+height()-a.y)
+    dy = kotlin.math.min(dy,a.y+height()-b.y)
+    return kotlin.math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
   }
   fun tick():State {
     val iterator = CompositeIterator<SpeedObject>(cars,reactive)
@@ -211,7 +211,7 @@ data class XY(var x:Float,var y:Float) {
     return result
   }
 
-  fun dst(xy:XY) = Math.sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
+  fun dst(xy:XY) = kotlin.math.sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
   fun len() = dst(XY(0f,0f))
 
   fun rotate(angleA:Angle):XY {
@@ -225,10 +225,10 @@ data class XY(var x:Float,var y:Float) {
 
   fun calcAngle():Angle {
     return if(true)
-      Angle(Math.atan2(y.toDouble(),x.toDouble()).toFloat())
+      Angle(kotlin.math.atan2(y.toDouble(),x.toDouble()).toFloat())
     else
       try {
-        Angle(Math.atan((y/x).toDouble()).toFloat()).add(Angle.degreesAngle(if(x<0) 180f else 0f))
+        Angle(kotlin.math.atan((y/x).toDouble()).toFloat()).add(Angle.degreesAngle(if(x<0) 180f else 0f))
       } catch(t:Throwable) {
         Angle.degreesAngle(y.sign*90f)
       }
