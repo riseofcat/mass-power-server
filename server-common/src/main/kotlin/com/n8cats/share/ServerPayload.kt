@@ -1,7 +1,6 @@
 package com.n8cats.share
 
 import com.n8cats.share.data.*
-import java.util.*
 
 class TickActions(var tick:Int,var list:ArrayList<BigAction>/*Порядок важен*/)
 

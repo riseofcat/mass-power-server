@@ -1,7 +1,6 @@
 package com.n8cats.share
 
 import com.n8cats.share.data.*
-import java.util.ArrayList
 
 class ClientPayload {
   var tick:Int = 0
