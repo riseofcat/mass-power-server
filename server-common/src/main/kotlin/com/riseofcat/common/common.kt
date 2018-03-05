@@ -1,7 +1,5 @@
 package com.riseofcat.common
 
-import kotlin.reflect.*
-
 object ServerCommon {
   fun test():String {
     val k = "server"
@@ -10,9 +8,11 @@ object ServerCommon {
   }
 }
 
-expect fun Any.toJson():String
-expect inline fun <reified T:Any>String.fromJson():T
-//expect fun <T>String.fromJson():T
-expect fun <T> createConcurrentList():MutableList<T>
-expect fun <K,V> createConcurrentHashMap():MutableMap<K,V>
-
+expect class Common {
+  companion object {
+    fun <T> createConcurrentList():MutableList<T>
+    fun <K,V> createConcurrentHashMap():MutableMap<K,V>
+    fun toJson(obj:Any):String
+    inline fun <reified T> fromJson(str:String):T
+  }
+}
