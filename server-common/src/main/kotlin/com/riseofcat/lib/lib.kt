@@ -13,3 +13,6 @@ object Lib {
 }
 
 fun <T> MutableList<T>.copy() = this.toMutableList()
+fun <E> MutableList<E>.removeFirst():E {
+  return this.removeAt(0)
+}
