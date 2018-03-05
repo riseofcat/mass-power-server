@@ -1,6 +1,6 @@
 package com.riseofcat.server;
 
-import com.riseofcat.lib_gwt.Signal;
+import com.riseofcat.lib.Signal;
 import com.riseofcat.share.data.PlayerId;
 
 import java.util.Collection;
