@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.*
 import com.github.jengelman.gradle.plugins.shadow.transformers.*
 import org.gradle.kotlin.dsl.*
-import java.net.URI
+//import java.net.URI
 
 plugins {
   id("kotlin-platform-jvm")
@@ -43,8 +43,8 @@ tasks.withType<ShadowJar> {
 repositories {
   mavenCentral()
   jcenter()
-  maven { url  = URI("http://dl.bintray.com/kotlin/ktor") }
-  maven { url = URI("https://dl.bintray.com/kotlin/kotlinx") }
+  maven { url  = uri("http://dl.bintray.com/kotlin/ktor") }
+  maven { url = uri("https://dl.bintray.com/kotlin/kotlinx") }
 }
 dependencies {
   compile(kotlin("stdlib"))

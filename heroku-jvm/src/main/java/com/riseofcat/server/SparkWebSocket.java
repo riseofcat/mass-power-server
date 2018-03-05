@@ -1,6 +1,6 @@
 package com.riseofcat.server;
 
-import com.n8cats.lib.TypeMap;
+import com.riseofcat.lib.TypeMap;
 
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;

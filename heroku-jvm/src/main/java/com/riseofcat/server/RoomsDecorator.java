@@ -1,7 +1,7 @@
 package com.riseofcat.server;
 
-import com.n8cats.lib_gwt.Signal;
-import com.n8cats.share.data.PlayerId;
+import com.riseofcat.lib_gwt.Signal;
+import com.riseofcat.share.data.PlayerId;
 
 import java.util.Collection;
 import java.util.HashSet;

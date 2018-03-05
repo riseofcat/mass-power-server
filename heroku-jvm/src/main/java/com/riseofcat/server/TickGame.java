@@ -1,18 +1,18 @@
 package com.riseofcat.server;
-import com.n8cats.lib_gwt.DefaultValueMap;
-import com.n8cats.share.ClientPayload;
-import com.n8cats.share.TickActions;
-import com.n8cats.share.data.InStateAction;
-import com.n8cats.share.data.Logic;
-import com.n8cats.share.Params;
-import com.n8cats.share.ServerPayload;
-import com.n8cats.share.ShareTodo;
-import com.n8cats.share.Tick;
-import com.n8cats.share.data.BigAction;
-import com.n8cats.share.data.NewCarAction;
-import com.n8cats.share.data.PlayerAction;
-import com.n8cats.share.data.PlayerId;
-import com.n8cats.share.data.State;
+import com.riseofcat.lib_gwt.DefaultValueMap;
+import com.riseofcat.share.ClientPayload;
+import com.riseofcat.share.TickActions;
+import com.riseofcat.share.data.InStateAction;
+import com.riseofcat.share.data.Logic;
+import com.riseofcat.share.Params;
+import com.riseofcat.share.ServerPayload;
+import com.riseofcat.share.ShareTodo;
+import com.riseofcat.share.Tick;
+import com.riseofcat.share.data.BigAction;
+import com.riseofcat.share.data.NewCarAction;
+import com.riseofcat.share.data.PlayerAction;
+import com.riseofcat.share.data.PlayerId;
+import com.riseofcat.share.data.State;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,7 +39,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 			payload.setWelcome(new ServerPayload.Welcome());
 			payload.getWelcome().setId(player.getId());
 			payload.setActions(new ArrayList<>());
-			for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
+			for(Map.Entry<Tick, List<Action>> entry : actions.getMap().entrySet()) {
 				ArrayList<BigAction> temp = new ArrayList<>();
 				for(Action a : entry.getValue()) temp.add(a.pa);
 				payload.getActions().add(new TickActions(entry.getKey().getTick(), temp));
@@ -97,8 +97,8 @@ public TickGame(ConcreteRoomsServer.Room room) {
 			}
 			while(System.currentTimeMillis() - startTime > tick * Logic.Companion.getUPDATE_MS()) {
 				synchronized(TickGame.this) {
-					state.act(new Adapter(actions.map.get(getStableTick()))).tick();
-					TickGame.this.actions.map.remove(getStableTick());
+					state.act(new Adapter(actions.getMap().get(getStableTick()))).tick();
+					TickGame.this.actions.getMap().remove(getStableTick());
 					++tick;
 					if(tick % 200 == 0) /*todo %*/ for(ConcreteRoomsServer.Room.Player player : room.getPlayers()) player.session.send(createStablePayload());
 				}
@@ -115,7 +115,7 @@ private void updatePlayerInPayload(ServerPayload payload, RoomsDecorator<ClientP
 	payload.setActions(new ArrayList<>());
 	synchronized(this) {
 		payload.setTick(tick);
-		for(Map.Entry<Tick, List<Action>> entry : actions.map.entrySet()) {
+		for(Map.Entry<Tick, List<Action>> entry : actions.getMap().entrySet()) {
 			ArrayList<BigAction> temp = new ArrayList<>();
 			for(Action a : entry.getValue()) if(ShareTodo.INSTANCE.getSIMPLIFY() || a.pa.getP() == null || !a.pa.getP().getId().equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
 			if(temp.size() > 0) payload.getActions().add(new TickActions(entry.getKey().getTick(), temp));

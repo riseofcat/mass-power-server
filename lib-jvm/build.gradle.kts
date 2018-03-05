@@ -1,7 +1,21 @@
 properties["userServerCommon"]
+buildscript {
+  println("hello buildscript")
+  repositories {
+    maven {url = uri("https://kotlin.bintray.com/kotlinx")}
+  }
+  val kotlin_version = "1.2.30"
+  val serialization_version = "0.4.1"
+  dependencies {
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+    classpath("org.jetbrains.kotlinx:kotlinx-gradle-serialization-plugin:$serialization_version")
+  }
+}
+
 plugins {
   if(false) kotlin("jvm")
   id("kotlin-platform-jvm")
+//  id("kotlinx-serialization")//todo
 }
 
 java {
@@ -10,10 +24,13 @@ java {
 }
 
 repositories {
+  maven {url = uri("https://kotlin.bintray.com/kotlinx")}
   jcenter()
 }
 
 dependencies {
+//  val serialization_version = "0.4.1"
+
   compile(kotlin("stdlib"))
   expectedBy(project(":server-common"))
 
@@ -21,4 +38,6 @@ dependencies {
   compile("commons-codec:commons-codec:1.9")
   compile("commons-io:commons-io:2.4")
   compile("com.google.code.gson:gson:2.7")
+  compile("com.beust:klaxon:2.1.6")
+//  compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version")
 }

@@ -1,6 +1,6 @@
 package com.riseofcat.server;
 
-import com.n8cats.lib.TypeMap;
+import com.riseofcat.lib.TypeMap;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

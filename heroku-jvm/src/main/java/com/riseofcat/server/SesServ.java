@@ -1,5 +1,5 @@
 package com.riseofcat.server;
-import com.n8cats.lib.TypeMap;
+import com.riseofcat.lib.TypeMap;
 
 abstract public class SesServ<C, S> {
 abstract public void start(Ses session);

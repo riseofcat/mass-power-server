@@ -1,5 +1,6 @@
 package app
 
+import com.riseofcat.common.*
 import spark.Spark
 import spark.Spark.*
 

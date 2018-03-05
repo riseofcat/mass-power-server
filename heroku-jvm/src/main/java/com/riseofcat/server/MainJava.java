@@ -1,10 +1,10 @@
 package com.riseofcat.server;
 
 import com.google.gson.Gson;
-import com.n8cats.lib.LibAll;
-import com.n8cats.share.ClientPayload;
-import com.n8cats.share.ServerPayload;
-import com.n8cats.share.redundant.ClientSayC;
+import com.riseofcat.lib.LibAll;
+import com.riseofcat.share.ClientPayload;
+import com.riseofcat.share.ServerPayload;
+import com.riseofcat.share.redundant.ClientSayC;
 
 import spark.Request;
 import spark.Response;

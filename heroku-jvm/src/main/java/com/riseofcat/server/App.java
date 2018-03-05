@@ -1,7 +1,7 @@
 package com.riseofcat.server;
 
-import com.n8cats.lib_gwt.Const;
-import com.n8cats.lib_gwt.ILog;
+import com.riseofcat.lib_gwt.Const;
+import com.riseofcat.lib_gwt.ILog;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
