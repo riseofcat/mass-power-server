@@ -2,6 +2,7 @@ package com.riseofcat.common
 
 import com.google.gson.*
 import java.util.concurrent.*
+import kotlin.reflect.*
 
 val gson = Gson()
 
@@ -19,8 +20,8 @@ actual class Common {
       return gson.toJson(obj)
     }
 
-    actual inline fun <reified T> fromJson(str:String):T {
-      return gson.fromJson(str,T::class.java)
+    actual fun <T:Any> fromJson(str:String,clazz:KClass<T>):T {
+      return gson.fromJson(str,clazz.java)
     }
   }
 }
