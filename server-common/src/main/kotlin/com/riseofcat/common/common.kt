@@ -16,5 +16,26 @@ expect class Common {
     fun <K,V> createConcurrentHashMap():MutableMap<K,V>
     fun toJson(obj:Any):String
     fun <T:Any> fromJson(str:String,clazz:KClass<T>):T
+    fun createWebSocket(host:String,port:Int,path:String):LibWebSocket
   }
 }
+
+abstract class LibWebSocket {
+  abstract fun addListener(webSocketAdapter:Listener)
+  abstract fun connect()
+  abstract fun close()
+  abstract fun send(message:String)
+  abstract val state:State
+
+  interface Listener {
+    fun onOpen()
+    fun onClose()
+    fun onMessage(packet:String)
+  }
+
+  enum class State {
+    OPEN,
+    CLOSE
+  }
+}
+

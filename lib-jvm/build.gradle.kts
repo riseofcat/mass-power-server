@@ -39,5 +39,8 @@ dependencies {
   compile("commons-io:commons-io:2.4")
   compile("com.google.code.gson:gson:2.7")
   compile("com.beust:klaxon:2.1.6")
+  val webSocketCryzbyVersion = "1.9.1.9.6"
+  compile("com.github.czyzby:gdx-websocket:$webSocketCryzbyVersion")
+  compile("com.github.czyzby:gdx-websocket-common:$webSocketCryzbyVersion")
 //  compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version")
 }
