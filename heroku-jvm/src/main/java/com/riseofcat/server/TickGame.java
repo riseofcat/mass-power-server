@@ -1,5 +1,5 @@
 package com.riseofcat.server;
-import com.riseofcat.lib_gwt.DefaultValueMap;
+import com.riseofcat.lib.DefaultValueMap;
 import com.riseofcat.share.ClientPayload;
 import com.riseofcat.share.TickActions;
 import com.riseofcat.share.data.InStateAction;

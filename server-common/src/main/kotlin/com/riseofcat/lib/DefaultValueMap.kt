@@ -1,4 +1,4 @@
-package com.riseofcat.lib_gwt
+package com.riseofcat.lib
 
 class DefaultValueMap<K,V>(val map:MutableMap<K,V>,private val createNew:()->V) {
   fun getExistsOrPutDefault(key:K):V {
