@@ -86,6 +86,8 @@ actual class Common {
       }
     }
 
+    actual val timeMs:Long get() = System.currentTimeMillis()
+
   }
 
 }
