@@ -4,7 +4,7 @@ import com.riseofcat.share.data.*
 
 class ClientPayload {
   var tick:Int = 0
-  var actions:ArrayList<ClientAction>? = null
+  var actions:MutableList<ClientAction>? = null
 
   class ClientAction {
     var aid:Int = 0//Если действия будут отложены или не применимы то сервер сообщит по id-шнику. Рецеркулировать от 0 до 255

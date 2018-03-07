@@ -1,6 +1,22 @@
 package com.riseofcat.lib
 
+import com.riseofcat.common.*
+
 object Lib {
+  object Log {
+    enum class LogMode { INFO, ERROR, DEBUG }
+
+    fun error(message:String,t:Throwable? = null) {
+      _log(message,LogMode.ERROR)
+      if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
+    }
+
+    fun info(s:String) = _log(s,LogMode.INFO)
+    fun debug(s:String) = _log(s,LogMode.DEBUG)
+    inline fun _log(str:CharSequence,mode:LogMode) = _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")
+    inline fun _println(str:CharSequence) = println(str)
+  }
+
   object Const {
     const val MILLIS_IN_SECOND = 1000f
   }

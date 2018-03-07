@@ -2,8 +2,6 @@ package com.riseofcat.common
 
 import com.github.czyzby.websocket.*
 import com.github.czyzby.websocket.data.*
-import com.github.czyzby.websocket.CommonWebSockets
-
 import com.google.gson.*
 import java.util.concurrent.*
 import kotlin.reflect.*
@@ -87,7 +85,26 @@ actual class Common {
     }
 
     actual val timeMs:Long get() = System.currentTimeMillis()
+    actual fun getStackTraceString(t:Throwable):String? {
+      return buildString {
+        appendln("Custom EXCEPTION log in actual.jvm:")
+        appendln("${t.javaClass.name}: ${t.message}")
+        t.localizedMessage
+        for(e in t.stackTrace) {
+          appendln(e.prettyString)
+        }
+      }
+    }
+
+    actual fun getCodeLineInfo(depth:Int):CharSequence = try {
+      throw Exception()
+    } catch(e:Throwable) {
+      e.stackTrace.getOrNull(depth)?.prettyString ?: ""
+    }
+
 
   }
 
 }
+
+val StackTraceElement.prettyString:CharSequence get() = "\t$className-$methodName ($fileName:$lineNumber)"

@@ -86,7 +86,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KClass<ServerSa
       socket.send(Common.toJson(say))
       return
     } catch(t:Throwable) {
-      t.printStackTrace()
+      Lib.Log.error("socket.send error", t)
     }
   }
 

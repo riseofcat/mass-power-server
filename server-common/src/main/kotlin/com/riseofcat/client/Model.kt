@@ -120,7 +120,7 @@ class Model(conf:Conf) {
       }
       val payload = ClientPayload()
       payload.tick = clientTick
-      payload.actions = ArrayList()
+      payload.actions = mutableListOf()
       payload.actions!!.add(a)
       client.say(payload)
     }
