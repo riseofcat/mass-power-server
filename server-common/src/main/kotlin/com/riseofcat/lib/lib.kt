@@ -26,6 +26,9 @@ object Lib {
       return (y/middle.toDouble()/(1+y/middle)).toFloat()
     }
   }
+
+  val timeMs get() = Common.timeMs
+  val timeS get() = Common.timeMs/Const.MILLIS_IN_SECOND
 }
 
 fun <T> MutableList<T>.copy() = this.toMutableList()
