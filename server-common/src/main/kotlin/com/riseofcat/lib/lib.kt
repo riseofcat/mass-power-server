@@ -2,6 +2,8 @@ package com.riseofcat.lib
 
 import com.riseofcat.common.*
 
+val createMs = Lib.timeMs
+
 object Lib {
   object Log {
     enum class LogMode { INFO, ERROR, DEBUG }
@@ -29,6 +31,7 @@ object Lib {
 
   val timeMs get() = Common.timeMs
   val timeS get() = Common.timeMs/Const.MILLIS_IN_SECOND
+  val sinceStartS get() = (timeMs - createMs)/Const.MILLIS_IN_SECOND
 }
 
 fun <T> MutableList<T>.copy() = this.toMutableList()
