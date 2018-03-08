@@ -22,7 +22,7 @@ data class XY(var x:Float,var y:Float) {
     return result
   }
 
-  fun sub(a:XY):XY {
+  fun sub(a:XY):XY {//todo operator minus
     val result = if(mutable) this else copy()
     result.x -= a.x
     result.y -= a.y
