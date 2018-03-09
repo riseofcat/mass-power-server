@@ -15,11 +15,9 @@ class Model(conf:Conf) {
   private val myActions = DefaultValueMap<Tick, MutableList<Action>>(mutableMapOf(),{mutableListOf()})
   private var stable:StateWrapper? = null
   private var sync:Sync? = null
-  val playerName:String
-    get() = if(playerId==null) "Wait connection..." else "Player "+playerId!!.toString()
+  val playerName:String get() = playerId?.let{"Player $it"}?:"Wait connection..."
   private var previousActionId = 0
-  val displayState:State?
-    get() = if(sync==null) null else getState(sync!!.calcClientTck().toInt())
+  fun calcDisplayState():State? = sync?.let {getState(it.calcClientTck().toInt())}
   private var cache:StateWrapper? = null
 
   class Sync(internal val serverTick:Float,oldSync:Sync?) {
@@ -127,7 +125,7 @@ class Model(conf:Conf) {
   }
 
   fun touch(pos:XY) {//todo move out?
-    val displayState = displayState
+    val displayState = calcDisplayState()
     if(displayState==null||playerId==null) return
     for((owner,_,_,pos1) in displayState.cars) {
       if(playerId==owner) {
@@ -136,15 +134,6 @@ class Model(conf:Conf) {
         break
       }
     }
-  }
-
-  fun update(graphicDelta:Float) {
-    //	if(serverTickPreviousTime == null) return;
-    //	float time = App.timeSinceCreate();
-    //	serverTick += (time - serverTickPreviousTime) / Logic.UPDATE_S;
-    //	serverTickPreviousTime = time;
-    //	clientTick += graphicDelta / Logic.UPDATE_S;
-    //	clientTick += (serverTick - clientTick) * LibAllGwt.Fun.arg0toInf(Math.abs((serverTick - clientTick) * graphicDelta), 6f);
   }
 
   private fun clearCache(tick:Int) {

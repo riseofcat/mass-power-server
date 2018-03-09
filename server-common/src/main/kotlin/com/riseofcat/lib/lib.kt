@@ -27,11 +27,14 @@ object Lib {
     fun arg0toInf(y:Double,middle:Float):Float {
       return (y/middle.toDouble()/(1+y/middle)).toFloat()
     }
+    fun pillar(value:Long, max:Long) = if((value/max)%2==0L) { value%max } else { max-value%max }//Имеет график /\/\/\/\
   }
 
   val timeMs get() = Common.timeMs
   val timeS get() = Common.timeMs/Const.MILLIS_IN_SECOND
-  val sinceStartS get() = (timeMs - createMs)/Const.MILLIS_IN_SECOND
+  val sinceStartS get() = (timeMs-createMs)/Const.MILLIS_IN_SECOND
+  fun pillarTimeMs(max:Long) = Fun.pillar(timeMs, max)
+  fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/Lib.Const.MILLIS_IN_SECOND
 }
 
 fun <T> MutableList<T>.copy() = this.toMutableList()
