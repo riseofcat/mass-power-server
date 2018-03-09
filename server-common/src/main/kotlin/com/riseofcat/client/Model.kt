@@ -180,7 +180,7 @@ class Model(conf:Conf) {
 
     constructor(obj:StateWrapper) {
       val t = Common.timeMs
-      state = obj.state.copy2()
+      state = Common.clone(obj.state)
       copyTime += Common.timeMs-t
       this.tick = obj.tick
     }

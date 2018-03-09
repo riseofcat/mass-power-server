@@ -20,6 +20,7 @@ expect class Common {
     fun getStackTraceString(t:Throwable):String?
     val timeMs:Long
     fun getCodeLineInfo(depth:Int):CharSequence
+    fun <T:MayClone<T>>clone(obj:T):T
   }
 }
 
@@ -40,5 +41,9 @@ abstract class LibWebSocket {
     OPEN,
     CLOSE
   }
+}
+
+interface MayClone<T> {
+  fun clone():T
 }
 

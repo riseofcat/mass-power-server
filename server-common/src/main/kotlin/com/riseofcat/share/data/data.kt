@@ -1,5 +1,6 @@
 package com.riseofcat.share.data
 
+import com.riseofcat.common.*
 import kotlin.math.*
 
 val BASE_WIDTH = 1000
@@ -86,90 +87,91 @@ data class State(
   var foods:MutableList<Food> = mutableListOf(),
   var reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
-  var size:Int = 0) {
-  fun width() = (BASE_WIDTH+size).toFloat()
-  fun height() = (BASE_HEIGHT+size).toFloat()
-  fun act(iterator:Iterator<InStateAction>):State {
-    class Cache:GetCarById {
-      override fun getCar(id:PlayerId):Car? {
-        for(car in cars) if(id==car.owner) return car
-        return null
-      }
-    }
-    val cache = Cache()
-    while(iterator.hasNext()) {
-      val p = iterator.next()
-      p.act(this,cache)
-    }
-    return this
-  }
-  private fun distance(a:XY,b:XY):Float {
-    var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width()-a.x)
-    dx = kotlin.math.min(dx,a.x+width()-b.x)
-    var dy = kotlin.math.min(kotlin.math.abs(b.y-a.y),b.y+height()-a.y)
-    dy = kotlin.math.min(dy,a.y+height()-b.y)
-    return kotlin.math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
-  }
-  fun tick():State {
-    val iterator = CompositeIterator<SpeedObject>(cars,reactive)
-    while(iterator.hasNext()) {
-      val o = iterator.next()
-      o!!.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
-      if(o.pos.x>=width())
-        o.pos.x = o.pos.x-width()
-      else if(o.pos.x<0) o.pos.x = o.pos.x+width()
-      if(o.pos.y>=height())
-        o.pos.y = o.pos.y-height()
-      else if(o.pos.y<0) o.pos.y = o.pos.y+height()
-      o.speed = o.speed.scale(0.98f)
-    }
-    var reactItr:MutableIterator<Reactive> = reactive.iterator()
-    while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
-    for(car in cars) {
-      val foodItr = foods.iterator()
-      while(foodItr.hasNext()) {
-        val (size1,_,pos) = foodItr.next()
-        if(distance(car.pos,pos)<=car.radius()) {
-          car.size = car.size+size1
-          foodItr.remove()
-        }
-      }
-      reactItr = reactive.iterator()
-      while(reactItr.hasNext()) {
-        val r = reactItr.next()
-        if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
-          car.size = car.size+r.size
-          reactItr.remove()
-        }
-      }
-    }
-    if(foods.size<Logic.FOODS) foods.add(Food(Logic.FOOD_SIZE,XY(),rndPos()))
-    return this
-  }
+  var size:Int = 0):MayClone<State> {
 
-  private fun rnd(min:Int,max:Int):Int {
-    random = random*1664525+1013904223 and 0x7fffffff
-    return min+random%(max-min+1)
-  }
-
-  private fun rnd(max:Int) = rnd(0,max)
-  private fun rndf(min:Float,max:Float) = min+rnd(999)/1000f*(max-min)//todo optimize
-  private fun rndf(max:Float = 1f) = rndf(0f,max)
-  private fun rndPos() = XY(rndf(width()),rndf(height()),true)
-
-  fun changeSize(delta:Int) {
-    val oldW = width()
-    val oldH = height()
-    size += delta
-    val itr = CompositeIterator(cars,reactive,foods)
-    while(itr.hasNext()) {
-      val p = itr.next()
-      p!!.pos = p.pos.scale(width()/oldW,height()/oldH)
-    }
-  }
-
-  fun copy2():State {
-    return this.copy();
+  override fun clone():State {
+    return copy()
   }
 }
 
+fun State.tick():State {
+  val iterator = CompositeIterator<SpeedObject>(cars,reactive)
+  while(iterator.hasNext()) {
+    val o = iterator.next()
+    o!!.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
+    if(o.pos.x>=width())
+      o.pos.x = o.pos.x-width()
+    else if(o.pos.x<0) o.pos.x = o.pos.x+width()
+    if(o.pos.y>=height())
+      o.pos.y = o.pos.y-height()
+    else if(o.pos.y<0) o.pos.y = o.pos.y+height()
+    o.speed = o.speed.scale(0.98f)
+  }
+  var reactItr:MutableIterator<Reactive> = reactive.iterator()
+  while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
+  for(car in cars) {
+    val foodItr = foods.iterator()
+    while(foodItr.hasNext()) {
+      val (size1,_,pos) = foodItr.next()
+      if(distance(car.pos,pos)<=car.radius()) {
+        car.size = car.size+size1
+        foodItr.remove()
+      }
+    }
+    reactItr = reactive.iterator()
+    while(reactItr.hasNext()) {
+      val r = reactItr.next()
+      if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
+        car.size = car.size+r.size
+        reactItr.remove()
+      }
+    }
+  }
+  if(foods.size<Logic.FOODS) foods.add(Food(Logic.FOOD_SIZE,XY(),rndPos()))
+  return this
+}
+
+fun State.width() = (BASE_WIDTH+size).toFloat()
+fun State.height() = (BASE_HEIGHT+size).toFloat()
+fun State.act(iterator:Iterator<InStateAction>):State {
+  class Cache:GetCarById {
+    override fun getCar(id:PlayerId):Car? {
+      for(car in cars) if(id==car.owner) return car
+      return null
+    }
+  }
+  val cache = Cache()
+  while(iterator.hasNext()) {
+    val p = iterator.next()
+    p.act(this,cache)
+  }
+  return this
+}
+fun State.distance(a:XY,b:XY):Float {
+  var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width()-a.x)
+  dx = kotlin.math.min(dx,a.x+width()-b.x)
+  var dy = kotlin.math.min(kotlin.math.abs(b.y-a.y),b.y+height()-a.y)
+  dy = kotlin.math.min(dy,a.y+height()-b.y)
+  return kotlin.math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
+}
+
+fun State.rnd(min:Int,max:Int):Int {
+  random = random*1664525+1013904223 and 0x7fffffff
+  return min+random%(max-min+1)
+}
+
+fun State.rnd(max:Int) = rnd(0,max)
+fun State.rndf(min:Float,max:Float) = min+rnd(999)/1000f*(max-min)//todo optimize
+fun State.rndf(max:Float = 1f) = rndf(0f,max)
+fun State.rndPos() = XY(rndf(width()),rndf(height()),true)
+
+fun State.changeSize(delta:Int) {
+  val oldW = width()
+  val oldH = height()
+  size += delta
+  val itr = CompositeIterator(cars,reactive,foods)
+  while(itr.hasNext()) {
+    val p = itr.next()
+    p!!.pos = p.pos.scale(width()/oldW,height()/oldH)
+  }
+}
