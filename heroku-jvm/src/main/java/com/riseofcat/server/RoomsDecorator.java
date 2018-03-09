@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RoomsDecorator<TClientPayload, TServerPayload> extends SesServ<TClientPayload, TServerPayload> {
 public final static int MAXIMUM_ROOM_PLAYERS = 5;
-public final Signal<Room> onRoomCreated = new Signal<>();
+public final Signal<Room> onRoomCreated = new Signal<Room>();
 //todo onRoomDestroyed
 private final Set<Room> rooms = new HashSet<>();
 private final Map<Ses, Room> map = new ConcurrentHashMap<>();
@@ -48,9 +48,9 @@ public void message(Ses session, TClientPayload payload) {
 	room.message(session, payload);
 }
 public class Room {
-	final public Signal<Player> onPlayerAdded = new Signal<>();
-	final public Signal<Player> onPlayerRemoved = new Signal<>();
-	final public Signal<PlayerMessage> onMessage = new Signal<>();
+	final public Signal<Player> onPlayerAdded = new Signal<Player>();
+	final public Signal<Player> onPlayerRemoved = new Signal<Player>();
+	final public Signal<PlayerMessage> onMessage = new Signal<PlayerMessage>();
 	private final Map<Ses, Player> players = new ConcurrentHashMap<>();
 	public int getPlayersCount() {
 		return players.size();

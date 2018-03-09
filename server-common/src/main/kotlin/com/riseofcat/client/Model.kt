@@ -188,11 +188,11 @@ class Model(conf:Conf) {
     fun tick(targetTick:Int) {
       while(tick<targetTick) {
         val other = actions.map[Tick(tick)]
-        if(other!=null) state.act(other)
+        if(other!=null) state.act(other.iterator())
         val my = myActions.map[Tick(tick)]
         if(my!=null) {
           synchronized(myActions) {
-            state.act(my)
+            state.act(my.iterator())
           }
         }
         state.tick()

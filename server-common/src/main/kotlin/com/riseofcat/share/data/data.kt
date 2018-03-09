@@ -92,60 +92,63 @@ data class State(
   override fun clone():State {
     return copy()
   }
-}
 
-fun State.tick():State {
-  val iterateFun:(SpeedObject) -> Unit = {o->
-    o!!.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
-    if(o.pos.x>=width())
-      o.pos.x = o.pos.x-width()
-    else if(o.pos.x<0) o.pos.x = o.pos.x+width()
-    if(o.pos.y>=height())
-      o.pos.y = o.pos.y-height()
-    else if(o.pos.y<0) o.pos.y = o.pos.y+height()
-    o.speed = o.speed.scale(0.98f)
-  }
-  cars.forEach(iterateFun)
-  reactive.forEach(iterateFun)
-  var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
-  for(car in cars) {
-    val foodItr = foods.iterator()
-    while(foodItr.hasNext()) {
-      val (size1,_,pos) = foodItr.next()
-      if(distance(car.pos,pos)<=car.radius()) {
-        car.size = car.size+size1
-        foodItr.remove()
+  fun act(actions:Iterator<InStateAction>):State {
+    class Cache:GetCarById {
+      override fun getCar(id:PlayerId):Car? {
+        for(car in cars) if(id==car.owner) return car
+        return null
       }
     }
-    reactItr = reactive.iterator()
-    while(reactItr.hasNext()) {
-      val r = reactItr.next()
-      if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
-        car.size = car.size+r.size
-        reactItr.remove()
+    val cache = Cache()
+    actions.forEach {
+      it.act(this, cache)
+    }
+    return this
+  }
+
+  fun tick():State {
+    val iterateFun:(SpeedObject) -> Unit = {o->
+      o!!.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
+      if(o.pos.x>=width())
+        o.pos.x = o.pos.x-width()
+      else if(o.pos.x<0) o.pos.x = o.pos.x+width()
+      if(o.pos.y>=height())
+        o.pos.y = o.pos.y-height()
+      else if(o.pos.y<0) o.pos.y = o.pos.y+height()
+      o.speed = o.speed.scale(0.98f)
+    }
+    cars.forEach(iterateFun)
+    reactive.forEach(iterateFun)
+    var reactItr:MutableIterator<Reactive> = reactive.iterator()
+    while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
+    for(car in cars) {
+      val foodItr = foods.iterator()
+      while(foodItr.hasNext()) {
+        val (size1,_,pos) = foodItr.next()
+        if(distance(car.pos,pos)<=car.radius()) {
+          car.size = car.size+size1
+          foodItr.remove()
+        }
+      }
+      reactItr = reactive.iterator()
+      while(reactItr.hasNext()) {
+        val r = reactItr.next()
+        if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
+          car.size = car.size+r.size
+          reactItr.remove()
+        }
       }
     }
+    if(foods.size<Logic.FOODS) foods.add(Food(Logic.FOOD_SIZE,XY(),rndPos()))
+    return this
   }
-  if(foods.size<Logic.FOODS) foods.add(Food(Logic.FOOD_SIZE,XY(),rndPos()))
-  return this
+
+
 }
 
 fun State.width() = (BASE_WIDTH+size).toFloat()
 fun State.height() = (BASE_HEIGHT+size).toFloat()
-fun State.act(actions:Collection<InStateAction>):State {
-  class Cache:GetCarById {
-    override fun getCar(id:PlayerId):Car? {
-      for(car in cars) if(id==car.owner) return car
-      return null
-    }
-  }
-  val cache = Cache()
-  actions.forEach {
-    it.act(this, cache)
-  }
-  return this
-}
 fun State.distance(a:XY,b:XY):Float {
   var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width()-a.x)
   dx = kotlin.math.min(dx,a.x+width()-b.x)
