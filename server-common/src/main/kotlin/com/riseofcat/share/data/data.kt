@@ -2,6 +2,7 @@ package com.riseofcat.share.data
 
 import com.riseofcat.common.*
 import kotlin.math.*
+import kotlinx.serialization.Serializable
 
 val BASE_WIDTH = 1000
 val BASE_HEIGHT = 1000
@@ -23,7 +24,7 @@ interface EatMe:SpeedObject {
   fun radius() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+Logic.MIN_RADIUS
 }
 
-data class Action (var direction:Angle)
+@Serializable data class Action (var direction:Angle)
 data class Angle(var radians:Float) {
   init {
     val circles = (radians/(2*kotlin.math.PI)).toInt()
@@ -47,15 +48,19 @@ data class Angle(var radians:Float) {
   }
 }
 
-data class Car(var owner:PlayerId
-  , override var size:Int,override var speed:XY,override var pos:XY):EatMe
-//		size = FOOD_SIZE;//todo fixed size
-data class Food(
+@Serializable data class Car(
+  var owner:PlayerId,
   override var size:Int,
   override var speed:XY,
   override var pos:XY):EatMe
 
-data class NewCarAction(var id:PlayerId):InStateAction {
+@Serializable data class Food(
+  override var size:Int,
+  override var speed:XY,
+  override var pos:XY):EatMe
+
+@Serializable data class NewCarAction(
+  var id:PlayerId):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
     state.cars.add(Car(id,Logic.MIN_SIZE*6,XY(true),XY()))
@@ -63,7 +68,9 @@ data class NewCarAction(var id:PlayerId):InStateAction {
   fun toBig() = BigAction().also {it.n = this}
 }
 
-open class PlayerAction(var id:PlayerId,var action:Action):InStateAction {
+@Serializable open class PlayerAction(
+  var id:PlayerId,
+  var action:Action):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     val scl = 100f
     val car = getCar.getCar(id) ?: return //todo handle null ?
@@ -75,14 +82,14 @@ open class PlayerAction(var id:PlayerId,var action:Action):InStateAction {
   fun toBig() = BigAction().also{it.p=this}
 }
 
-data class Reactive(
+@Serializable data class Reactive(
   var owner:PlayerId,
   override var size:Int,
   override var speed:XY,
   override var pos:XY,
   var ticks:Int = 0):EatMe
 
-data class State(
+@Serializable data class State(
   var cars:MutableList<Car> = mutableListOf(),
   var foods:MutableList<Food> = mutableListOf(),
   var reactive:MutableList<Reactive> = mutableListOf(),
@@ -143,8 +150,6 @@ data class State(
     if(foods.size<Logic.FOODS) foods.add(Food(Logic.FOOD_SIZE,XY(),rndPos()))
     return this
   }
-
-
 }
 
 fun State.width() = (BASE_WIDTH+size).toFloat()

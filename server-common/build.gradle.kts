@@ -1,16 +1,20 @@
 import org.gradle.kotlin.dsl.*
 
+val serialization_version by project
+
 plugins {
-//    kotlin("jvm")
     id("kotlin-platform-common")
+    id("kotlinx-serialization") version "0.4.2" apply true
 }
 
 repositories {
+    maven {url = uri("https://kotlin.bintray.com/kotlinx")}
     jcenter()
 }
 
 dependencies {
     compile(kotlin("stdlib"))
+    compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serialization_version")
 }
 
 //dependencies {

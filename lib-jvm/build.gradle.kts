@@ -1,11 +1,12 @@
 properties["userServerCommon"]
+val serialization_version by project
 buildscript {
   println("hello buildscript")
   repositories {
     maven {url = uri("https://kotlin.bintray.com/kotlinx")}
   }
   val kotlin_version = "1.2.30"
-  val serialization_version = "0.4.1"
+  val serialization_version = "0.4.2"
   dependencies {
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
     classpath("org.jetbrains.kotlinx:kotlinx-gradle-serialization-plugin:$serialization_version")
@@ -15,7 +16,7 @@ buildscript {
 plugins {
   if(false) kotlin("jvm")
   id("kotlin-platform-jvm")
-//  id("kotlinx-serialization")//todo
+  id("kotlinx-serialization") version "0.4.2" apply true
 }
 
 java {
@@ -29,8 +30,6 @@ repositories {
 }
 
 dependencies {
-//  val serialization_version = "0.4.1"
-
   compile(kotlin("stdlib"))
   expectedBy(project(":server-common"))
 
@@ -42,5 +41,6 @@ dependencies {
   val webSocketCryzbyVersion = "1.9.1.9.6"
   compile("com.github.czyzby:gdx-websocket:$webSocketCryzbyVersion")
   compile("com.github.czyzby:gdx-websocket-common:$webSocketCryzbyVersion")
-//  compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version")
+
+  compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version")
 }

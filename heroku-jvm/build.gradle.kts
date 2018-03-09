@@ -1,12 +1,12 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.*
 import com.github.jengelman.gradle.plugins.shadow.transformers.*
 import org.gradle.kotlin.dsl.*
-//import java.net.URI
 
 plugins {
   id("kotlin-platform-jvm")
   application //needs only for local launch ./gradlew heroku-jvm:run
   id("com.github.johnrengelman.shadow").version("2.0.2")
+  id("kotlinx-serialization") version "0.4.2" apply true
 }
 application { //needs only for local launch
   mainClassName = "com.riseofcat.server.MainJava"
@@ -43,7 +43,7 @@ tasks.withType<ShadowJar> {
 repositories {
   mavenCentral()
   jcenter()
-  maven { url  = uri("http://dl.bintray.com/kotlin/ktor") }
+  maven { url = uri("http://dl.bintray.com/kotlin/ktor") }
   maven { url = uri("https://dl.bintray.com/kotlin/kotlinx") }
 }
 dependencies {
