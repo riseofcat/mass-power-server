@@ -95,9 +95,7 @@ data class State(
 }
 
 fun State.tick():State {
-  val iterator = CompositeIterator<SpeedObject>(cars,reactive)
-  while(iterator.hasNext()) {
-    val o = iterator.next()
+  val iterateFun:(SpeedObject) -> Unit = {o->
     o!!.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
     if(o.pos.x>=width())
       o.pos.x = o.pos.x-width()
@@ -107,6 +105,8 @@ fun State.tick():State {
     else if(o.pos.y<0) o.pos.y = o.pos.y+height()
     o.speed = o.speed.scale(0.98f)
   }
+  cars.forEach(iterateFun)
+  reactive.forEach(iterateFun)
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
   while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
   for(car in cars) {
@@ -133,7 +133,7 @@ fun State.tick():State {
 
 fun State.width() = (BASE_WIDTH+size).toFloat()
 fun State.height() = (BASE_HEIGHT+size).toFloat()
-fun State.act(iterator:Iterator<InStateAction>):State {
+fun State.act(actions:Collection<InStateAction>):State {
   class Cache:GetCarById {
     override fun getCar(id:PlayerId):Car? {
       for(car in cars) if(id==car.owner) return car
@@ -141,9 +141,8 @@ fun State.act(iterator:Iterator<InStateAction>):State {
     }
   }
   val cache = Cache()
-  while(iterator.hasNext()) {
-    val p = iterator.next()
-    p.act(this,cache)
+  actions.forEach {
+    it.act(this, cache)
   }
   return this
 }
@@ -169,9 +168,9 @@ fun State.changeSize(delta:Int) {
   val oldW = width()
   val oldH = height()
   size += delta
-  val itr = CompositeIterator(cars,reactive,foods)
-  while(itr.hasNext()) {
-    val p = itr.next()
-    p!!.pos = p.pos.scale(width()/oldW,height()/oldH)
-  }
+  val changePosFun:(PosObject) -> Unit = {p-> p!!.pos = p.pos.scale(width()/oldW,height()/oldH)}
+  cars.forEach(changePosFun)
+  reactive.forEach(changePosFun)
+  foods.forEach(changePosFun)
+
 }
