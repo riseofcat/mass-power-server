@@ -1,5 +1,5 @@
 properties["userServerCommon"]
-val serialization_version by project
+val serialization_version = "0.4.2"
 buildscript {
   println("hello buildscript")
   repositories {
