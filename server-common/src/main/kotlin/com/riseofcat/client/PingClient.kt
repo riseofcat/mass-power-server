@@ -4,7 +4,6 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.*
 import kotlinx.serialization.*
-import kotlinx.serialization.json.*
 
 class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
   private val incoming = Signal<S>()
@@ -28,7 +27,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
       override fun onMessage(packet:String) {
         val serverSay:ServerSay<S> = try {
-          JSON.parse(typeS, packet)
+          Lib.json.parse(typeS, packet)
         } catch(t:Throwable) {
           Lib.Log.error("serverSay parse", t)
           TODO("")
@@ -90,7 +89,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private fun sayNow(say:ClientSay<C>) {
     try {
-      socket.send(JSON.stringify(typeC, say))
+      socket.send(Lib.json.stringify(typeC, say))
       return
     } catch(t:Throwable) {
       Lib.Log.error("socket.send error", t)

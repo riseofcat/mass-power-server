@@ -2,11 +2,8 @@ package com.riseofcat.common
 
 import com.github.czyzby.websocket.*
 import com.github.czyzby.websocket.data.*
-import com.google.gson.*
 import java.util.concurrent.*
 import kotlin.reflect.*
-
-val gson = Gson()
 
 actual class Common {
   actual companion object {
@@ -16,14 +13,6 @@ actual class Common {
 
     actual fun <K,V> createConcurrentHashMap():MutableMap<K,V> {
       return ConcurrentHashMap()
-    }
-
-    actual fun toJson(obj:Any):String {
-      return gson.toJson(obj)
-    }
-
-    actual fun <T:Any> fromJson(str:String,clazz:KClass<T>):T {
-      return gson.fromJson(str,clazz.java)
     }
 
     var firstCreateWebSocket = true

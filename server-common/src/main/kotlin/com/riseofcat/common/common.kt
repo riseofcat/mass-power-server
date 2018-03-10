@@ -14,8 +14,6 @@ expect class Common {
   companion object {
     fun <T> createConcurrentList():MutableList<T>
     fun <K,V> createConcurrentHashMap():MutableMap<K,V>
-    fun toJson(obj:Any):String
-    fun <T:Any> fromJson(str:String,clazz:KClass<T>):T
     fun createWebSocket(host:String,port:Int,path:String):LibWebSocket
     fun getStackTraceString(t:Throwable):String?
     val timeMs:Long

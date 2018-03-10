@@ -1,5 +1,7 @@
 package com.riseofcat.client
 
-class Conf(
+import kotlinx.serialization.Serializable
+
+@Serializable class Conf(
   var port:Int = 80,
   var host:String = "localhost")

@@ -1,6 +1,5 @@
 package com.riseofcat.server;
 
-import com.google.gson.Gson;
 import com.riseofcat.lib.LibAll;
 import com.riseofcat.share.ClientPayload;
 import com.riseofcat.share.ServerPayload;
@@ -22,7 +21,6 @@ public static void main(String[] args) {
 	}
 	Spark.staticFiles.location("/public");
 	Spark.staticFiles.expireTime(600);
-	final Gson gson = new Gson();
 	Spark.webSocket("/socket", new SparkWebSocket(
 			new UsageMonitorDecorator<>(
 			new ConvertDecorator<>(
