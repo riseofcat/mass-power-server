@@ -59,7 +59,7 @@ interface EatMe:SpeedObject {
   override var speed:XY,
   override var pos:XY):EatMe
 
-@Serializable data class NewCarAction(
+@Serializable class NewCarAction(
   var id:PlayerId):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
@@ -68,7 +68,7 @@ interface EatMe:SpeedObject {
   fun toBig() = BigAction().also {it.n = this}
 }
 
-@Serializable open class PlayerAction(
+@Serializable class PlayerAction(
   var id:PlayerId,
   var action:Action):InStateAction {
   override fun act(state:State,getCar:GetCarById) {

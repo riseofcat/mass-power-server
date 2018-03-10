@@ -90,7 +90,7 @@ class Model(conf:Conf) {
               if(s.apply!=null) {
                 for(apply in s.apply!!) {
                   if(apply.aid==next.aid) {
-                    if(!ShareTodo.SIMPLIFY) actions.getExistsOrPutDefault(t.add(apply.delay)).add(PlayerAction(playerId!!,next.action).toBig())
+                    if(!ShareTodo.SIMPLIFY) actions.getExistsOrPutDefault(t.add(apply.delay)).add(PlayerAction(playerId!!,next.pa.action).toBig())
                     iterator.remove()
                     clearCache(t.tick+1)
                     continue@whl
@@ -174,7 +174,11 @@ class Model(conf:Conf) {
     client.close()
   }
 
-  private inner class Action(val aid:Int,action:com.riseofcat.share.data.Action):PlayerAction(playerId!!,action)
+  private inner class Action(
+    val aid:Int,
+    action:com.riseofcat.share.data.Action,
+    val pa:PlayerAction = PlayerAction(playerId!!,action)):InStateAction by pa
+
   private inner class StateWrapper {
     var state:State
     var tick:Int = 0
