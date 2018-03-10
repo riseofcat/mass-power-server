@@ -2,10 +2,10 @@ package com.riseofcat.share
 
 import kotlinx.serialization.Serializable
 
-//todo redundant. Replace with Integer
-@Serializable data class Tick(//do not use in JSON
+@Serializable data class Tick(
   val tick:Int) {
-  fun add(t:Int):Tick {
+
+  fun add(t:Int):Tick {//todo operator fun plus
     return Tick(tick+t)
   }
 

@@ -51,13 +51,12 @@ private class PingSes extends SesServ<C, S>.Ses {
 		sess.stop();
 	}
 	public void send(S payload) {
-		ServerSay<S> say = new ServerSay<>();
+		ServerSay<S> say = new ServerSay<S>(payload);
 		say.setLatency(latency);
 		if(lastPingTime == null || System.currentTimeMillis() > lastPingTime + pingIntervalMs) {
 			say.setPing(true);
 			lastPingTime = System.currentTimeMillis();
 		}
-		say.setPayload(payload);
 		sess.send(say);
 	}
 	public TypeMap getTypeMap() {

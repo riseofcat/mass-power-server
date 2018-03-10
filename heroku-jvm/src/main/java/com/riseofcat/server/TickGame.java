@@ -52,8 +52,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 		synchronized(TickGame.this) {
 			if(message.payload.getActions() != null) {
 				for(ClientPayload.ClientAction a : message.payload.getActions()) {
-					ServerPayload payload = new ServerPayload();
-					payload.setTick(tick);
+					ServerPayload payload = new ServerPayload(tick);
 					int delay = 0;
 					if(a.getTick() < getStableTick().getTick()) {
 						if(a.getTick() < getRemoveBeforeTick()) {
@@ -106,14 +105,14 @@ public TickGame(ConcreteRoomsServer.Room room) {
 	}, 0, Logic.Companion.getUPDATE_MS() / 2);
 }
 private void updatePlayer(RoomsDecorator<ClientPayload, ServerPayload>.Room.Player p) {
-	ServerPayload payload = new ServerPayload();
+	ServerPayload payload = new ServerPayload(tick);
 	updatePlayerInPayload(payload, p);
 	p.session.send(payload);
 }
 private void updatePlayerInPayload(ServerPayload payload, RoomsDecorator<ClientPayload, ServerPayload>.Room.Player p) {
 	payload.setActions(new ArrayList<>());
 	synchronized(this) {
-		payload.setTick(tick);
+		payload.setTick(tick);//todo redundant? but synchronized
 		for(Map.Entry<Tick, List<Action>> entry : actions.getMap().entrySet()) {
 			ArrayList<BigAction> temp = new ArrayList<>();
 			for(Action a : entry.getValue()) if(ShareTodo.INSTANCE.getSIMPLIFY() || a.pa.getP() == null || !a.pa.getP().getId().equals(p.getId())) if(a.actionVersion > mapPlayerVersion.get(p.getId())) temp.add(a.pa);
@@ -123,11 +122,8 @@ private void updatePlayerInPayload(ServerPayload payload, RoomsDecorator<ClientP
 	}
 }
 ServerPayload createStablePayload() {
-	ServerPayload result = new ServerPayload();
-	result.setTick(tick);
-	result.setStable(new ServerPayload.Stable());
-	result.getStable().setTick(getStableTick().getTick());
-	result.getStable().setState(state);
+	ServerPayload result = new ServerPayload(tick);
+	result.setStable(new ServerPayload.Stable(getStableTick().getTick(), state));
 	return result;
 }
 private Tick getStableTick() {

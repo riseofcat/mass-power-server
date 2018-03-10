@@ -4,8 +4,6 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.*
 import com.riseofcat.share.data.*
-import kotlinx.serialization.*
-import kotlin.reflect.*
 
 class Model(conf:Conf) {
   val client:PingClient<ServerPayload,ClientPayload>
@@ -45,10 +43,6 @@ class Model(conf:Conf) {
       val t = Common.timeMs
       return calcSrvTck(t)+(clientTick-serverTick)*(1f-Lib.Fun.arg0toInf((t-time).toDouble(),600f))
     }
-  }
-
-  inline fun <reified T:Any>getKClass():KClass<T> {
-    return T::class
   }
 
   init {
@@ -111,13 +105,14 @@ class Model(conf:Conf) {
       if(!ready()) return
       if(false) if(sync!!.calcSrvTck()-sync!!.calcClientTck()>Params.DELAY_TICKS*1.5||sync!!.calcClientTck()-sync!!.calcSrvTck()>Params.FUTURE_TICKS*1.5) return
       val w = (client.smartLatencyS/Logic.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
-      val a = ClientPayload.ClientAction()
-      a.aid = ++previousActionId
-      a.wait = w
-      a.tick = clientTick+w//todo serverTick?
-      a.action = action
+      val a = ClientPayload.ClientAction(
+        aid = ++previousActionId,
+        wait = w,
+        tick = clientTick+w,//todo serverTick?
+        action = action
+      )
       synchronized(myActions) {
-        myActions.getExistsOrPutDefault(Tick(clientTick+w)).add(Action(a.aid,a.action!!))
+        myActions.getExistsOrPutDefault(Tick(clientTick+w)).add(Action(a.aid,a.action))
       }
       val payload = ClientPayload()
       payload.tick = clientTick

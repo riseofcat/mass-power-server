@@ -59,8 +59,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
   override var speed:XY,
   override var pos:XY):EatMe
 
-@Serializable class NewCarAction(
-  var id:PlayerId):InStateAction {
+@Serializable class NewCarAction(var id:PlayerId):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
     state.cars.add(Car(id,Logic.MIN_SIZE*6,XY(true),XY()))
@@ -90,9 +89,9 @@ val Angle.gdxTransformRotation:Float get() = degrees
   var ticks:Int = 0):EatMe
 
 @Serializable data class State(
-  var cars:MutableList<Car> = mutableListOf(),
-  var foods:MutableList<Food> = mutableListOf(),
-  var reactive:MutableList<Reactive> = mutableListOf(),
+  @Optional var cars:MutableList<Car> = mutableListOf(),
+  @Optional var foods:MutableList<Food> = mutableListOf(),
+  @Optional var reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
   var size:Int = 0):MayClone<State> {
 

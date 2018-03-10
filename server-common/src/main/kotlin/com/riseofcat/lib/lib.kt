@@ -13,6 +13,7 @@ object Lib {
   fun pillarTimeMs(max:Long) = Fun.pillar(timeMs, max)
   fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/Lib.Const.MILLIS_IN_SECOND
   val json = JSON(unquoted = true, nonstrict = true)
+  inline fun <reified T:Any>getKClass() = T::class
 
   object Const {
     const val MILLIS_IN_SECOND = 1000f

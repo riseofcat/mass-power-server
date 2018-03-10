@@ -1,10 +1,10 @@
 package com.riseofcat.share.data
 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import kotlin.math.*
 
 @Serializable data class XY(var x:Float,var y:Float) {
-  private var mutable:Boolean = false
+  @Transient private var mutable:Boolean = false
   constructor(x:Float,y:Float,mutable:Boolean):this(x,y) {
     this.mutable = mutable
   }

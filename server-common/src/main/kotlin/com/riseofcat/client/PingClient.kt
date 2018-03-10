@@ -27,6 +27,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
       override fun onMessage(packet:String) {
         val serverSay:ServerSay<S> = try {
+          Lib.Log.info(packet)
           Lib.json.parse(typeS, packet)
         } catch(t:Throwable) {
           Lib.Log.error("serverSay parse", t)
