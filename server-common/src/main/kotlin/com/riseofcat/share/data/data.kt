@@ -1,8 +1,8 @@
 package com.riseofcat.share.data
 
 import com.riseofcat.common.*
+import kotlinx.serialization.*
 import kotlin.math.*
-import kotlinx.serialization.Serializable
 
 const val BASE_WIDTH = 1000
 const val BASE_HEIGHT = 1000
@@ -36,8 +36,6 @@ interface EatMe:SpeedObject {
     //		radians += 2 * Math.PI;
     //	}
   }
-  val degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
-  val gdxTransformRotation:Float get() = degrees
   fun sin() = kotlin.math.sin(radians.toDouble()).toFloat()
   fun cos() = kotlin.math.cos(radians.toDouble()).toFloat()
   fun xy():XY = XY(cos(),sin())
@@ -47,6 +45,8 @@ interface EatMe:SpeedObject {
     fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
   }
 }
+val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
+val Angle.gdxTransformRotation:Float get() = degrees
 
 @Serializable data class Car(
   var owner:PlayerId,

@@ -33,10 +33,10 @@ public final int getSessionsCount() {
 }
 
 public class CountSes extends SesServ<C, S>.Ses {
-	private int incomeCalls;
-	private int outCalls;
+	public int incomeCalls;
+	public int outCalls;
 	private final Ses sess;
-	private final long startTimeMs;
+	public final long startTimeMs;
 	public CountSes(Ses session) {
 		this.sess = session;
 		startTimeMs = System.currentTimeMillis();
@@ -74,5 +74,4 @@ public static class Extra implements TypeMap.Marker {
 		return countSes.startTimeMs;
 	}
 }
-
 }

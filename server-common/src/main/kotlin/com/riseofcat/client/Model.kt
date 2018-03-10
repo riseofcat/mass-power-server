@@ -52,10 +52,7 @@ class Model(conf:Conf) {
   }
 
   init {
-    val serverPayloadSerializer:KSerializer<ServerPayload> = ServerPayload.serializer()
-    val serverSayServerPayloadSerializer:KSerializer<ServerSay<ServerPayload>> = ServerSay.serializer(serverPayloadSerializer)
-
-    client = PingClient(conf.host,conf.port,"socket",serverSayServerPayloadSerializer)
+    client = PingClient(conf.host,conf.port,"socket",Share.serverSayServerPayloadSerializer)
     client.connect(object:Signal.Listener<ServerPayload> {
       override fun onSignal(s:ServerPayload) {
         synchronized(this) {

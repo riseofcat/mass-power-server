@@ -30,7 +30,7 @@ public static void main(String[] args) {
 			new PingDecorator<>(
 			new RoomsDecorator<ClientPayload, ServerPayload>(TickGame::new), 1000),
 			obj -> gson.fromJson(obj, ClientSayC.class),
-			gson::toJson))));
+			ss->Util.Companion.toServerSayJson(ss)))));
 	Spark.get("/", new Route() {
 		@Override
 		public Object handle(Request request, Response response) {
