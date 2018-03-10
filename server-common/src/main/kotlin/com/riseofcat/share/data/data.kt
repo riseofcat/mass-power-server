@@ -4,8 +4,8 @@ import com.riseofcat.common.*
 import kotlin.math.*
 import kotlinx.serialization.Serializable
 
-val BASE_WIDTH = 1000
-val BASE_HEIGHT = 1000
+const val BASE_WIDTH = 1000
+const val BASE_HEIGHT = 1000
 
 interface GetCarById {
   fun getCar(id:PlayerId):Car?
@@ -25,7 +25,7 @@ interface EatMe:SpeedObject {
 }
 
 @Serializable data class Action (var direction:Angle)
-data class Angle(var radians:Float) {
+@Serializable data class Angle(var radians:Float) {
   init {
     val circles = (radians/(2*kotlin.math.PI)).toInt()
     if(kotlin.math.abs(circles)>0) {
@@ -116,7 +116,7 @@ data class Angle(var radians:Float) {
 
   fun tick():State {
     val iterateFun:(SpeedObject) -> Unit = {o->
-      o!!.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
+      o.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
       if(o.pos.x>=width())
         o.pos.x = o.pos.x-width()
       else if(o.pos.x<0) o.pos.x = o.pos.x+width()
@@ -176,7 +176,7 @@ fun State.changeSize(delta:Int) {
   val oldW = width()
   val oldH = height()
   size += delta
-  val changePosFun:(PosObject) -> Unit = {p-> p!!.pos = p.pos.scale(width()/oldW,height()/oldH)}
+  val changePosFun:(PosObject) -> Unit = {p-> p.pos = p.pos.scale(width()/oldW,height()/oldH)}
   cars.forEach(changePosFun)
   reactive.forEach(changePosFun)
   foods.forEach(changePosFun)

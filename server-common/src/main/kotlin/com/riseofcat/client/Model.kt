@@ -4,6 +4,7 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.*
 import com.riseofcat.share.data.*
+import kotlinx.serialization.*
 import kotlin.reflect.*
 
 class Model(conf:Conf) {
@@ -51,12 +52,17 @@ class Model(conf:Conf) {
   }
 
   init {
-    client = PingClient(conf.host,conf.port,"socket",getKClass<ServerSayS>() as KClass<ServerSay<ServerPayload>>)
+    val serverPayloadSerializer:KSerializer<ServerPayload> = ServerPayload.serializer()
+    val serverSayServerPayloadSerializer:KSerializer<ServerSay<ServerPayload>> = ServerSay.serializer(serverPayloadSerializer)
+
+    client = PingClient(conf.host,conf.port,"socket",serverSayServerPayloadSerializer)
     client.connect(object:Signal.Listener<ServerPayload> {
       override fun onSignal(s:ServerPayload) {
         synchronized(this) {
           sync = Sync(s.tick+client.smartLatencyS/Logic.UPDATE_S,sync)
-          if(s.welcome!=null) playerId = s.welcome!!.id
+          if(s.welcome!=null) {
+            playerId = s.welcome!!.id
+          }
           if(s.stable!=null) {
             if(s.stable!!.state!=null)
               stable = StateWrapper(s.stable!!.state!!,s.stable!!.tick)
@@ -180,7 +186,7 @@ class Model(conf:Conf) {
 
     constructor(obj:StateWrapper) {
       val t = Common.timeMs
-      state = Common.clone(obj.state)
+      state = obj.state.copy()
       copyTime += Common.timeMs-t
       this.tick = obj.tick
     }

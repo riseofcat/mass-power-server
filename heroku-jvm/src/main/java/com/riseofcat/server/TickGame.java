@@ -36,8 +36,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 			int d = 1;
 			actions.getExistsOrPutDefault(new Tick(tick + d)).add(new Action(++previousActionsVersion, new NewCarAction(player.getId()).toBig()));
 			ServerPayload payload = createStablePayload();
-			payload.setWelcome(new ServerPayload.Welcome());
-			payload.getWelcome().setId(player.getId());
+			payload.setWelcome(new ServerPayload.Welcome(player.getId()));
 			payload.setActions(new ArrayList<>());
 			for(Map.Entry<Tick, List<Action>> entry : actions.getMap().entrySet()) {
 				ArrayList<BigAction> temp = new ArrayList<>();

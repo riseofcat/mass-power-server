@@ -3,9 +3,10 @@ package com.riseofcat.client
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.*
-import kotlin.reflect.*
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
 
-class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KClass<ServerSay<S>>) {
+class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>) {
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
@@ -26,7 +27,14 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KClass<ServerSa
       }
 
       override fun onMessage(packet:String) {
-        val serverSay = Common.fromJson(packet,typeS)
+        Lib.Log.info(packet)
+        val serverSay:ServerSay<S> = try {
+          JSON.parse(typeS, packet)
+        } catch(t:Throwable) {
+          Lib.Log.error("serverSay parse", t)
+          TODO("")
+        }
+
         if(serverSay.latency!=null) {
           latencyS = serverSay.latency!!/Lib.Const.MILLIS_IN_SECOND
 

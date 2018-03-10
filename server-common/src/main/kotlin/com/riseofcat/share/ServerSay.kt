@@ -1,9 +1,9 @@
 package com.riseofcat.share
 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 
 @Serializable open class ServerSay<T>(
-  var ping:Boolean = false,
-  var latency:Int? = null,
-  var payload:T? = null)
+  @Optional var ping:Boolean = false,
+  @Optional var latency:Int? = null,
+  @Optional var payload:T? = null)
 
