@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.riseofcat.lib.LibAll;
 import com.riseofcat.share.ClientPayload;
 import com.riseofcat.share.ServerPayload;
-import com.riseofcat.share.redundant.ClientSayC;
 
 import spark.Request;
 import spark.Response;
@@ -29,7 +28,7 @@ public static void main(String[] args) {
 			new ConvertDecorator<>(
 			new PingDecorator<>(
 			new RoomsDecorator<ClientPayload, ServerPayload>(TickGame::new), 1000),
-			obj -> gson.fromJson(obj, ClientSayC.class),
+			obj -> Util.Companion.fromJsonClientSay(obj),
 			ss->Util.Companion.toServerSayJson(ss)))));
 	Spark.get("/", new Route() {
 		@Override

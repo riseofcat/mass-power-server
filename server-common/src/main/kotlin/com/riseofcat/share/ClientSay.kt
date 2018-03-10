@@ -1,8 +1,8 @@
 package com.riseofcat.share
 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 
-@Serializable open class ClientSay<T> {
-  var pong:Boolean = false
-  var payload:T? = null
+@Serializable class ClientSay<T> {
+  @Optional var pong:Boolean = false
+  @Optional var payload:T? = null
 }

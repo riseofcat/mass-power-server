@@ -52,7 +52,7 @@ class Model(conf:Conf) {
   }
 
   init {
-    client = PingClient(conf.host,conf.port,"socket",Share.serverSayServerPayloadSerializer)
+    client = PingClient(conf.host,conf.port,"socket",Share.serverSayServerPayloadSerializer, Share.clientSayClientPayloadSerializer)
     client.connect(object:Signal.Listener<ServerPayload> {
       override fun onSignal(s:ServerPayload) {
         synchronized(this) {

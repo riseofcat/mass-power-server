@@ -6,7 +6,7 @@ import com.riseofcat.share.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 
-class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>) {
+class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
@@ -90,7 +90,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private fun sayNow(say:ClientSay<C>) {
     try {
-      socket.send(Common.toJson(say))
+      socket.send(JSON.stringify(typeC, say))
       return
     } catch(t:Throwable) {
       Lib.Log.error("socket.send error", t)
