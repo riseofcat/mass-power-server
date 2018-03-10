@@ -55,7 +55,7 @@ private void todo(Session session) {//todo
 				}
 			});
 		}
-		protected TypeMap getTypeMap() {
+		public TypeMap getTypeMap() {
 			if(typeMap == null) {
 				typeMap = new TypeMap();
 			}

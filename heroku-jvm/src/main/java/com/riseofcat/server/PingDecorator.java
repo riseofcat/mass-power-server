@@ -60,7 +60,7 @@ private class PingSes extends SesServ<C, S>.Ses {
 		say.setPayload(payload);
 		sess.send(say);
 	}
-	protected TypeMap getTypeMap() {
+	public TypeMap getTypeMap() {
 		return sess.getTypeMap();
 	}
 }

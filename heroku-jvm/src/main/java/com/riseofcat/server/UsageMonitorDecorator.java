@@ -52,7 +52,7 @@ public class CountSes extends SesServ<C, S>.Ses {
 		sess.send(message);
 		outCalls++;
 	}
-	protected TypeMap getTypeMap() {
+	public TypeMap getTypeMap() {
 		return sess.getTypeMap();
 	}
 }

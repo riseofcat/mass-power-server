@@ -2,6 +2,8 @@ package com.riseofcat.server;
 import com.riseofcat.lib.TypeMap;
 import com.riseofcat.lib_gwt.IConverter;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,9 +28,7 @@ public void start(Ses session) {
 		public void send(SSay data) {
 			session.send(sConv.convert(data));
 		}
-		protected TypeMap getTypeMap() {
-			return session.getTypeMap();
-		}
+		public TypeMap getTypeMap() { return session.getTypeMap(); }
 	};
 	map.put(session, s);
 	server.start(s);
