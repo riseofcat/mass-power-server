@@ -114,10 +114,10 @@ class Model(conf:Conf) {
       synchronized(myActions) {
         myActions.getExistsOrPutDefault(Tick(clientTick+w)).add(Action(a.aid,a.action))
       }
-      val payload = ClientPayload()
-      payload.tick = clientTick
-      payload.actions = mutableListOf()
-      payload.actions!!.add(a)
+      val payload = ClientPayload(
+        tick = clientTick,
+        actions = mutableListOf(a)
+      )
       client.say(payload)
     }
   }

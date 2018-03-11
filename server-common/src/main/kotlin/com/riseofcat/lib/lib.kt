@@ -42,7 +42,11 @@ object Lib {
 
     fun info(s:String) = _log(s,LogMode.INFO)
     fun debug(s:String) = _log(s,LogMode.DEBUG)
-    inline fun _log(str:CharSequence,mode:LogMode) = _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")
+    inline fun _log(str:CharSequence,mode:LogMode) {
+      if(mode.ordinal<LogMode.DEBUG.ordinal) {
+        _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")
+      }
+    }
     inline fun _println(str:CharSequence) = println(str)
   }
 
