@@ -1,6 +1,9 @@
 package com.riseofcat.lib
 
 import com.riseofcat.common.*
+import kotlinx.serialization.*
+import kotlinx.serialization.cbor.*
+import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
 
 val createMs = Lib.timeMs
@@ -13,7 +16,17 @@ object Lib {
   fun pillarTimeMs(max:Long) = Fun.pillar(timeMs, max)
   fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/Lib.Const.MILLIS_IN_SECOND
   val json = JSON(unquoted = true, nonstrict = true)
+  val objStrSer = json
   inline fun <reified T:Any>getKClass() = T::class
+
+  object cbor {
+    fun <T:Any> stringify(saver:KSerialSaver<T>, obj: T): String {
+      return HexConverter.printHexBinary(CBOR.dump(saver, obj), lowerCase = true)
+    }
+    fun <T:Any> parse(loader: KSerialLoader<T>, str: String): T {
+      return CBOR.load(loader, HexConverter.parseHexBinary(str))
+    }
+  }
 
   object Const {
     const val MILLIS_IN_SECOND = 1000f

@@ -28,7 +28,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
       override fun onMessage(packet:String) {
         val serverSay:ServerSay<S> = try {
           Lib.Log.info(packet)
-          Lib.json.parse(typeS, packet)
+          Lib.objStrSer.parse(typeS, packet)
         } catch(t:Throwable) {
           Lib.Log.error("serverSay parse", t)
           TODO("")
@@ -90,7 +90,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private fun sayNow(say:ClientSay<C>) {
     try {
-      socket.send(Lib.json.stringify(typeC, say))
+      socket.send(Lib.objStrSer.stringify(typeC, say))
       return
     } catch(t:Throwable) {
       Lib.Log.error("socket.send error", t)
