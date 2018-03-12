@@ -9,14 +9,14 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
   val onRoomCreated = Signal<RoomsDecorator<TClientPayload,TServerPayload>.Room>()
   //todo onRoomDestroyed
   private val rooms = HashSet<RoomsDecorator<TClientPayload,TServerPayload>.Room>()
-  private val map = ConcurrentHashMap<SesServ<TClientPayload,TServerPayload>.Ses,Room>()
+  private val map = ConcurrentHashMap<Ses<TServerPayload>,Room>()
 
   constructor() {}
   constructor(roomCreatedListener:Signal.Listener<RoomsDecorator<TClientPayload,TServerPayload>.Room>) {
     onRoomCreated.add(roomCreatedListener)
   }
 
-  override fun start(session:SesServ<TClientPayload,TServerPayload>.Ses) {
+  override fun start(session:Ses<TServerPayload>) {
     var room:RoomsDecorator<TClientPayload,TServerPayload>.Room? = null
     synchronized(this) {
       for(r in rooms) {
@@ -36,12 +36,12 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
     map[session] = room!!
   }
 
-  override fun close(session:SesServ<TClientPayload,TServerPayload>.Ses) {
+  override fun close(session:Ses<TServerPayload>) {
     val room = map.remove(session)
     room!!.remove(session)
   }
 
-  override fun message(session:SesServ<TClientPayload,TServerPayload>.Ses,payload:TClientPayload) {
+  override fun message(session:Ses<TServerPayload>,payload:TClientPayload) {
     val room = map[session]
     room!!.message(session,payload)
   }
@@ -50,7 +50,7 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
     val onPlayerAdded = Signal<Player>()
     val onPlayerRemoved = Signal<Player>()
     val onMessage = Signal<PlayerMessage>()
-    private val players = ConcurrentHashMap<SesServ<TClientPayload,TServerPayload>.Ses,Player>()
+    private val players = ConcurrentHashMap<Ses<TServerPayload>,Player>()
     val playersCount:Int
       get() = players.size
 
@@ -58,7 +58,7 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
       return players.values
     }
 
-    fun add(session:SesServ<TClientPayload,TServerPayload>.Ses) {//todo private
+    fun add(session:Ses<TServerPayload>) {//todo private
       val player = Player(session)
       players[session] = player
       synchronized(this) {
@@ -66,18 +66,18 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
       }
     }
 
-    fun message(session:SesServ<TClientPayload,TServerPayload>.Ses,payload:TClientPayload) {//todo private
+    fun message(session:Ses<TServerPayload>,payload:TClientPayload) {//todo private
       onMessage.dispatch(PlayerMessage(players[session]!!,payload))
     }
 
-    fun remove(session:SesServ<TClientPayload,TServerPayload>.Ses) {//todo private
+    fun remove(session:Ses<TServerPayload>) {//todo private
       val remove = players.remove(session)
       synchronized(this) {
         onPlayerRemoved.dispatch(remove!!)
       }
     }
 
-    inner class Player(val session:SesServ<TClientPayload,TServerPayload>.Ses) {
+    inner class Player(val session:Ses<TServerPayload>) {
       val id:PlayerId
         get() = PlayerId(session.id)
     }

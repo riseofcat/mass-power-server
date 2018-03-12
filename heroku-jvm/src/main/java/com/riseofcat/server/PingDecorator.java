@@ -11,21 +11,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PingDecorator<C, S> extends SesServ<ClientSay<C>, ServerSay<S>> {
 private final int pingIntervalMs;
 private final SesServ<C, S> server;
-private final Map<Ses, PingSes> map = new ConcurrentHashMap<>();
+private final Map<Ses<ServerSay<S>>, PingSes> map = new ConcurrentHashMap<>();
 public PingDecorator(SesServ<C, S> server, int pingIntervalMs) {
 	this.pingIntervalMs = pingIntervalMs;
 	this.server = server;
 }
-public void start(Ses session) {
+public void start(Ses<ServerSay<S>> session) {
 	PingSes s = new PingSes(session);
 	map.put(session, s);
 	server.start(s);
 }
-public void close(Ses session) {
+public void close(Ses<ServerSay<S>> session) {
 	server.close(map.get(session));
 	map.remove(session);
 }
-public void message(Ses session, ClientSay<C> say) {
+public void message(Ses<ServerSay<S>> session, ClientSay<C> say) {
 	PingSes s = map.get(session);
 	if(say.getPong() && s.lastPingTime != null) {
 		long l = (System.currentTimeMillis() - s.lastPingTime + 1) / 2;
@@ -36,11 +36,11 @@ public void message(Ses session, ClientSay<C> say) {
 	}
 }
 
-private class PingSes extends SesServ<C, S>.Ses {
-	private final Ses sess;
+private class PingSes extends Ses<S> {
+	private final Ses<ServerSay<S>> sess;
 	@Nullable private Long lastPingTime;
 	@Nullable private Integer latency;
-	private PingSes(Ses sess) {
+	private PingSes(Ses<ServerSay<S>> sess) {
 		this.sess = sess;
 		put(new Extra(this));
 	}

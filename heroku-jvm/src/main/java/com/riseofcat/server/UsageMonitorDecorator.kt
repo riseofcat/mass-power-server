@@ -4,30 +4,30 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.TypeMap
 
 class UsageMonitorDecorator<C,S>(private val server:SesServ<C,S>):SesServ<C,S>() {
-  private val map:MutableMap<Ses, CountSes> = Common.createConcurrentHashMap()
+  private val map:MutableMap<Ses<S>, CountSes> = Common.createConcurrentHashMap()
   var sessionsCount = 0
     private set
 
-  override fun start(session:Ses) {
+  override fun start(session:Ses<S>) {
     val s = CountSes(session)
     map[session] = s
     server.start(s)
     sessionsCount++
   }
 
-  override fun close(session:Ses) {
+  override fun close(session:Ses<S>) {
     server.close(map[session]!!)
     map.remove(session)
     sessionsCount--
   }
 
-  override fun message(session:Ses,code:C) {
+  override fun message(session:Ses<S>,code:C) {
     val s = map[session]
     server.message(s!!,code)
     s.incomeCalls++
   }
 
-  inner class CountSes(private val sess:Ses):Ses() {
+  inner class CountSes(private val sess:Ses<S>):Ses<S>() {
     var incomeCalls:Int = 0
     var outCalls:Int = 0
     val startTimeMs:Long
