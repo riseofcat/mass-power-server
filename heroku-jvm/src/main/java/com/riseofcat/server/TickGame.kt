@@ -150,6 +150,6 @@ class TickGame(room:RoomsDecorator<ClientPayload, ServerPayload>.Room) {
   private fun todo() {
     val player:RoomsDecorator<ClientPayload, ServerPayload>.Room.Player? = null
     val startTime = player!!.session.get(UsageMonitorDecorator.Extra::class.java)!!.startTime
-    val latency = player!!.session.get(PingDecorator.Extra::class.java)!!.getLatency()
+    val latency = player!!.session.get(PingDecorator.Extra::class.java)!!.latency
   }
 }
