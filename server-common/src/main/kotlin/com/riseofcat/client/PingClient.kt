@@ -2,19 +2,22 @@ package com.riseofcat.client
 
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
-import com.riseofcat.share.*
+import com.riseofcat.share.base.*
 import kotlinx.serialization.*
+
+val PingClient.Companion.DEFAULT_LATENCY_MS get() = 250
+val PingClient.Companion.DEFAULT_LATENCY_S get() = DEFAULT_LATENCY_MS/Lib.Const.MILLIS_IN_SECOND
 
 class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
-  var smartLatencyS = Params.DEFAULT_LATENCY_S
-  var latencyS = Params.DEFAULT_LATENCY_S
+  var smartLatencyS = DEFAULT_LATENCY_S
+  var latencyS = DEFAULT_LATENCY_S
   private val latencies:MutableList<LatencyTime> = mutableListOf()
 
   init {
-    latencies.add(LatencyTime(Params.DEFAULT_LATENCY_MS,Common.timeMs))
+    latencies.add(LatencyTime(DEFAULT_LATENCY_MS,Common.timeMs))
     socket = Common.createWebSocket(host,port,path)
     socket.addListener(object:LibWebSocket.Listener {
       override fun onOpen() {
@@ -44,7 +47,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           val time = Common.timeMs
           for(l in latencies) {
             var w = (1-Lib.Fun.arg0toInf((time-l.time).toDouble(),10000f)).toDouble()
-            w *= (1-Lib.Fun.arg0toInf(l.latency.toDouble(),Params.DEFAULT_LATENCY_MS.toFloat())).toDouble()
+            w *= (1-Lib.Fun.arg0toInf(l.latency.toDouble(),DEFAULT_LATENCY_MS.toFloat())).toDouble()
             sum += (w*l.latency).toFloat()
             weights += w.toFloat()
           }
@@ -98,4 +101,6 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   }
 
   private class LatencyTime(val latency:Int,val time:Long)
+
+  companion object{}
 }

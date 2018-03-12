@@ -3,7 +3,8 @@ package com.riseofcat.client
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.*
-import com.riseofcat.share.data.*
+import com.riseofcat.share.base.*
+import com.riseofcat.share.mass.*
 
 class Model(conf:Conf) {
   val client:PingClient<ServerPayload,ClientPayload>
@@ -32,7 +33,7 @@ class Model(conf:Conf) {
     }
 
     private fun calcSrvTck(t:Long):Float {
-      return serverTick+(t-time)/Logic.UPDATE_MS.toFloat()
+      return serverTick+(t-time)/GameConst.UPDATE_MS.toFloat()
     }
 
     fun calcSrvTck():Float {
@@ -46,11 +47,11 @@ class Model(conf:Conf) {
   }
 
   init {
-    client = PingClient(conf.host,conf.port,"socket",Share.serverSayServerPayloadSerializer, Share.clientSayClientPayloadSerializer)
+    client = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer, SerializeHelp.clientSayClientPayloadSerializer)
     client.connect(object:Signal.Listener<ServerPayload> {
       override fun onSignal(s:ServerPayload) {
         synchronized(this) {
-          sync = Sync(s.tick+client.smartLatencyS/Logic.UPDATE_S,sync)
+          sync = Sync(s.tick+client.smartLatencyS/GameConst.UPDATE_S,sync)
           if(s.welcome!=null) {
             playerId = s.welcome!!.id
           }
@@ -99,12 +100,12 @@ class Model(conf:Conf) {
     return playerId!=null
   }
 
-  fun action(action:com.riseofcat.share.data.Action) {
+  fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
       val clientTick = sync!!.calcClientTck().toInt()//todo +0.5f?
       if(!ready()) return
-      if(false) if(sync!!.calcSrvTck()-sync!!.calcClientTck()>Params.DELAY_TICKS*1.5||sync!!.calcClientTck()-sync!!.calcSrvTck()>Params.FUTURE_TICKS*1.5) return
-      val w = (client.smartLatencyS/Logic.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
+      if(false) if(sync!!.calcSrvTck()-sync!!.calcClientTck()>GameConst.DELAY_TICKS*1.5||sync!!.calcClientTck()-sync!!.calcSrvTck()>GameConst.FUTURE_TICKS*1.5) return
+      val w = (client.smartLatencyS/GameConst.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
       val a = ClientPayload.ClientAction(
         aid = ++previousActionId,
         wait = w,
@@ -168,7 +169,7 @@ class Model(conf:Conf) {
 
   private inner class Action(
     val aid:Int,
-    action:com.riseofcat.share.data.Action,
+    action:com.riseofcat.share.mass.Action,
     val pa:PlayerAction = PlayerAction(playerId!!,action)):InStateAction by pa
 
   private inner class StateWrapper {

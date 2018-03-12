@@ -1,6 +1,5 @@
-package com.riseofcat.share
+package com.riseofcat.share.mass
 
-import com.riseofcat.share.data.*
 import kotlinx.serialization.*
 
 @Serializable class ClientPayload(

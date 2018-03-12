@@ -1,7 +1,7 @@
 package com.riseofcat.server;
 
 import com.riseofcat.lib.Signal;
-import com.riseofcat.share.data.PlayerId;
+import com.riseofcat.share.mass.PlayerId;
 
 import java.util.Collection;
 import java.util.HashSet;

@@ -1,8 +1,8 @@
 package com.riseofcat.server;
 
 import com.riseofcat.lib.LibAll;
-import com.riseofcat.share.ClientPayload;
-import com.riseofcat.share.ServerPayload;
+import com.riseofcat.share.mass.ClientPayload;
+import com.riseofcat.share.mass.ServerPayload;
 
 import spark.Request;
 import spark.Response;

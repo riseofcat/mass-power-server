@@ -1,18 +1,17 @@
 package com.riseofcat.server;
 import com.riseofcat.lib.DefaultValueMap;
-import com.riseofcat.share.ClientPayload;
-import com.riseofcat.share.TickActions;
-import com.riseofcat.share.data.InStateAction;
-import com.riseofcat.share.data.Logic;
-import com.riseofcat.share.Params;
-import com.riseofcat.share.ServerPayload;
+import com.riseofcat.share.mass.ClientPayload;
+import com.riseofcat.share.mass.GameConst;
+import com.riseofcat.share.mass.TickActions;
+import com.riseofcat.share.mass.InStateAction;
+import com.riseofcat.share.mass.ServerPayload;
 import com.riseofcat.share.ShareTodo;
-import com.riseofcat.share.Tick;
-import com.riseofcat.share.data.BigAction;
-import com.riseofcat.share.data.NewCarAction;
-import com.riseofcat.share.data.PlayerAction;
-import com.riseofcat.share.data.PlayerId;
-import com.riseofcat.share.data.State;
+import com.riseofcat.share.base.Tick;
+import com.riseofcat.share.mass.BigAction;
+import com.riseofcat.share.mass.NewCarAction;
+import com.riseofcat.share.mass.PlayerAction;
+import com.riseofcat.share.mass.PlayerId;
+import com.riseofcat.share.mass.State;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -93,7 +92,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 					return iterator.next().pa;
 				}
 			}
-			while(System.currentTimeMillis() - startTime > tick * Logic.Companion.getUPDATE_MS()) {
+			while(System.currentTimeMillis() - startTime > tick * GameConst.INSTANCE.getUPDATE_MS()) {
 				synchronized(TickGame.this) {
 					state.act(new Adapter(actions.getMap().get(getStableTick()))).tick();
 					TickGame.this.actions.getMap().remove(getStableTick());
@@ -102,7 +101,7 @@ public TickGame(ConcreteRoomsServer.Room room) {
 				}
 			}
 		}
-	}, 0, Logic.Companion.getUPDATE_MS() / 2);
+	}, 0, GameConst.INSTANCE.getUPDATE_MS() / 2);
 }
 private void updatePlayer(RoomsDecorator<ClientPayload, ServerPayload>.Room.Player p) {
 	ServerPayload payload = new ServerPayload(tick);
@@ -127,15 +126,15 @@ ServerPayload createStablePayload() {
 	return result;
 }
 private Tick getStableTick() {
-	int result = tick - Params.INSTANCE.getDELAY_TICKS() + 1;
+	int result = tick - GameConst.INSTANCE.getDELAY_TICKS() + 1;
 	if(result < 0) return new Tick(0);
 	return new Tick(result);
 }
 private int getRemoveBeforeTick() {
-	return tick - Params.INSTANCE.getREMOVE_TICKS() + 1;
+	return tick - GameConst.INSTANCE.getREMOVE_TICKS() + 1;
 }
 private int getFutureTick() {
-	return tick + Params.INSTANCE.getFUTURE_TICKS();
+	return tick + GameConst.INSTANCE.getFUTURE_TICKS();
 }
 private static class ConcreteRoomsServer extends RoomsDecorator<ClientPayload, ServerPayload> {
 

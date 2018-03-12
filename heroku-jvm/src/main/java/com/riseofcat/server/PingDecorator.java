@@ -1,7 +1,7 @@
 package com.riseofcat.server;
 import com.riseofcat.lib.TypeMap;
-import com.riseofcat.share.ClientSay;
-import com.riseofcat.share.ServerSay;
+import com.riseofcat.share.base.ClientSay;
+import com.riseofcat.share.base.ServerSay;
 
 import org.jetbrains.annotations.Nullable;
 

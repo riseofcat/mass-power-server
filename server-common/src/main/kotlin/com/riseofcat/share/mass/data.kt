@@ -1,50 +1,78 @@
-package com.riseofcat.share.data
+package com.riseofcat.share.mass
 
+import com.riseofcat.client.*
 import com.riseofcat.common.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
-const val BASE_WIDTH = 1000
-const val BASE_HEIGHT = 1000
+object GameConst {
+  val UPDATE_MS = 40
+  val UPDATE_S = UPDATE_MS/1000f
+  val MIN_SIZE = 20
+  val FOOD_SIZE = 20
+  val MIN_RADIUS = 1f
+  val FOODS = 20
+  val BASE_WIDTH = 1000
+  val BASE_HEIGHT = 1000
+  val TITLE = "mass-power.io"
+  val DELAY_TICKS = PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1//количество тиков для хранения действий //bigger delayed
+  val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
+  val FUTURE_TICKS = DELAY_TICKS*3
+}
+
 
 interface GetCarById {
   fun getCar(id:PlayerId):Car?
 }
+
 interface InStateAction {
   fun act(state:State,getCar:GetCarById)
 }
+
 interface PosObject {
   var pos:XY
 }
+
 interface SpeedObject:PosObject {
   var speed:XY
 }
+
 interface EatMe:SpeedObject {
   var size:Int
-  fun radius() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+Logic.MIN_RADIUS
+  fun radius() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
 }
 
-@Serializable data class Action (var direction:Angle)
+@Serializable class BigAction(
+  @Optional val n:NewCarAction? = null,
+  @Optional val p:PlayerAction? = null
+):InStateAction {
+  override fun act(state:State,getCar:GetCarById) {
+    n?.act(state,getCar)
+    p?.act(state,getCar)
+  }
+}
+
+@Serializable data class Action(var direction:Angle)
 @Serializable data class Angle(var radians:Float) {
   init {
-    val circles = (radians/(2*kotlin.math.PI)).toInt()
+    val circles = radians/(2*kotlin.math.PI)
     if(kotlin.math.abs(circles)>0) {
-      val a = 1+1//todo breakpoint
+      circles.toInt()
+      circles.sign
     }
-    //	radians -= circles * 2 * Math.PI;
-    //	if(radians < 0) {
-    //		radians += 2 * Math.PI;
-    //	}
   }
+
   fun sin() = kotlin.math.sin(radians.toDouble()).toFloat()
   fun cos() = kotlin.math.cos(radians.toDouble()).toFloat()
   fun xy():XY = XY(cos(),sin())
   fun add(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
   fun subtract(sub:Angle) = Angle(this.radians-sub.radians)
+
   companion object {
     fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
   }
 }
+
 val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
 val Angle.gdxTransformRotation:Float get() = degrees
 
@@ -62,9 +90,10 @@ val Angle.gdxTransformRotation:Float get() = degrees
 @Serializable class NewCarAction(var id:PlayerId):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
-    state.cars.add(Car(id,Logic.MIN_SIZE*6,XY(true),XY()))
+    state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY(true),XY()))
   }
-  fun toBig() = BigAction().also {it.n = this}
+
+  fun toBig() = BigAction(n = this)
 }
 
 @Serializable class PlayerAction(
@@ -75,10 +104,11 @@ val Angle.gdxTransformRotation:Float get() = degrees
     val car = getCar.getCar(id) ?: return //todo handle null ?
     car.speed = car.speed.add(action.direction.xy(),scl)
     val s = car.size/15+1
-    if(car.size-s>=Logic.MIN_SIZE) car.size = car.size-s
+    if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
     state.reactive.add(Reactive(id,s,XY(action.direction.add(Angle.degreesAngle(180f)).xy().scale(3f*scl),true),XY(car.pos,true)))
   }
-  fun toBig() = BigAction().also{it.p=this}
+
+  fun toBig() = BigAction(p = this)
 }
 
 @Serializable data class Reactive(
@@ -106,16 +136,17 @@ val Angle.gdxTransformRotation:Float get() = degrees
         return null
       }
     }
+
     val cache = Cache()
     actions.forEach {
-      it.act(this, cache)
+      it.act(this,cache)
     }
     return this
   }
 
   fun tick():State {
-    val iterateFun:(SpeedObject) -> Unit = {o->
-      o.pos = o.pos.add(XY(o.speed,true),Logic.UPDATE_S)
+    val iterateFun:(SpeedObject)->Unit = {o->
+      o.pos = o.pos.add(XY(o.speed,true),GameConst.UPDATE_S)
       if(o.pos.x>=width())
         o.pos.x = o.pos.x-width()
       else if(o.pos.x<0) o.pos.x = o.pos.x+width()
@@ -146,13 +177,13 @@ val Angle.gdxTransformRotation:Float get() = degrees
         }
       }
     }
-    if(foods.size<Logic.FOODS) foods.add(Food(Logic.FOOD_SIZE,XY(),rndPos()))
+    if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
     return this
   }
 }
 
-fun State.width() = (BASE_WIDTH+size).toFloat()
-fun State.height() = (BASE_HEIGHT+size).toFloat()
+fun State.width() = (GameConst.BASE_WIDTH+size).toFloat()
+fun State.height() = (GameConst.BASE_HEIGHT+size).toFloat()
 fun State.distance(a:XY,b:XY):Float {
   var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width()-a.x)
   dx = kotlin.math.min(dx,a.x+width()-b.x)
@@ -175,9 +206,74 @@ fun State.changeSize(delta:Int) {
   val oldW = width()
   val oldH = height()
   size += delta
-  val changePosFun:(PosObject) -> Unit = {p-> p.pos = p.pos.scale(width()/oldW,height()/oldH)}
+  val changePosFun:(PosObject)->Unit = {p-> p.pos = p.pos.scale(width()/oldW,height()/oldH)}
   cars.forEach(changePosFun)
   reactive.forEach(changePosFun)
   foods.forEach(changePosFun)
 
 }
+
+@Serializable data class XY(var x:Float,var y:Float) {
+  @Transient private var mutable:Boolean = false
+  constructor(x:Float,y:Float,mutable:Boolean):this(x,y) {
+    this.mutable = mutable
+  }
+  constructor(xy:XY, mutable:Boolean):this(xy.x, xy.y) {
+    this.mutable = mutable
+  }
+  constructor(mutable:Boolean):this(0f, 0f) {
+    this.mutable = mutable
+  }
+  constructor():this(0f,0f)
+
+  fun add(a:XY,scale:Float = 1f):XY {
+    val result = if(mutable) this else copy()
+    result.x += a.x*scale
+    result.y += a.y*scale
+    return result
+  }
+
+  fun sub(a:XY):XY {//todo operator minus
+    val result = if(mutable) this else copy()
+    result.x -= a.x
+    result.y -= a.y
+    return result
+  }
+
+  fun scale(scl:Float):XY {
+    return scale(scl,scl)
+  }
+
+  fun scale(sx:Float,sy:Float):XY {
+    val result = if(mutable) this else copy()
+    result.x *= sx
+    result.y *= sy
+    return result
+  }
+
+  fun dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
+  fun len() = dst(XY(0f,0f))
+
+  fun rotate(angleA:Angle):XY {
+    val result = if(mutable) this else copy()
+    val angle = calcAngle().add(angleA)
+    val len = len()
+    result.x = (len*angle.cos()).toFloat()
+    result.y = (len*angle.sin()).toFloat()
+    return result
+  }
+
+  fun calcAngle():Angle {
+    return if(true)
+      Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
+    else
+      try {
+        Angle(atan((y/x).toDouble()).toFloat()).add(Angle.degreesAngle(if(x<0) 180f else 0f))
+      } catch(t:Throwable) {
+        Angle.degreesAngle(y.sign*90f)
+      }
+
+  }
+}
+
+@Serializable data class PlayerId(var id:Int)

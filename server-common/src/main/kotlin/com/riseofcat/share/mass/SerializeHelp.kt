@@ -1,8 +1,9 @@
-package com.riseofcat.share
+package com.riseofcat.share.mass
 
+import com.riseofcat.share.base.*
 import kotlinx.serialization.*
 
-object Share{
+object SerializeHelp {
   val serverPayloadSerializer:KSerializer<ServerPayload> = ServerPayload.serializer()
   val serverSayServerPayloadSerializer:KSerializer<ServerSay<ServerPayload>> = ServerSay.serializer(serverPayloadSerializer)
 
