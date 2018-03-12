@@ -12,6 +12,11 @@ application { //needs only for local launch
   mainClassName = "com.riseofcat.server.MainJava"
 }
 
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 version = "1.0" //Если изменить версию, то поменяется имя jar-ника
 
 tasks.withType<Jar> {

@@ -11,13 +11,5 @@ class DefaultValueMap<K,V>(val map:MutableMap<K,V>,private val createNew:()->V) 
     }
   }
 
-  fun getOrNew(key:K,or:()->V):V {
-    return if(map.containsKey(key)) {
-      map[key]!!
-    } else {
-      or()
-    }
-  }
-
 }
 
