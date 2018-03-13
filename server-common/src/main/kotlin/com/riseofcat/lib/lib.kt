@@ -5,8 +5,16 @@ import kotlinx.serialization.*
 import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
+import kotlin.jvm.*
 
 val createMs = Lib.timeMs
+
+class LibJava {
+  companion object {
+    @JvmStatic
+    val log = Lib.Log
+  }
+}
 
 object Lib {
 
