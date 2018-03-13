@@ -38,7 +38,7 @@ object ServerMain {
             Util.toServerSayJson(ss)
           }
           ))))
-    Spark.get("/") {request,response-> LibJava.info()}
+    Spark.get("/") {request,response-> LibJvm.info()}
     Spark.init()//Spark.stop();
   }
 }

@@ -3,10 +3,10 @@ package com.riseofcat.lib
 import java.io.*
 import java.lang.management.*
 
-class LibJava {
+class LibJvm {
   companion object {
     @JvmStatic val log = Lib.Log
-    @JvmStatic fun test() = "jvm-lib ${System.getProperties()["java.runtime.version"]}"
+    @JvmStatic fun test() = "LibJvm ${System.getProperties()["java.runtime.version"]}"
     @JvmStatic fun info() = JvmInfo()
   }
 }

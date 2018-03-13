@@ -1,6 +1,6 @@
 package com.riseofcat.server;
 
-import com.riseofcat.lib.LibJava;
+import com.riseofcat.lib.LibJvm;
 import com.riseofcat.lib.TypeMap;
 
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
@@ -43,10 +43,10 @@ private void todo(Session session) {//todo
       if(session.isOpen()) {
         RemoteEndpoint remote = session.getRemote();
         remote.sendString(message, new WriteCallback() {
-          public void writeFailed(Throwable x) { LibJava.getLog().error("SparkSession.send.writeFailed", x); }
+          public void writeFailed(Throwable x) { LibJvm.getLog().error("SparkSession.send.writeFailed", x); }
           public void writeSuccess() { }
         });
-      } else LibJava.getLog().error("session no open", null);
+      } else LibJvm.getLog().error("session no open", null);
     }
     public TypeMap getTypeMap() {
       if(typeMap == null) typeMap = new TypeMap();
@@ -57,23 +57,23 @@ private void todo(Session session) {//todo
   server.start(s);
 }
 @OnWebSocketClose public void closed(Session session, int statusCode, String reason) {
-  LibJava.getLog().info("Session closed: ");
+  LibJvm.getLog().info("Session closed: ");
   Ses<String> s = map.get(session);
   server.close(s);
-  LibJava.getLog().info("Session id: " + s.getId());
+  LibJvm.getLog().info("Session id: " + s.getId());
   map.remove(session);
 }
 //@OnWebSocketMessage public void byteMessage(Session session, byte buf[], int offset, int length)
 //@OnWebSocketMessage public void message(Session session, String message) {
 @OnWebSocketMessage public void message(Session session, Reader reader) {
   if(!session.isOpen()) {
-    LibJava.getLog().error("SparkWebSocket session not open", null);
+    LibJvm.getLog().error("SparkWebSocket session not open", null);
     return;
   }
   server.message(map.get(session), reader);
 }
 @OnWebSocketError public void error(Session session, Throwable error) {
-  LibJava.getLog().error("OnWebSocketError", error);
+  LibJvm.getLog().error("OnWebSocketError", error);
   if(false) map.get(session).stop();
 }
 

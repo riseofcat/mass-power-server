@@ -1,13 +1,7 @@
 package com.riseofcat.common
 
-import kotlin.reflect.*
-
 object ServerCommon {
-  fun test():String {
-    val k = "server"
-    val m = "common"
-    return "$k $m"
-  }
+  fun test() = "server common"
 }
 
 expect class Common {
