@@ -46,7 +46,7 @@ private void todo(Session session) {//todo
           public void writeFailed(Throwable x) { LibJava.getLog().error("SparkSession.send.writeFailed", x); }
           public void writeSuccess() { }
         });
-      }
+      } else LibJava.getLog().error("session no open", null);
     }
     public TypeMap getTypeMap() {
       if(typeMap == null) typeMap = new TypeMap();
