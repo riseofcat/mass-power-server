@@ -2,18 +2,9 @@ package com.riseofcat.server
 
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
-import com.riseofcat.share.mass.ClientPayload
-import com.riseofcat.share.mass.GameConst
-import com.riseofcat.share.mass.TickActions
-import com.riseofcat.share.mass.InStateAction
-import com.riseofcat.share.mass.ServerPayload
 import com.riseofcat.share.ShareTodo
 import com.riseofcat.share.base.Tick
-import com.riseofcat.share.mass.BigAction
-import com.riseofcat.share.mass.NewCarAction
-import com.riseofcat.share.mass.PlayerAction
-import com.riseofcat.share.mass.PlayerId
-import com.riseofcat.share.mass.State
+import com.riseofcat.share.mass.*
 
 import java.util.ArrayList
 import java.util.Timer
@@ -43,7 +34,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
         val d = 1
         actions.getExistsOrPutDefault(Tick(tick+d)).add(Action(++previousActionsVersion,NewCarAction(player.id).toBig()))
         val payload = createStablePayload()
-        payload.welcome = ServerPayload.Welcome(player.id)
+        payload.welcome = Welcome(player.id)
         payload.actions = mutableListOf()
         for(entry in actions.map.entries) {
           val temp = ArrayList<BigAction>()
@@ -76,7 +67,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
               continue
             }
             payload.apply = mutableListOf()
-            payload.apply!!.add(ServerPayload.AppliedActions(a.aid,delay))
+            payload.apply!!.add(AppliedActions(a.aid,delay))
             actions.getExistsOrPutDefault(Tick(a.tick+delay)).add(Action(++previousActionsVersion,PlayerAction(message.player.id,a.action).toBig()))
             if(ShareTodo.SIMPLIFY) updatePlayerInPayload(payload,message.player)
             message.player.session.send(payload)//todo move out of for
@@ -137,7 +128,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   internal fun createStablePayload():ServerPayload {
     val result = ServerPayload(tick.toFloat())
-    result.stable = ServerPayload.Stable(stableTick.tick,state)
+    result.stable = Stable(stableTick.tick,state)
     return result
   }
 
