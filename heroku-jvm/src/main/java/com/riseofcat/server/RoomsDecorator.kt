@@ -5,16 +5,11 @@ import com.riseofcat.share.mass.PlayerId
 import java.util.HashSet
 import java.util.concurrent.ConcurrentHashMap
 
-open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,TServerPayload> {
+open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,TServerPayload>() {
   val onRoomCreated = Signal<RoomsDecorator<TClientPayload,TServerPayload>.Room>()
   //todo onRoomDestroyed
   private val rooms = HashSet<RoomsDecorator<TClientPayload,TServerPayload>.Room>()
   private val map = ConcurrentHashMap<Ses<TServerPayload>,Room>()
-
-  constructor() {}
-  constructor(roomCreatedListener:Signal.Listener<RoomsDecorator<TClientPayload,TServerPayload>.Room>) {
-    onRoomCreated.add(roomCreatedListener)
-  }
 
   override fun start(session:Ses<TServerPayload>) {
     var room:RoomsDecorator<TClientPayload,TServerPayload>.Room? = null

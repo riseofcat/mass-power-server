@@ -20,12 +20,12 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
 
-class TickGame(room:RoomsDecorator<ClientPayload, ServerPayload>.Room) {
+class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   private val startTime = System.currentTimeMillis()
   private var previousActionsVersion = 0
   @Volatile private var tick = 0//todo volatile redundant? //todo float
   private val state = State()
-  private val actions:DefaultValueMap<Tick, MutableList<Action>> = DefaultValueMap(Common.createConcurrentHashMap<Tick, MutableList<Action>>()) {mutableListOf()}
+  private val actions:DefaultValueMap<Tick,MutableList<Action>> = DefaultValueMap(Common.createConcurrentHashMap<Tick,MutableList<Action>>()) {mutableListOf()}
   private val mapPlayerVersion = ConcurrentHashMap<PlayerId,Int>()
   private val stableTick:Tick
     get() {
@@ -38,57 +38,54 @@ class TickGame(room:RoomsDecorator<ClientPayload, ServerPayload>.Room) {
     get() = tick+GameConst.FUTURE_TICKS
 
   init {
-    room.onPlayerAdded.add(object: Signal.Listener<RoomsDecorator<ClientPayload, ServerPayload>.Room.Player> {
-      override fun onSignal(player:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-        synchronized(this@TickGame) {
-          val d = 1
-          actions.getExistsOrPutDefault(Tick(tick+d)).add(Action(++previousActionsVersion,NewCarAction(player.id).toBig()))
-          val payload = createStablePayload()
-          payload.welcome = ServerPayload.Welcome(player.id)
-          payload.actions = mutableListOf()
-          for(entry in actions.map.entries) {
-            val temp = ArrayList<BigAction>()
-            for(a in entry.value) temp.add(a.pa)
-            payload.actions!!.add(TickActions(entry.key.tick,temp))
-          }
-          player.session.send(payload)
-          mapPlayerVersion.put(player.id,previousActionsVersion)
+    room.onPlayerAdded.add {player->
+      synchronized(this@TickGame) {
+        val d = 1
+        actions.getExistsOrPutDefault(Tick(tick+d)).add(Action(++previousActionsVersion,NewCarAction(player.id).toBig()))
+        val payload = createStablePayload()
+        payload.welcome = ServerPayload.Welcome(player.id)
+        payload.actions = mutableListOf()
+        for(entry in actions.map.entries) {
+          val temp = ArrayList<BigAction>()
+          for(a in entry.value) temp.add(a.pa)
+          payload.actions!!.add(TickActions(entry.key.tick,temp))
         }
-        for(p in room.getPlayers()) if(p!=player) updatePlayer(p)//Говорим другим, что пришёл новый игрок
+        player.session.send(payload)
+        mapPlayerVersion.put(player.id,previousActionsVersion)
       }
-    })
-    room.onMessage.add(object: Signal.Listener<RoomsDecorator<ClientPayload, ServerPayload>.PlayerMessage> {
-      override fun onSignal(message:RoomsDecorator<ClientPayload,ServerPayload>.PlayerMessage) {
-        synchronized(this@TickGame) {
-          if(message.payload.actions!=null) {
-            for(a in message.payload.actions!!) {
-              val payload = ServerPayload(tick.toFloat())
-              var delay = 0
-              if(a.tick<stableTick.tick) {
-                if(a.tick<removeBeforeTick) {
-                  payload.canceled = hashSetOf()
-                  payload.canceled!!.add(a.aid)
-                  message.player.session.send(payload)//todo move out of for
-                  continue
-                } else
-                  delay = stableTick.tick-a.tick
-              } else if(a.tick>futureTick) {
+      for(p in room.getPlayers()) if(p!=player) updatePlayer(p)//Говорим другим, что пришёл новый игрок
+    }
+    room.onMessage.add {message->
+      synchronized(this@TickGame) {
+        if(message.payload.actions!=null) {
+          for(a in message.payload.actions!!) {
+            val payload = ServerPayload(tick.toFloat())
+            var delay = 0
+            if(a.tick<stableTick.tick) {
+              if(a.tick<removeBeforeTick) {
                 payload.canceled = hashSetOf()
                 payload.canceled!!.add(a.aid)
                 message.player.session.send(payload)//todo move out of for
                 continue
-              }
-              payload.apply = mutableListOf()
-              payload.apply!!.add(ServerPayload.AppliedActions(a.aid,delay))
-              actions.getExistsOrPutDefault(Tick(a.tick+delay)).add(Action(++previousActionsVersion,PlayerAction(message.player.id,a.action).toBig()))
-              if(ShareTodo.SIMPLIFY) updatePlayerInPayload(payload,message.player)
+              } else
+                delay = stableTick.tick-a.tick
+            } else if(a.tick>futureTick) {
+              payload.canceled = hashSetOf()
+              payload.canceled!!.add(a.aid)
               message.player.session.send(payload)//todo move out of for
+              continue
             }
+            payload.apply = mutableListOf()
+            payload.apply!!.add(ServerPayload.AppliedActions(a.aid,delay))
+            actions.getExistsOrPutDefault(Tick(a.tick+delay)).add(Action(++previousActionsVersion,PlayerAction(message.player.id,a.action).toBig()))
+            if(ShareTodo.SIMPLIFY) updatePlayerInPayload(payload,message.player)
+            message.player.session.send(payload)//todo move out of for
           }
         }
-        for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
       }
-    })
+      for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
+
+    }
     val timer = Timer()
     timer.schedule(object:TimerTask() {
       override fun run() {
@@ -119,13 +116,13 @@ class TickGame(room:RoomsDecorator<ClientPayload, ServerPayload>.Room) {
     },0,(GameConst.UPDATE_MS/2).toLong())
   }
 
-  private fun updatePlayer(p:RoomsDecorator<ClientPayload, ServerPayload>.Room.Player) {
+  private fun updatePlayer(p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
     val payload = ServerPayload(tick.toFloat())
     updatePlayerInPayload(payload,p)
     p.session.send(payload)
   }
 
-  private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload, ServerPayload>.Room.Player) {
+  private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
     payload.actions = mutableListOf()
     synchronized(this) {
       payload.tick = tick.toFloat()//todo redundant? but synchronized
@@ -148,7 +145,7 @@ class TickGame(room:RoomsDecorator<ClientPayload, ServerPayload>.Room) {
   private inner class Action(var actionVersion:Int,var pa:BigAction)
 
   private fun todo() {
-    val player:RoomsDecorator<ClientPayload, ServerPayload>.Room.Player? = null
+    val player:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player? = null
     val startTime = player!!.session.get(UsageMonitorDecorator.Extra::class.java)!!.startTime
     val latency = player!!.session.get(PingDecorator.Extra::class.java)!!.latency
   }

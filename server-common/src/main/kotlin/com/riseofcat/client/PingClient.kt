@@ -64,7 +64,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     })
   }
 
-  fun connect(incomeListener:Signal.Listener<S>) {
+  fun connect(incomeListener:SignalListener<S>) {
     incoming.add(incomeListener)
     try {
       socket.connect()

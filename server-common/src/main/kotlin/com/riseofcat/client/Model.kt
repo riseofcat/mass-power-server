@@ -9,11 +9,11 @@ import com.riseofcat.share.mass.*
 class Model(conf:Conf) {
   val client:PingClient<ServerPayload,ClientPayload>
   var playerId:PlayerId? = null
-  private val actions = DefaultValueMap<Tick, MutableList<BigAction>>(mutableMapOf(),{Common.createConcurrentList()})
-  private val myActions = DefaultValueMap<Tick, MutableList<Action>>(mutableMapOf(),{mutableListOf()})
+  private val actions = DefaultValueMap<Tick,MutableList<BigAction>>(mutableMapOf(),{Common.createConcurrentList()})
+  private val myActions = DefaultValueMap<Tick,MutableList<Action>>(mutableMapOf(),{mutableListOf()})
   private var stable:StateWrapper? = null
   private var sync:Sync? = null
-  val playerName:String get() = playerId?.let{"Player $it"}?:"Wait connection..."
+  val playerName:String get() = playerId?.let {"Player $it"} ?: "Wait connection..."
   private var previousActionId = 0
   fun calcDisplayState():State? = sync?.let {getState(it.calcClientTck().toInt())}
   private var cache:StateWrapper? = null
@@ -45,53 +45,51 @@ class Model(conf:Conf) {
   }
 
   init {
-    client = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer, SerializeHelp.clientSayClientPayloadSerializer)
-    client.connect(object:Signal.Listener<ServerPayload> {
-      override fun onSignal(s:ServerPayload) {
-        synchronized(this) {
-          sync = Sync(s.tick+client.smartLatencyS/GameConst.UPDATE_S,sync)
-          if(s.welcome!=null) {
-            playerId = s.welcome!!.id
+    client = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
+    client.connect {s:ServerPayload->
+      synchronized(this) {
+        sync = Sync(s.tick+client.smartLatencyS/GameConst.UPDATE_S,sync)
+        if(s.welcome!=null) {
+          playerId = s.welcome!!.id
+        }
+        if(s.stable!=null) {
+          if(s.stable!!.state!=null)
+            stable = StateWrapper(s.stable!!.state!!,s.stable!!.tick)
+          else
+            stable!!.tick(s.stable!!.tick)
+          clearCache(s.stable!!.tick)
+        }
+        if(s.actions!=null&&s.actions!!.size>0) {
+          for(t:TickActions in s.actions!!) {
+            actions.getExistsOrPutDefault(Tick(t.tick)).addAll(t.list)
+            clearCache(t.tick+1)
           }
-          if(s.stable!=null) {
-            if(s.stable!!.state!=null)
-              stable = StateWrapper(s.stable!!.state!!,s.stable!!.tick)
-            else
-              stable!!.tick(s.stable!!.tick)
-            clearCache(s.stable!!.tick)
-          }
-          if(s.actions!=null&&s.actions!!.size>0) {
-            for(t:TickActions in s.actions!!) {
-              actions.getExistsOrPutDefault(Tick(t.tick)).addAll(t.list)
-              clearCache(t.tick+1)
+        }
+        for(t in myActions.map.keys) {
+          val iterator = myActions.map[t]!!.iterator()
+          whl@ while(iterator.hasNext()) {
+            val next = iterator.next()
+            if(s.canceled!=null) {
+              if(s.canceled!!.contains(next.aid)) {
+                iterator.remove()
+                clearCache(t.tick+1)
+                continue
+              }
             }
-          }
-          for(t in myActions.map.keys) {
-            val iterator = myActions.map[t]!!.iterator()
-            whl@ while(iterator.hasNext()) {
-              val next = iterator.next()
-              if(s.canceled!=null) {
-                if(s.canceled!!.contains(next.aid)) {
+            if(s.apply!=null) {
+              for(apply in s.apply!!) {
+                if(apply.aid==next.aid) {
+                  if(!ShareTodo.SIMPLIFY) actions.getExistsOrPutDefault(t+apply.delay).add(PlayerAction(playerId!!,next.pa.action).toBig())
                   iterator.remove()
                   clearCache(t.tick+1)
-                  continue
-                }
-              }
-              if(s.apply!=null) {
-                for(apply in s.apply!!) {
-                  if(apply.aid==next.aid) {
-                    if(!ShareTodo.SIMPLIFY) actions.getExistsOrPutDefault(t + apply.delay).add(PlayerAction(playerId!!,next.pa.action).toBig())
-                    iterator.remove()
-                    clearCache(t.tick+1)
-                    continue@whl
-                  }
+                  continue@whl
                 }
               }
             }
           }
         }
       }
-    })
+    }
   }
 
   fun ready():Boolean {

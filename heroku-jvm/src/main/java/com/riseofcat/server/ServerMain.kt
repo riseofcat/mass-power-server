@@ -22,11 +22,7 @@ object ServerMain {
       UsageMonitorDecorator<Reader,String>(
         ConvertDecorator<ClientSay<ClientPayload>,ServerSay<ServerPayload>,Reader,String>(
           PingDecorator(
-            RoomsDecorator<ClientPayload,ServerPayload>(object: Signal.Listener<RoomsDecorator<ClientPayload, ServerPayload>.Room> {
-              override fun onSignal(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
-                TickGame(room)
-              }
-            }),1000),
+            RoomsDecorator<ClientPayload,ServerPayload>().apply {onRoomCreated.add({ room -> TickGame(room) })},1000),
           IConverter {obj ->
             Util.fromJsonClientSay(obj)
           },

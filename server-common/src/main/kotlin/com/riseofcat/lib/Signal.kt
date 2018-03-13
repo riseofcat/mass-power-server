@@ -9,7 +9,7 @@ class Signal<T> {
     var iterator:MutableIterator<Callback> = currentCallbacks.iterator()
     while(iterator.hasNext()) {
       val next = iterator.next()
-      next.listener!!.onSignal(value)
+      next.listener!!(value)
       if(next.once) {
         next.removed = true
       }
@@ -23,20 +23,20 @@ class Signal<T> {
     }
   }
 
-  fun add(listener:Listener<T>) {
+  fun add(listener:SignalListener<T>) {
     val c = Callback()
     c.listener = listener
     callbacks.add(c)
   }
 
-  fun addOnce(listener:Listener<T>) {
+  fun addOnce(listener:SignalListener<T>) {
     val c = Callback()
     c.listener = listener
     c.once = true
     callbacks.add(c)
   }
 
-  fun remove(signalListener:Listener<T>) {
+  fun remove(signalListener:SignalListener<T>) {
     val iterator = callbacks.iterator()
     while(iterator.hasNext()) {
       val next = iterator.next()
@@ -51,13 +51,11 @@ class Signal<T> {
     callbacks.clear()
   }
 
-  interface Listener<T> {
-    fun onSignal(arg:T)
-  }
-
   private inner class Callback {
-    var listener:Signal.Listener<T>? = null
+    var listener:SignalListener<T>? = null
     var removed = false
     var once = false
   }
 }
+
+typealias SignalListener<T> = (arg:T)->Unit
