@@ -60,21 +60,19 @@ dependencies {
   val old=true
   val oldKtorVersion = "0.3.1"
   val ktorVersion = "0.9.1"
-//  val gdxVersion by project
-  if(!old) {
-    compile("io.ktor:ktor-server-core:$ktorVersion")
-    compile("io.ktor:ktor-server-netty:$ktorVersion")
-    compile("io.ktor:ktor-server-jetty:$ktorVersion")
-  } else {
+
+  if(old) {
     compile("org.jetbrains.ktor:ktor-websockets:$oldKtorVersion")
     compile("org.jetbrains.ktor:ktor-netty:$oldKtorVersion")
     compile("org.jetbrains.ktor:ktor-jetty:$oldKtorVersion")
     compile("org.jetbrains.ktor:ktor-freemarker:$oldKtorVersion")
+  } else {
+    compile("io.ktor:ktor-server-core:$ktorVersion")
+    compile("io.ktor:ktor-server-netty:$ktorVersion")
+    compile("io.ktor:ktor-server-jetty:$ktorVersion")
   }
 
   compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.3")
-//  compile("com.badlogicgames.gdx:gdx:$gdxVersion")
-
   compile(project(":lib-jvm"))
   if(false)expectedBy(project(":server-common"))//эта зависимост идёт через lib-jvm
 
