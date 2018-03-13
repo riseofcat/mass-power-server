@@ -8,8 +8,6 @@ import com.riseofcat.share.mass.*
 
 class Model(conf:Conf) {
   val client:PingClient<ServerPayload,ClientPayload>
-  @Deprecated("") var copyTime:Long = 0
-  @Deprecated("") var tickTime:Long = 0
   var playerId:PlayerId? = null
   private val actions = DefaultValueMap<Tick, MutableList<BigAction>>(mutableMapOf(),{Common.createConcurrentList()})
   private val myActions = DefaultValueMap<Tick, MutableList<Action>>(mutableMapOf(),{mutableListOf()})
@@ -63,7 +61,7 @@ class Model(conf:Conf) {
             clearCache(s.stable!!.tick)
           }
           if(s.actions!=null&&s.actions!!.size>0) {
-            for(t in s.actions!!) {
+            for(t:TickActions in s.actions!!) {
               actions.getExistsOrPutDefault(Tick(t.tick)).addAll(t.list)
               clearCache(t.tick+1)
             }
@@ -82,7 +80,7 @@ class Model(conf:Conf) {
               if(s.apply!=null) {
                 for(apply in s.apply!!) {
                   if(apply.aid==next.aid) {
-                    if(!ShareTodo.SIMPLIFY) actions.getExistsOrPutDefault(t.add(apply.delay)).add(PlayerAction(playerId!!,next.pa.action).toBig())
+                    if(!ShareTodo.SIMPLIFY) actions.getExistsOrPutDefault(t + apply.delay).add(PlayerAction(playerId!!,next.pa.action).toBig())
                     iterator.remove()
                     clearCache(t.tick+1)
                     continue@whl
@@ -102,7 +100,7 @@ class Model(conf:Conf) {
 
   fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
-      val clientTick = sync!!.calcClientTck().toInt()//todo +0.5f?
+      val clientTick:Int = sync!!.calcClientTck().toInt()//todo +0.5f?
       if(!ready()) return
       if(false) if(sync!!.calcSrvTck()-sync!!.calcClientTck()>GameConst.DELAY_TICKS*1.5||sync!!.calcClientTck()-sync!!.calcSrvTck()>GameConst.FUTURE_TICKS*1.5) return
       val w = (client.smartLatencyS/GameConst.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
@@ -149,17 +147,14 @@ class Model(conf:Conf) {
 
   private fun getState(tick:Int):State? {
     var result = getNearestCache(tick)
-    var t:Long? = null
     if(result==null) {
       if(stable==null) return null
       synchronized(this) {
         result = StateWrapper(stable!!)
         saveCache(result!!)
       }
-      t = Common.timeMs
     }
     result!!.tick(tick)
-    if(t!=null) tickTime += Common.timeMs-t
     return result!!.state
   }
 
@@ -172,21 +167,10 @@ class Model(conf:Conf) {
     action:com.riseofcat.share.mass.Action,
     val pa:PlayerAction = PlayerAction(playerId!!,action)):InStateAction by pa
 
-  private inner class StateWrapper {
-    var state:State
-    var tick:Int = 0
-
-    constructor(state:State,tick:Int) {
-      this.state = state
-      this.tick = tick
-    }
-
-    constructor(obj:StateWrapper) {
-      val t = Common.timeMs
-      state = obj.state.copy()
-      copyTime += Common.timeMs-t
-      this.tick = obj.tick
-    }
+  private inner class StateWrapper(
+    var state:State,
+    var tick:Int) {
+    constructor(obj:StateWrapper):this(obj.state.copy(),obj.tick)
 
     fun tick(targetTick:Int) {
       while(tick<targetTick) {
