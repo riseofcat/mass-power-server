@@ -9,7 +9,7 @@ plugins {
   id("kotlinx-serialization") version "0.4.2" apply true
 }
 application { //needs only for local launch
-  mainClassName = "com.riseofcat.server.MainJava"
+  mainClassName = "com.riseofcat.server.ServerMain"
 }
 
 java {
