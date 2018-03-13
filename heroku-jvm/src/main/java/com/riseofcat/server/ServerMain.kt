@@ -6,23 +6,19 @@ import com.riseofcat.share.base.*
 import com.riseofcat.share.mass.ClientPayload
 import com.riseofcat.share.mass.ServerPayload
 
-import spark.Spark
 import java.io.*
-
-//import static spark.Spark.*;
-//http://sparkjava.com/documentation
 
 object ServerMain {
   @JvmStatic fun main(args:Array<String>) {
     val port = java.lang.System.getenv("PORT")
-    Spark.port(if(port!=null) Integer.parseInt(port) else 5000)
+    spark.Spark.port(if(port!=null) Integer.parseInt(port) else 5000)
     if(false) {
-      Spark.threadPool(30,2,30000)
-      Spark.webSocketIdleTimeoutMillis(30000)
+      spark.Spark.threadPool(30,2,30000)
+      spark.Spark.webSocketIdleTimeoutMillis(30000)
     }
-    Spark.staticFiles.location("/public")
-    Spark.staticFiles.expireTime(600)
-    Spark.webSocket("/socket",SparkWebSocket(
+    spark.Spark.staticFiles.location("/public")
+    spark.Spark.staticFiles.expireTime(600)
+    spark.Spark.webSocket("/socket",SparkWebSocket(
       UsageMonitorDecorator<Reader,String>(
         ConvertDecorator<ClientSay<ClientPayload>,ServerSay<ServerPayload>,Reader,String>(
           PingDecorator(
@@ -38,7 +34,7 @@ object ServerMain {
             Util.toServerSayJson(ss)
           }
           ))))
-    Spark.get("/") {request,response-> LibJvm.info()}
-    Spark.init()//Spark.stop();
+    spark.Spark.get("/") {request,response-> LibJvm.info()}
+    spark.Spark.init()//Spark.stop();
   }
 }
