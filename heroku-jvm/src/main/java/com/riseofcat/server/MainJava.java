@@ -1,6 +1,6 @@
 package com.riseofcat.server;
 
-import com.riseofcat.lib.LibAll;
+import com.riseofcat.lib.LibJava;
 import com.riseofcat.share.mass.ClientPayload;
 import com.riseofcat.share.mass.ServerPayload;
 
@@ -31,7 +31,7 @@ public static void main(String[] args) {
 	Spark.get("/", new Route() {
 		@Override
 		public Object handle(Request request, Response response) {
-			return LibAll.JSON.toPrettyStr(App.INSTANCE.getInfo());
+			return LibJava.info();
 		}
 	});
 	Spark.init();//Spark.stop();

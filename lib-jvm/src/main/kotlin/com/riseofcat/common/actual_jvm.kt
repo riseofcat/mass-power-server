@@ -3,7 +3,6 @@ package com.riseofcat.common
 import com.github.czyzby.websocket.*
 import com.github.czyzby.websocket.data.*
 import java.util.concurrent.*
-import kotlin.reflect.*
 
 actual class Common {
   actual companion object {
