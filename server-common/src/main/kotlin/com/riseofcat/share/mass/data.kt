@@ -102,7 +102,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
   override fun act(state:State,getCar:GetCarById) {
     val scl = 100f
     val car = getCar.getCar(id) ?: return //todo handle null ?
-    car.speed = car.speed.add(action.direction.xy(),scl)
+    car.speed = car.speed.add(action.direction.xy().immutable().scale(scl))//todo maybe redundant copy
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
     state.reactive.add(Reactive(id,s,action.direction.add(Angle.degreesAngle(180f)).xy().scale(3f*scl).mutable(),car.pos.mutable()))
@@ -146,7 +146,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
 
   fun tick():State {
     val iterateFun:(SpeedObject)->Unit = {o->
-      o.pos = o.pos.add(o.speed.mutable(),GameConst.UPDATE_S)
+      o.pos = o.pos.add(o.speed.immutable().scale(GameConst.UPDATE_S))
       if(o.pos.x>=width())
         o.pos.x = o.pos.x-width()
       else if(o.pos.x<0) o.pos.x = o.pos.x+width()
@@ -215,10 +215,10 @@ fun State.changeSize(delta:Int) {
 @Serializable data class XY(var x:Float=0f,var y:Float=0f) {
   @Transient private var _mutable:Boolean = false
 
-  fun add(a:XY,scale:Float = 1f):XY {
+  fun add(a:XY):XY {
     val result = if(_mutable) this else copy()
-    result.x += a.x*scale
-    result.y += a.y*scale
+    result.x += a.x
+    result.y += a.y
     return result
   }
 
@@ -264,6 +264,7 @@ fun State.changeSize(delta:Int) {
   }
 
   fun mutable() = copy().apply {_mutable = true}
+  fun immutable() = copy().apply {_mutable = false}
 
 }
 
