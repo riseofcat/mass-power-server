@@ -62,16 +62,18 @@ interface EatMe:SpeedObject {
     }
   }
 
-  fun sin() = kotlin.math.sin(radians.toDouble()).toFloat()
-  fun cos() = kotlin.math.cos(radians.toDouble()).toFloat()
-  fun xy():XY = XY(cos(),sin())
-  fun add(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
-  fun subtract(sub:Angle) = Angle(this.radians-sub.radians)
+  operator fun plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
+  operator fun minus(sub:Angle) = Angle(this.radians-sub.radians)
 
   companion object {
     fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
+    fun degreesAngle(degrees:Int) = Angle(degrees/180*PI.toFloat())
   }
 }
+
+fun Angle.sin() = kotlin.math.sin(radians.toDouble()).toFloat()
+fun Angle.cos() = kotlin.math.cos(radians.toDouble()).toFloat()
+fun Angle.xy():XY = XY(cos(),sin())
 
 val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
 val Angle.gdxTransformRotation:Float get() = degrees
@@ -105,7 +107,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
     car.speed = car.speed + action.direction.xy().mutable().scale(scl)//todo maybe redundant copy
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,action.direction.add(Angle.degreesAngle(180f)).xy().scale(3f*scl).mutable(),car.pos.mutable()))
+    state.reactive.add(Reactive(id,s,(action.direction + Angle.degreesAngle(180f)).xy().scale(3f*scl).mutable(),car.pos.mutable()))
   }
 
   fun toBig() = BigAction(p = this)
@@ -245,7 +247,7 @@ fun State.changeSize(delta:Int) {
 
   fun rotate(angleA:Angle):XY {
     val result = if(_mutable) this else copy()
-    val angle = calcAngle().add(angleA)
+    val angle = calcAngle() + angleA
     val len = len()
     result.x = (len*angle.cos()).toFloat()
     result.y = (len*angle.sin()).toFloat()
@@ -257,7 +259,7 @@ fun State.changeSize(delta:Int) {
       Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
     else
       try {
-        Angle(atan((y/x).toDouble()).toFloat()).add(Angle.degreesAngle(if(x<0) 180f else 0f))
+        Angle(atan((y/x).toDouble()).toFloat()) + Angle.degreesAngle(if(x<0) 180f else 0f)
       } catch(t:Throwable) {
         Angle.degreesAngle(y.sign*90f)
       }

@@ -124,7 +124,7 @@ class Model(conf:Conf) {
     if(displayState==null||playerId==null) return
     for((owner,_,_,pos1) in displayState.cars) {
       if(playerId==owner) {
-        val direction = (pos - pos1).calcAngle().add(Angle.degreesAngle((0*180).toFloat()))
+        val direction = (pos - pos1).calcAngle() + Angle.degreesAngle(0*180)
         action(Action(direction))
         break
       }
