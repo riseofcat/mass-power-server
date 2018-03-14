@@ -90,7 +90,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
 @Serializable class NewCarAction(var id:PlayerId):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
-    state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY(true),XY()))
+    state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY().mutable(),XY()))
   }
 
   fun toBig() = BigAction(n = this)
@@ -105,7 +105,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
     car.speed = car.speed.add(action.direction.xy(),scl)
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,XY(action.direction.add(Angle.degreesAngle(180f)).xy().scale(3f*scl),true),XY(car.pos,true)))
+    state.reactive.add(Reactive(id,s,action.direction.add(Angle.degreesAngle(180f)).xy().scale(3f*scl).mutable(),car.pos.mutable()))
   }
 
   fun toBig() = BigAction(p = this)
@@ -146,7 +146,7 @@ val Angle.gdxTransformRotation:Float get() = degrees
 
   fun tick():State {
     val iterateFun:(SpeedObject)->Unit = {o->
-      o.pos = o.pos.add(XY(o.speed,true),GameConst.UPDATE_S)
+      o.pos = o.pos.add(o.speed.mutable(),GameConst.UPDATE_S)
       if(o.pos.x>=width())
         o.pos.x = o.pos.x-width()
       else if(o.pos.x<0) o.pos.x = o.pos.x+width()
@@ -200,7 +200,7 @@ fun State.rnd(min:Int,max:Int):Int {
 fun State.rnd(max:Int) = rnd(0,max)
 fun State.rndf(min:Float,max:Float) = min+rnd(999)/1000f*(max-min)//todo optimize
 fun State.rndf(max:Float = 1f) = rndf(0f,max)
-fun State.rndPos() = XY(rndf(width()),rndf(height()),true)
+fun State.rndPos() = XY(rndf(width()),rndf(height())).mutable()
 
 fun State.changeSize(delta:Int) {
   val oldW = width()
@@ -210,31 +210,20 @@ fun State.changeSize(delta:Int) {
   cars.forEach(changePosFun)
   reactive.forEach(changePosFun)
   foods.forEach(changePosFun)
-
 }
 
-@Serializable data class XY(var x:Float,var y:Float) {
-  @Transient private var mutable:Boolean = false
-  constructor(x:Float,y:Float,mutable:Boolean):this(x,y) {
-    this.mutable = mutable
-  }
-  constructor(xy:XY, mutable:Boolean):this(xy.x, xy.y) {
-    this.mutable = mutable
-  }
-  constructor(mutable:Boolean):this(0f, 0f) {
-    this.mutable = mutable
-  }
-  constructor():this(0f,0f)
+@Serializable data class XY(var x:Float=0f,var y:Float=0f) {
+  @Transient private var _mutable:Boolean = false
 
   fun add(a:XY,scale:Float = 1f):XY {
-    val result = if(mutable) this else copy()
+    val result = if(_mutable) this else copy()
     result.x += a.x*scale
     result.y += a.y*scale
     return result
   }
 
   fun sub(a:XY):XY {//todo operator minus
-    val result = if(mutable) this else copy()
+    val result = if(_mutable) this else copy()
     result.x -= a.x
     result.y -= a.y
     return result
@@ -245,7 +234,7 @@ fun State.changeSize(delta:Int) {
   }
 
   fun scale(sx:Float,sy:Float):XY {
-    val result = if(mutable) this else copy()
+    val result = if(_mutable) this else copy()
     result.x *= sx
     result.y *= sy
     return result
@@ -255,7 +244,7 @@ fun State.changeSize(delta:Int) {
   fun len() = dst(XY(0f,0f))
 
   fun rotate(angleA:Angle):XY {
-    val result = if(mutable) this else copy()
+    val result = if(_mutable) this else copy()
     val angle = calcAngle().add(angleA)
     val len = len()
     result.x = (len*angle.cos()).toFloat()
@@ -272,8 +261,10 @@ fun State.changeSize(delta:Int) {
       } catch(t:Throwable) {
         Angle.degreesAngle(y.sign*90f)
       }
-
   }
+
+  fun mutable() = copy().apply {_mutable = true}
+
 }
 
 @Serializable data class PlayerId(var id:Int)
