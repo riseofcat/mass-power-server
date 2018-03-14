@@ -1,7 +1,6 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
-import com.riseofcat.common.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
@@ -137,12 +136,12 @@ fun State.act(actions:Iterator<InStateAction>):State {
 fun State.tick():State {
   val iterateFun:(SpeedObject)->Unit = {o->
     o.pos = o.pos + o.speed.mutable().scale(GameConst.UPDATE_S)
-    if(o.pos.x>=width())
-      o.pos.x = o.pos.x-width()
-    else if(o.pos.x<0) o.pos.x = o.pos.x+width()
-    if(o.pos.y>=height())
-      o.pos.y = o.pos.y-height()
-    else if(o.pos.y<0) o.pos.y = o.pos.y+height()
+    if(o.pos.x>=width)
+      o.pos.x = o.pos.x-width
+    else if(o.pos.x<0) o.pos.x = o.pos.x+width
+    if(o.pos.y>=height)
+      o.pos.y = o.pos.y-height
+    else if(o.pos.y<0) o.pos.y = o.pos.y+height
     o.speed = o.speed.scale(0.98f)
   }
   cars.forEach(iterateFun)
@@ -171,13 +170,13 @@ fun State.tick():State {
   return this
 }
 
-fun State.width() = (GameConst.BASE_WIDTH+size).toFloat()
-fun State.height() = (GameConst.BASE_HEIGHT+size).toFloat()
+val State.width get() = (GameConst.BASE_WIDTH+size).toFloat()
+val State.height get() = (GameConst.BASE_HEIGHT+size).toFloat()
 fun State.distance(a:XY,b:XY):Float {
-  var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width()-a.x)
-  dx = kotlin.math.min(dx,a.x+width()-b.x)
-  var dy = kotlin.math.min(kotlin.math.abs(b.y-a.y),b.y+height()-a.y)
-  dy = kotlin.math.min(dy,a.y+height()-b.y)
+  var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width-a.x)
+  dx = kotlin.math.min(dx,a.x+width-b.x)
+  var dy = kotlin.math.min(kotlin.math.abs(b.y-a.y),b.y+height-a.y)
+  dy = kotlin.math.min(dy,a.y+height-b.y)
   return kotlin.math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
 }
 fun State.rnd(min:Int,max:Int):Int {
@@ -187,12 +186,12 @@ fun State.rnd(min:Int,max:Int):Int {
 fun State.rnd(max:Int) = rnd(0,max)
 fun State.rndf(min:Float,max:Float) = min+rnd(999)/1000f*(max-min)//todo optimize
 fun State.rndf(max:Float = 1f) = rndf(0f,max)
-fun State.rndPos() = XY(rndf(width()),rndf(height())).mutable()
+fun State.rndPos() = XY(rndf(width),rndf(height)).mutable()
 fun State.changeSize(delta:Int) {
-  val oldW = width()
-  val oldH = height()
+  val oldW = width
+  val oldH = height
   size += delta
-  val changePosFun:(PosObject)->Unit = {p-> p.pos = p.pos.scale(width()/oldW,height()/oldH)}
+  val changePosFun:(PosObject)->Unit = {p-> p.pos = p.pos.scale(width/oldW,height/oldH)}
   cars.forEach(changePosFun)
   reactive.forEach(changePosFun)
   foods.forEach(changePosFun)
