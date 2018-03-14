@@ -222,7 +222,7 @@ fun State.changeSize(delta:Int) {
     return result
   }
 
-  fun sub(a:XY):XY {//todo operator minus
+  operator fun minus(a:XY):XY {
     val result = if(_mutable) this else copy()
     result.x -= a.x
     result.y -= a.y
