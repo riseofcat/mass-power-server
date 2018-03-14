@@ -3,6 +3,7 @@ package com.riseofcat.share.mass
 import com.riseofcat.client.*
 import kotlinx.serialization.*
 import kotlin.math.*
+import kotlin.system.*
 
 object GameConst {
   val UPDATE_MS = 40
@@ -19,27 +20,12 @@ object GameConst {
   val FUTURE_TICKS = DELAY_TICKS*3
 }
 
-
-interface GetCarById {
-  fun getCar(id:PlayerId):Car?
-}
-
-interface InStateAction {
-  fun act(state:State,getCar:GetCarById)
-}
-
-interface PosObject {
-  var pos:XY
-}
-
-interface SpeedObject:PosObject {
-  var speed:XY
-}
-
-interface EatMe:SpeedObject {
-  var size:Int
-  fun radius() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
-}
+interface GetCarById { fun getCar(id:PlayerId):Car? }
+interface InStateAction { fun act(state:State,getCar:GetCarById) }
+interface PosObject { var pos:XY }
+interface SpeedObject:PosObject { var speed:XY }
+interface EatMe:SpeedObject { var size:Int }
+val EatMe.radius get() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
 
 @Serializable class BigAction(
   @Optional val n:NewCarAction? = null,
@@ -133,7 +119,19 @@ fun State.act(actions:Iterator<InStateAction>):State {
   return this
 }
 
+var average = 0f
+
 fun State.tick():State {
+  var result:State? = null
+  val nano = measureNanoTime {
+     result = tick2()
+  }
+
+  val frames = 20
+  average = (average*frames + nano) / (frames+1)
+  return result!!
+}
+fun State.tick2():State {
   val iterateFun:(SpeedObject)->Unit = {o->
     o.pos = o.pos + o.speed.mutable().scale(GameConst.UPDATE_S)
     if(o.pos.x>=width)
@@ -152,7 +150,7 @@ fun State.tick():State {
     val foodItr = foods.iterator()
     while(foodItr.hasNext()) {
       val (size1,_,pos) = foodItr.next()
-      if(distance(car.pos,pos)<=car.radius()) {
+      if(distance(car.pos,pos)<=car.radius) {
         car.size = car.size+size1
         foodItr.remove()
       }
@@ -160,7 +158,7 @@ fun State.tick():State {
     reactItr = reactive.iterator()
     while(reactItr.hasNext()) {
       val r = reactItr.next()
-      if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
+      if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius) {
         car.size = car.size+r.size
         reactItr.remove()
       }
