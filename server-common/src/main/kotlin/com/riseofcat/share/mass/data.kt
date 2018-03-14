@@ -120,9 +120,7 @@ fun PlayerAction.toBig() = BigAction(p = this)
   @Optional var foods:MutableList<Food> = mutableListOf(),
   @Optional var reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
-  var size:Int = 0):MayClone<State> {
-  override fun clone() = copy()//todo deprecated
-}
+  var size:Int = 0)
 
 fun State.act(actions:Iterator<InStateAction>):State {
   class Cache:GetCarById {

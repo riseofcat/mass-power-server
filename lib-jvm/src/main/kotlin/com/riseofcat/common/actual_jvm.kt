@@ -89,10 +89,6 @@ actual class Common {
     } catch(e:Throwable) {
       e.stackTrace.getOrNull(depth)?.prettyString ?: ""
     }
-
-    actual fun <T:MayClone<T>> clone(obj:T):T {
-      return obj.clone()
-    }
   }
 }
 
