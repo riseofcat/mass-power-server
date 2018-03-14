@@ -61,20 +61,17 @@ interface EatMe:SpeedObject {
       circles.sign
     }
   }
-
-  operator fun plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
-  operator fun minus(sub:Angle) = Angle(this.radians-sub.radians)
-
   companion object {
     fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
     fun degreesAngle(degrees:Int) = Angle(degrees/180*PI.toFloat())
   }
 }
 
+operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
+operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
 fun Angle.sin() = kotlin.math.sin(radians.toDouble()).toFloat()
 fun Angle.cos() = kotlin.math.cos(radians.toDouble()).toFloat()
 fun Angle.xy():XY = XY(cos(),sin())
-
 val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
 val Angle.gdxTransformRotation:Float get() = degrees
 
@@ -94,9 +91,8 @@ val Angle.gdxTransformRotation:Float get() = degrees
     state.changeSize(100)
     state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY().mutable(),XY()))
   }
-
-  fun toBig() = BigAction(n = this)
 }
+fun NewCarAction.toBig() = BigAction(n = this)
 
 @Serializable class PlayerAction(
   var id:PlayerId,
@@ -109,9 +105,8 @@ val Angle.gdxTransformRotation:Float get() = degrees
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
     state.reactive.add(Reactive(id,s,(action.direction + Angle.degreesAngle(180f)).xy().scale(3f*scl).mutable(),car.pos.mutable()))
   }
-
-  fun toBig() = BigAction(p = this)
 }
+fun PlayerAction.toBig() = BigAction(p = this)
 
 @Serializable data class Reactive(
   var owner:PlayerId,
@@ -126,62 +121,56 @@ val Angle.gdxTransformRotation:Float get() = degrees
   @Optional var reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
   var size:Int = 0):MayClone<State> {
+  override fun clone() = copy()//todo deprecated
+}
 
-  override fun clone():State {
-    return copy()
+fun State.act(actions:Iterator<InStateAction>):State {
+  class Cache:GetCarById {
+    override fun getCar(id:PlayerId):Car? {
+      for(car in cars) if(id==car.owner) return car
+      return null
+    }
   }
+  val cache = Cache()
+  actions.forEach {it.act(this,cache)}
+  return this
+}
 
-  fun act(actions:Iterator<InStateAction>):State {
-    class Cache:GetCarById {
-      override fun getCar(id:PlayerId):Car? {
-        for(car in cars) if(id==car.owner) return car
-        return null
+fun State.tick():State {
+  val iterateFun:(SpeedObject)->Unit = {o->
+    o.pos = o.pos + o.speed.mutable().scale(GameConst.UPDATE_S)
+    if(o.pos.x>=width())
+      o.pos.x = o.pos.x-width()
+    else if(o.pos.x<0) o.pos.x = o.pos.x+width()
+    if(o.pos.y>=height())
+      o.pos.y = o.pos.y-height()
+    else if(o.pos.y<0) o.pos.y = o.pos.y+height()
+    o.speed = o.speed.scale(0.98f)
+  }
+  cars.forEach(iterateFun)
+  reactive.forEach(iterateFun)
+  var reactItr:MutableIterator<Reactive> = reactive.iterator()
+  while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
+  for(car in cars) {
+    val foodItr = foods.iterator()
+    while(foodItr.hasNext()) {
+      val (size1,_,pos) = foodItr.next()
+      if(distance(car.pos,pos)<=car.radius()) {
+        car.size = car.size+size1
+        foodItr.remove()
       }
     }
-
-    val cache = Cache()
-    actions.forEach {
-      it.act(this,cache)
-    }
-    return this
-  }
-
-  fun tick():State {
-    val iterateFun:(SpeedObject)->Unit = {o->
-      o.pos = o.pos + o.speed.mutable().scale(GameConst.UPDATE_S)
-      if(o.pos.x>=width())
-        o.pos.x = o.pos.x-width()
-      else if(o.pos.x<0) o.pos.x = o.pos.x+width()
-      if(o.pos.y>=height())
-        o.pos.y = o.pos.y-height()
-      else if(o.pos.y<0) o.pos.y = o.pos.y+height()
-      o.speed = o.speed.scale(0.98f)
-    }
-    cars.forEach(iterateFun)
-    reactive.forEach(iterateFun)
-    var reactItr:MutableIterator<Reactive> = reactive.iterator()
-    while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
-    for(car in cars) {
-      val foodItr = foods.iterator()
-      while(foodItr.hasNext()) {
-        val (size1,_,pos) = foodItr.next()
-        if(distance(car.pos,pos)<=car.radius()) {
-          car.size = car.size+size1
-          foodItr.remove()
-        }
-      }
-      reactItr = reactive.iterator()
-      while(reactItr.hasNext()) {
-        val r = reactItr.next()
-        if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
-          car.size = car.size+r.size
-          reactItr.remove()
-        }
+    reactItr = reactive.iterator()
+    while(reactItr.hasNext()) {
+      val r = reactItr.next()
+      if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius()) {
+        car.size = car.size+r.size
+        reactItr.remove()
       }
     }
-    if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
-    return this
   }
+  if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
+  return this
 }
 
 fun State.width() = (GameConst.BASE_WIDTH+size).toFloat()
@@ -193,17 +182,14 @@ fun State.distance(a:XY,b:XY):Float {
   dy = kotlin.math.min(dy,a.y+height()-b.y)
   return kotlin.math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
 }
-
 fun State.rnd(min:Int,max:Int):Int {
   random = random*1664525+1013904223 and 0x7fffffff
   return min+random%(max-min+1)
 }
-
 fun State.rnd(max:Int) = rnd(0,max)
 fun State.rndf(min:Float,max:Float) = min+rnd(999)/1000f*(max-min)//todo optimize
 fun State.rndf(max:Float = 1f) = rndf(0f,max)
 fun State.rndPos() = XY(rndf(width()),rndf(height())).mutable()
-
 fun State.changeSize(delta:Int) {
   val oldW = width()
   val oldH = height()

@@ -35,6 +35,7 @@ abstract class LibWebSocket {
   }
 }
 
+@Deprecated("")
 interface MayClone<T> {
   fun clone():T
 }

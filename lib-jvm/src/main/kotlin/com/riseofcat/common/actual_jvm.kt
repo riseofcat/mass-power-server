@@ -93,9 +93,7 @@ actual class Common {
     actual fun <T:MayClone<T>> clone(obj:T):T {
       return obj.clone()
     }
-
   }
-
 }
 
 val StackTraceElement.prettyString:CharSequence get() = "\t$className-$methodName ($fileName:$lineNumber)"

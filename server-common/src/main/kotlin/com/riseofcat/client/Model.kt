@@ -53,10 +53,7 @@ class Model(conf:Conf) {
           playerId = s.welcome!!.id
         }
         if(s.stable!=null) {
-          if(s.stable!!.state!=null)
-            stable = StateWrapper(s.stable!!.state!!,s.stable!!.tick)
-          else
-            stable!!.tick(s.stable!!.tick)
+          stable = StateWrapper(s.stable!!.state,s.stable!!.tick)
           clearCache(s.stable!!.tick)
         }
         if(s.actions!=null&&s.actions!!.size>0) {
