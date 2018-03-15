@@ -190,10 +190,7 @@ fun State.changeSize(delta:Int) {
   val oldW = width
   val oldH = height
   size += delta
-  val changePosFun:(PosObject)->Unit = {p-> p.pos = p.pos.scale(width/oldW,height/oldH)}
-  cars.forEach(changePosFun)
-  reactive.forEach(changePosFun)
-  foods.forEach(changePosFun)
+  (cars + reactive + foods).forEach {p:PosObject-> p.pos = p.pos.scale(width/oldW,height/oldH)}
 }
 
 @Serializable data class XY(var x:Float=0f,var y:Float=0f) {
