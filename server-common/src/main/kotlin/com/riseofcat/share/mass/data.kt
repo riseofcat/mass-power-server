@@ -1,6 +1,7 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
+import com.riseofcat.share.base.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
@@ -45,9 +46,9 @@ interface EatMe:SpeedObject { var size:Int }
   override fun act(state:State) {
     val car = state.cars.find{ it.owner == id}?:return
     car.speed = car.speed+action.direction.xy*100f
-    val s = car.size/15+1
-    if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,(action.direction+degreesAngle(180f)).xy*300f,car.pos.copy()))
+    val size = car.size/15+1
+    if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
+    state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180f)).xy*300f,car.pos.copy(), state.tick.copy()))
   }
 }
 @Serializable data class Action(var direction:Angle)
@@ -74,13 +75,14 @@ interface EatMe:SpeedObject { var size:Int }
   override var size:Int,
   override var speed:XY,
   override var pos:XY,
-  var ticks:Int = 0):EatMe
+  val born:Tick):EatMe
 @Serializable data class State(
-  @Optional var cars:MutableList<Car> = mutableListOf(),
-  @Optional var foods:MutableList<Food> = mutableListOf(),
-  @Optional var reactive:MutableList<Reactive> = mutableListOf(),
+  @Optional val cars:MutableList<Car> = mutableListOf(),
+  @Optional val foods:MutableList<Food> = mutableListOf(),
+  @Optional val reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
-  var size:Int = 0)
+  var size:Int = 0,
+  var tick:Tick = Tick(0))
 @Serializable data class PlayerId(var id:Int)
 @Serializable data class XY(var x:Float=0f,var y:Float=0f)
 
@@ -101,7 +103,8 @@ fun State.act(actions:Iterator<InStateAction>):State {
   return this
 }
 
-fun State.tick() = apply {
+fun State.tick() = apply {//todo передавать tick в аргументах?
+  tick+=1
   (cars+reactive).forEach {o->
     o.pos msum o.speed*GameConst.UPDATE_S
     o.speed mscale 0.98f
@@ -112,7 +115,7 @@ fun State.tick() = apply {
     else if(o.pos.y<0) o.pos.y = o.pos.y+height
   }
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  while(reactItr.hasNext()) if(reactItr.next().ticks++>GameConst.REACTIVE_LIVE) reactItr.remove()
+  while(reactItr.hasNext()) if((tick-reactItr.next().born).tick > GameConst.REACTIVE_LIVE) reactItr.remove()
   for(car in cars) {
     val foodItr = foods.iterator()
     while(foodItr.hasNext()) {

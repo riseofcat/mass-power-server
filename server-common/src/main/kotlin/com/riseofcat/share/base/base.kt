@@ -17,3 +17,4 @@ import kotlinx.serialization.*
 
 operator fun Tick.plus(i:Int) = Tick(tick+i)
 operator fun Tick.plus(t:Tick) = Tick(tick+t.tick)
+operator fun Tick.minus(t:Tick) = Tick(tick - t.tick)
