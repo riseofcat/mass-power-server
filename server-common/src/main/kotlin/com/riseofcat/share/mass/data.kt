@@ -3,7 +3,6 @@ package com.riseofcat.share.mass
 import com.riseofcat.client.*
 import kotlinx.serialization.*
 import kotlin.math.*
-import kotlin.system.*
 
 object GameConst {
   val UPDATE_MS = 40
@@ -121,9 +120,9 @@ fun State.act(actions:Iterator<InStateAction>):State {
 }
 
 fun State.tick() = apply {
-  cars.forEach {it.pos = it.pos.copy()}//todo redundant
+  if(false)cars.forEach {it.pos = it.pos.copy()}
   (cars+reactive).forEach {o->
-    o.pos = o.pos msum o.speed*GameConst.UPDATE_S
+    o.pos = o.pos sum o.speed*GameConst.UPDATE_S//todo sum to msum
     o.speed = o.speed mscale 0.98f
 
     if(o.pos.x>=width) o.pos.x = o.pos.x-width
@@ -154,20 +153,6 @@ fun State.tick() = apply {
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
 }
 
-internal inline infix fun XY.msum(b:XY):XY {
-  val result = this
-  result.x += b.x
-  result.y += b.y
-  return result
-}
-
-internal inline infix fun XY.mscale(scl:Float):XY {
-  val result = this
-  result.x*=scl
-  result.y*=scl
-  return result
-}
-
 val State.width get() = (GameConst.BASE_WIDTH+size).toFloat()
 val State.height get() = (GameConst.BASE_HEIGHT+size).toFloat()
 fun State.distance(a:XY,b:XY):Float {
@@ -189,14 +174,29 @@ fun State.changeSize(delta:Int) {
   val oldW = width
   val oldH = height
   size += delta
-  (cars + reactive + foods).forEach {p:PosObject-> p.pos = p.pos.scale(width/oldW,height/oldH)}
+  (cars + reactive + foods).forEach {p:PosObject-> p.pos = p.pos scale XY(width/oldW,height/oldH)}
 }
 
-@Serializable data class XY(var x:Float=0f,var y:Float=0f)
+@Serializable data class PlayerId(var id:Int)
 
+@Serializable data class XY(var x:Float=0f,var y:Float=0f)
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
-inline fun XY.scale(sx:Float,sy:Float) = copy(x*sx, y*sy)
+internal inline infix fun XY.scale(xy:XY) = copy() mscale xy
+internal inline infix fun XY.mscale(scl:Float) = this mscale XY(scl, scl)
+internal inline infix fun XY.scale(scl:Float) = copy() mscale scl
+internal inline infix fun XY.msum(b:XY):XY {
+  x += b.x
+  y += b.y
+  return this
+}
+internal inline infix fun XY.sum(b:XY) = copy() msum b
+internal inline infix fun XY.mscale(xy:XY):XY {
+  val result = this
+  result.x*=xy.x
+  result.y*=xy.y
+  return result
+}
 fun XY.rotate(angleA:Angle):XY {
   val result = copy()
   val angle = calcAngle() + angleA
@@ -205,9 +205,7 @@ fun XY.rotate(angleA:Angle):XY {
   result.y = (len*angle.sin()).toFloat()
   return result
 }
-inline operator fun XY.times(scl:Float) = scale(scl,scl)
+operator fun XY.times(scl:Float) = this scale scl
 fun XY.len() = dst(XY(0f,0f))//todo get() =
 fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
 fun XY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
-
-@Serializable data class PlayerId(var id:Int)
