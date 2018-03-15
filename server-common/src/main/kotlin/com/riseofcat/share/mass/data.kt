@@ -173,7 +173,7 @@ internal inline infix fun XY.msum(b:XY):XY {
 }
 
 internal inline infix fun XY.mscale(scl:Float):XY {
-  val result = copy()
+  val result = this//copy()
   result.x*=scl
   result.y*=scl
   return result
