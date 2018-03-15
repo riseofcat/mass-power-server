@@ -213,19 +213,12 @@ fun State.changeSize(delta:Int) {
     return result
   }
 
-  fun scale(scl:Float):XY {
-    return scale(scl,scl)
-  }
-
   fun scale(sx:Float,sy:Float):XY {
     val result = if(_mutable) this else copy()
     result.x *= sx
     result.y *= sy
     return result
   }
-
-  fun dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
-  fun len() = dst(XY(0f,0f))
 
   fun rotate(angleA:Angle):XY {
     val result = if(_mutable) this else copy()
@@ -236,20 +229,13 @@ fun State.changeSize(delta:Int) {
     return result
   }
 
-  fun calcAngle():Angle {
-    return if(true)
-      Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
-    else
-      try {
-        Angle(atan((y/x).toDouble()).toFloat()) + Angle.degreesAngle(if(x<0) 180f else 0f)
-      } catch(t:Throwable) {
-        Angle.degreesAngle(y.sign*90f)
-      }
-  }
-
   fun mutable() = copy().apply {_mutable = true}
   fun immutable() = copy().apply {_mutable = false}
-
 }
+
+fun XY.scale(scl:Float) = scale(scl,scl)
+fun XY.len() = dst(XY(0f,0f))
+fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
+fun XY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
 
 @Serializable data class PlayerId(var id:Int)
