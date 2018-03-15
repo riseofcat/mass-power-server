@@ -99,7 +99,7 @@ fun PlayerAction.toBig() = BigAction(p = this)
   override var size:Int,
   override var speed:XY,
   override var pos:XY,
-  var ticks:Int = 0):EatMe
+  var ticks:Int = 0):EatMe//todo заменить ticks на bornTick
 
 @Serializable data class State(
   @Optional var cars:MutableList<Car> = mutableListOf(),
@@ -132,19 +132,16 @@ fun State.tick():State {
   average = (average*frames + nano) / (frames+1)
   return result!!
 }
-fun State.tick2():State {
-  val iterateFun:(SpeedObject)->Unit = {o->
-    o.pos = o.pos + o.speed * GameConst.UPDATE_S
-    if(o.pos.x>=width)
-      o.pos.x = o.pos.x-width
+fun State.tick2() = apply {
+  (cars+reactive).forEach {o->
+    o.pos = o.pos msum o.speed*GameConst.UPDATE_S
+    o.speed = o.speed mscale 0.98f
+
+    if(o.pos.x>=width) o.pos.x = o.pos.x-width
     else if(o.pos.x<0) o.pos.x = o.pos.x+width
-    if(o.pos.y>=height)
-      o.pos.y = o.pos.y-height
+    if(o.pos.y>=height) o.pos.y = o.pos.y-height
     else if(o.pos.y<0) o.pos.y = o.pos.y+height
-    o.speed = o.speed * 0.98f
   }
-  cars.forEach(iterateFun)
-  reactive.forEach(iterateFun)
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
   while(reactItr.hasNext()) if(reactItr.next().ticks++>GameConst.REACTIVE_LIVE) reactItr.remove()
   for(car in cars) {
@@ -152,7 +149,7 @@ fun State.tick2():State {
     while(foodItr.hasNext()) {
       val (size1,_,pos) = foodItr.next()
       if(distance(car.pos,pos)<=car.radius) {
-        car.size = car.size+size1
+        car.size += size1
         foodItr.remove()
       }
     }
@@ -160,13 +157,26 @@ fun State.tick2():State {
     while(reactItr.hasNext()) {
       val r = reactItr.next()
       if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius) {
-        car.size = car.size+r.size
+        car.size += r.size
         reactItr.remove()
       }
     }
   }
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
-  return this
+}
+
+internal inline infix fun XY.msum(b:XY):XY {
+  val result = copy()
+  result.x += b.x
+  result.y += b.y
+  return result
+}
+
+internal inline infix fun XY.mscale(scl:Float):XY {
+  val result = copy()
+  result.x*=scl
+  result.y*=scl
+  return result
 }
 
 val State.width get() = (GameConst.BASE_WIDTH+size).toFloat()
@@ -207,7 +217,6 @@ fun XY.rotate(angleA:Angle):XY {
   return result
 }
 inline operator fun XY.times(scl:Float) = scale(scl,scl)
-inline fun XY.scale(scl:Float) = scale(scl,scl)
 fun XY.len() = dst(XY(0f,0f))//todo get() =
 fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
 fun XY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
