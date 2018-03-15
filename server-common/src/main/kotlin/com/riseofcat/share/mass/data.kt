@@ -57,7 +57,7 @@ operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radian
 operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
 fun Angle.sin() = kotlin.math.sin(radians.toDouble()).toFloat()
 fun Angle.cos() = kotlin.math.cos(radians.toDouble()).toFloat()
-fun Angle.xy():XY = XY(cos(),sin())
+val Angle.xy get() = XY(cos(),sin())
 val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
 val Angle.gdxTransformRotation:Float get() = degrees
 
@@ -86,10 +86,10 @@ fun NewCarAction.toBig() = BigAction(n = this)
   override fun act(state:State,getCar:GetCarById) {
     val scl = 100f
     val car = getCar.getCar(id) ?: return //todo handle null ?
-    car.speed = car.speed + action.direction.xy().scale(scl)
+    car.speed = car.speed+action.direction.xy*scl
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,(action.direction + Angle.degreesAngle(180f)).xy().scale(3f*scl),car.pos))
+    state.reactive.add(Reactive(id,s,(action.direction+Angle.degreesAngle(180f)).xy*3f*scl,car.pos))
   }
 }
 fun PlayerAction.toBig() = BigAction(p = this)
@@ -134,14 +134,14 @@ fun State.tick():State {
 }
 fun State.tick2():State {
   val iterateFun:(SpeedObject)->Unit = {o->
-    o.pos = o.pos + o.speed.scale(GameConst.UPDATE_S)
+    o.pos = o.pos + o.speed * GameConst.UPDATE_S
     if(o.pos.x>=width)
       o.pos.x = o.pos.x-width
     else if(o.pos.x<0) o.pos.x = o.pos.x+width
     if(o.pos.y>=height)
       o.pos.y = o.pos.y-height
     else if(o.pos.y<0) o.pos.y = o.pos.y+height
-    o.speed = o.speed.scale(0.98f)
+    o.speed = o.speed * 0.98f
   }
   cars.forEach(iterateFun)
   reactive.forEach(iterateFun)
@@ -193,21 +193,21 @@ fun State.changeSize(delta:Int) {
   (cars + reactive + foods).forEach {p:PosObject-> p.pos = p.pos.scale(width/oldW,height/oldH)}
 }
 
-@Serializable data class XY(var x:Float=0f,var y:Float=0f) {
-  operator fun plus(a:XY) = copy(x+a.x,y+a.y)
-  operator fun minus(a:XY) = copy(x-a.x,y-a.y)
-  fun scale(sx:Float,sy:Float) = copy(x*sx, y*sy)
-  fun rotate(angleA:Angle):XY {
-    val result = copy()
-    val angle = calcAngle() + angleA
-    val len = len()
-    result.x = (len*angle.cos()).toFloat()
-    result.y = (len*angle.sin()).toFloat()
-    return result
-  }
-}
+@Serializable data class XY(var x:Float=0f,var y:Float=0f)
 
-fun XY.scale(scl:Float) = scale(scl,scl)
+inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
+inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
+inline fun XY.scale(sx:Float,sy:Float) = copy(x*sx, y*sy)
+fun XY.rotate(angleA:Angle):XY {
+  val result = copy()
+  val angle = calcAngle() + angleA
+  val len = len()
+  result.x = (len*angle.cos()).toFloat()
+  result.y = (len*angle.sin()).toFloat()
+  return result
+}
+inline operator fun XY.times(scl:Float) = scale(scl,scl)
+inline fun XY.scale(scl:Float) = scale(scl,scl)
 fun XY.len() = dst(XY(0f,0f))//todo get() =
 fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
 fun XY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
