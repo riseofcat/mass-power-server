@@ -5,6 +5,7 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.*
 import com.riseofcat.share.base.*
 import com.riseofcat.share.mass.*
+import kotlin.system.*
 
 class Model(conf:Conf) {
   val client:PingClient<ServerPayload,ClientPayload>
@@ -177,9 +178,14 @@ class Model(conf:Conf) {
             state.act(my.iterator())
           }
         }
-        state.tick()
+        measureNanoTime{
+          state.tick()
+        }.let{averageTickNanos = (averageTickNanos*frames + it) / (frames+1)}
         tick++
       }
     }
   }
 }
+
+val frames = 20
+var averageTickNanos = 0f

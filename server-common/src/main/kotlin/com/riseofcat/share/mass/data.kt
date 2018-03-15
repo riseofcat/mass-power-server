@@ -120,19 +120,8 @@ fun State.act(actions:Iterator<InStateAction>):State {
   return this
 }
 
-var average = 0f
-
-fun State.tick():State {
-  var result:State? = null
-  val nano = measureNanoTime {
-     result = tick2()
-  }
-
-  val frames = 20
-  average = (average*frames + nano) / (frames+1)
-  return result!!
-}
-fun State.tick2() = apply {
+fun State.tick() = apply {
+  cars.forEach {it.pos = it.pos.copy()}//todo redundant
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
     o.speed = o.speed mscale 0.98f
@@ -166,14 +155,14 @@ fun State.tick2() = apply {
 }
 
 internal inline infix fun XY.msum(b:XY):XY {
-  val result = copy()
+  val result = this
   result.x += b.x
   result.y += b.y
   return result
 }
 
 internal inline infix fun XY.mscale(scl:Float):XY {
-  val result = this//copy()
+  val result = this
   result.x*=scl
   result.y*=scl
   return result
