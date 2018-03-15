@@ -20,8 +20,7 @@ object GameConst {
   val REACTIVE_LIVE = 60*10
 }
 
-interface GetCarById { fun getCar(id:PlayerId):Car? }
-interface InStateAction { fun act(state:State,getCar:GetCarById) }
+interface InStateAction { fun act(state:State) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
 interface EatMe:SpeedObject { var size:Int }
@@ -29,13 +28,13 @@ interface EatMe:SpeedObject { var size:Int }
   @Optional val n:NewCarAction? = null,
   @Optional val p:PlayerAction? = null
 ):InStateAction {
-  override fun act(state:State,getCar:GetCarById) {
-    n?.act(state,getCar)
-    p?.act(state,getCar)
+  override fun act(state:State) {
+    n?.act(state)
+    p?.act(state)
   }
 }
 @Serializable class NewCarAction(var id:PlayerId):InStateAction {
-  override fun act(state:State,getCar:GetCarById) {
+  override fun act(state:State) {
     state.changeSize(100)
     state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY(),XY()))
   }
@@ -43,13 +42,12 @@ interface EatMe:SpeedObject { var size:Int }
 @Serializable class PlayerAction(
   var id:PlayerId,
   var action:Action):InStateAction {
-  override fun act(state:State,getCar:GetCarById) {
-    val scl = 100f
-    val car = getCar.getCar(id) ?: return //todo handle null ?
-    car.speed = car.speed+action.direction.xy*scl
+  override fun act(state:State) {
+    val car = state.cars.find{ it.owner == id}?:return
+    car.speed = car.speed+action.direction.xy*100f
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,(action.direction+degreesAngle(180f)).xy*3f*scl,car.pos))
+    state.reactive.add(Reactive(id,s,(action.direction+degreesAngle(180f)).xy*300f,car.pos.copy()))
   }
 }
 @Serializable data class Action(var direction:Angle)
@@ -99,22 +97,14 @@ val Angle.gdxTransformRotation:Float get() = degrees
 fun NewCarAction.toBig() = BigAction(n = this)
 fun PlayerAction.toBig() = BigAction(p = this)
 fun State.act(actions:Iterator<InStateAction>):State {
-  class Cache:GetCarById {
-    override fun getCar(id:PlayerId):Car? {
-      for(car in cars) if(id==car.owner) return car
-      return null
-    }
-  }
-  val cache = Cache()
-  actions.forEach {it.act(this,cache)}
+  actions.forEach {it.act(this)}
   return this
 }
 
 fun State.tick() = apply {
-  if(false)cars.forEach {it.pos = it.pos.copy()}
   (cars+reactive).forEach {o->
-    o.pos = o.pos sum o.speed*GameConst.UPDATE_S//todo sum to msum
-    o.speed = o.speed mscale 0.98f
+    o.pos msum o.speed*GameConst.UPDATE_S
+    o.speed mscale 0.98f
 
     if(o.pos.x>=width) o.pos.x = o.pos.x-width
     else if(o.pos.x<0) o.pos.x = o.pos.x+width
@@ -165,25 +155,23 @@ fun State.changeSize(delta:Int) {
   val oldW = width
   val oldH = height
   size += delta
-  (cars + reactive + foods).forEach {p:PosObject-> p.pos = p.pos scale XY(width/oldW,height/oldH)}
+  (cars + reactive + foods).forEach {p -> p.pos mscale XY(width/oldW,height/oldH)}
 }
 
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
-internal inline infix fun XY.scale(xy:XY) = copy() mscale xy
+internal inline infix fun XY.scale(xy:XY) = copy().also {it mscale xy}
 internal inline infix fun XY.mscale(scl:Float) = this mscale XY(scl, scl)
-internal inline infix fun XY.scale(scl:Float) = copy() mscale scl
+internal inline infix fun XY.scale(scl:Float) = copy().also {it mscale scl}
 internal inline infix fun XY.msum(b:XY):XY {
   x += b.x
   y += b.y
   return this
 }
 internal inline infix fun XY.sum(b:XY) = copy() msum b
-internal inline infix fun XY.mscale(xy:XY):XY {
-  val result = this
-  result.x*=xy.x
-  result.y*=xy.y
-  return result
+internal inline infix fun XY.mscale(xy:XY) {
+  x*=xy.x
+  y*=xy.y
 }
 fun XY.rotate(angleA:Angle):XY {
   val result = copy()
