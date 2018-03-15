@@ -25,8 +25,6 @@ interface InStateAction { fun act(state:State,getCar:GetCarById) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
 interface EatMe:SpeedObject { var size:Int }
-val EatMe.radius get() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
-
 @Serializable class BigAction(
   @Optional val n:NewCarAction? = null,
   @Optional val p:PlayerAction? = null
@@ -36,49 +34,12 @@ val EatMe.radius get() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameCo
     p?.act(state,getCar)
   }
 }
-
-@Serializable data class Action(var direction:Angle)
-@Serializable data class Angle(var radians:Float) {
-  init {
-    val circles = radians/(2*kotlin.math.PI)
-    if(kotlin.math.abs(circles)>0) {
-      circles.toInt()
-      circles.sign
-    }
-  }
-  companion object {
-    fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
-    fun degreesAngle(degrees:Int) = Angle(degrees/180*PI.toFloat())
-  }
-}
-
-operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
-operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
-fun Angle.sin() = kotlin.math.sin(radians.toDouble()).toFloat()
-fun Angle.cos() = kotlin.math.cos(radians.toDouble()).toFloat()
-val Angle.xy get() = XY(cos(),sin())
-val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
-val Angle.gdxTransformRotation:Float get() = degrees
-
-@Serializable data class Car(
-  var owner:PlayerId,
-  override var size:Int,
-  override var speed:XY,
-  override var pos:XY):EatMe
-
-@Serializable data class Food(
-  override var size:Int,
-  override var speed:XY,
-  override var pos:XY):EatMe
-
 @Serializable class NewCarAction(var id:PlayerId):InStateAction {
   override fun act(state:State,getCar:GetCarById) {
     state.changeSize(100)
     state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY(),XY()))
   }
 }
-fun NewCarAction.toBig() = BigAction(n = this)
-
 @Serializable class PlayerAction(
   var id:PlayerId,
   var action:Action):InStateAction {
@@ -88,25 +49,55 @@ fun NewCarAction.toBig() = BigAction(n = this)
     car.speed = car.speed+action.direction.xy*scl
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,(action.direction+Angle.degreesAngle(180f)).xy*3f*scl,car.pos))
+    state.reactive.add(Reactive(id,s,(action.direction+degreesAngle(180f)).xy*3f*scl,car.pos))
   }
 }
-fun PlayerAction.toBig() = BigAction(p = this)
-
+@Serializable data class Action(var direction:Angle)
+@Serializable data class Angle(var radians:Float) {
+  init {
+    val circles = radians/(2*kotlin.math.PI)
+    if(kotlin.math.abs(circles)>0) {
+      circles.toInt()
+      circles.sign
+    }
+  }
+}
+@Serializable data class Car(
+  var owner:PlayerId,
+  override var size:Int,
+  override var speed:XY,
+  override var pos:XY):EatMe
+@Serializable data class Food(
+  override var size:Int,
+  override var speed:XY,
+  override var pos:XY):EatMe
 @Serializable data class Reactive(
   var owner:PlayerId,
   override var size:Int,
   override var speed:XY,
   override var pos:XY,
-  var ticks:Int = 0):EatMe//todo заменить ticks на bornTick
-
+  var ticks:Int = 0):EatMe
 @Serializable data class State(
   @Optional var cars:MutableList<Car> = mutableListOf(),
   @Optional var foods:MutableList<Food> = mutableListOf(),
   @Optional var reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
   var size:Int = 0)
+@Serializable data class PlayerId(var id:Int)
+@Serializable data class XY(var x:Float=0f,var y:Float=0f)
 
+val EatMe.radius get() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
+fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
+fun degreesAngle(degrees:Int) = Angle(degrees/180*PI.toFloat())
+operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
+operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
+fun Angle.sin() = kotlin.math.sin(radians.toDouble()).toFloat()
+fun Angle.cos() = kotlin.math.cos(radians.toDouble()).toFloat()
+val Angle.xy get() = XY(cos(),sin())
+val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
+val Angle.gdxTransformRotation:Float get() = degrees
+fun NewCarAction.toBig() = BigAction(n = this)
+fun PlayerAction.toBig() = BigAction(p = this)
 fun State.act(actions:Iterator<InStateAction>):State {
   class Cache:GetCarById {
     override fun getCar(id:PlayerId):Car? {
@@ -177,9 +168,6 @@ fun State.changeSize(delta:Int) {
   (cars + reactive + foods).forEach {p:PosObject-> p.pos = p.pos scale XY(width/oldW,height/oldH)}
 }
 
-@Serializable data class PlayerId(var id:Int)
-
-@Serializable data class XY(var x:Float=0f,var y:Float=0f)
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.scale(xy:XY) = copy() mscale xy
