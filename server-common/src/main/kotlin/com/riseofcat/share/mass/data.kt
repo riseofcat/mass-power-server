@@ -86,10 +86,10 @@ fun NewCarAction.toBig() = BigAction(n = this)
   override fun act(state:State,getCar:GetCarById) {
     val scl = 100f
     val car = getCar.getCar(id) ?: return //todo handle null ?
-    car.speed = car.speed + action.direction.xy().mutable().scale(scl)//todo maybe redundant copy
+    car.speed = car.speed + action.direction.xy().scale(scl)
     val s = car.size/15+1
     if(car.size-s>=GameConst.MIN_SIZE) car.size = car.size-s
-    state.reactive.add(Reactive(id,s,(action.direction + Angle.degreesAngle(180f)).xy().scale(3f*scl).mutable(),car.pos.mutable()))
+    state.reactive.add(Reactive(id,s,(action.direction + Angle.degreesAngle(180f)).xy().scale(3f*scl),car.pos.mutable()))
   }
 }
 fun PlayerAction.toBig() = BigAction(p = this)
@@ -134,7 +134,7 @@ fun State.tick():State {
 }
 fun State.tick2():State {
   val iterateFun:(SpeedObject)->Unit = {o->
-    o.pos = o.pos + o.speed.mutable().scale(GameConst.UPDATE_S)
+    o.pos = o.pos + o.speed.cp().scale(GameConst.UPDATE_S)
     if(o.pos.x>=width)
       o.pos.x = o.pos.x-width
     else if(o.pos.x<0) o.pos.x = o.pos.x+width
@@ -227,7 +227,7 @@ fun State.changeSize(delta:Int) {
   }
 
   fun mutable() = copy().apply {_mutable = true}
-  fun immutable() = copy().apply {_mutable = false}
+  fun cp() = copy()
 }
 
 fun XY.scale(scl:Float) = scale(scl,scl)
