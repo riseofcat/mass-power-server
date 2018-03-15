@@ -18,6 +18,7 @@ object GameConst {
   val DELAY_TICKS = PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1//количество тиков для хранения действий //bigger delayed
   val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
   val FUTURE_TICKS = DELAY_TICKS*3
+  val REACTIVE_LIVE = 60*10
 }
 
 interface GetCarById { fun getCar(id:PlayerId):Car? }
@@ -145,7 +146,7 @@ fun State.tick2():State {
   cars.forEach(iterateFun)
   reactive.forEach(iterateFun)
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  while(reactItr.hasNext()) if(reactItr.next().ticks++>60) reactItr.remove()
+  while(reactItr.hasNext()) if(reactItr.next().ticks++>GameConst.REACTIVE_LIVE) reactItr.remove()
   for(car in cars) {
     val foodItr = foods.iterator()
     while(foodItr.hasNext()) {
