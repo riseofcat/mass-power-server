@@ -2,7 +2,7 @@ package com.riseofcat.client
 
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
-import com.riseofcat.share.base.*
+import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 
 val PingClient.Companion.DEFAULT_LATENCY_MS get() = 250

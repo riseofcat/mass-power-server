@@ -3,7 +3,7 @@ package com.riseofcat.client
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.*
-import com.riseofcat.share.base.*
+import com.riseofcat.share.ping.*
 import com.riseofcat.share.mass.*
 import kotlin.system.*
 
@@ -96,7 +96,7 @@ class Model(conf:Conf) {
 
   fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
-      val clientTick:Int = sync!!.calcClientTck().toInt()//todo +0.5f?
+      val clientTick:Tick = sync!!.calcClientTck().toInt()//todo +0.5f?
       if(!ready()) return
       if(false) if(sync!!.calcSrvTck()-sync!!.calcClientTck()>GameConst.DELAY_TICKS*1.5||sync!!.calcClientTck()-sync!!.calcSrvTck()>GameConst.FUTURE_TICKS*1.5) return
       val w = (client.smartLatencyS/GameConst.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
@@ -129,11 +129,11 @@ class Model(conf:Conf) {
     }
   }
 
-  private fun clearCache(tick:Int) {
+  private fun clearCache(tick:Tick) {
     if(cache!=null&&tick<cache!!.tick) cache = null
   }
 
-  private fun getNearestCache(tick:Int):StateWrapper? {
+  private fun getNearestCache(tick:Tick):StateWrapper? {
     return if(cache!=null&&cache!!.tick<=tick) cache else null
   }
 
@@ -141,7 +141,7 @@ class Model(conf:Conf) {
     cache = value
   }
 
-  private fun getState(tick:Int):State? {
+  private fun getState(tick:Tick):State? {
     var result = getNearestCache(tick)
     if(result==null) {
       if(stable==null) return null
@@ -159,20 +159,19 @@ class Model(conf:Conf) {
   }
 
   private inner class Action(
-    val aid:Int,
     action:com.riseofcat.share.mass.Action,
     val pa:PlayerAction = PlayerAction(playerId!!,action)):InStateAction by pa
 
   private inner class StateWrapper(
     var state:State,
-    var tick:Int) {
+    var tick:Tick) {
     constructor(obj:StateWrapper):this(obj.state.copy(),obj.tick)
 
-    fun tick(targetTick:Int) {
+    fun tick(targetTick:Tick) {
       while(tick<targetTick) {
-        val other = actions.map[Tick(tick)]
+        val other = actions.map[tick]
         if(other!=null) state.act(other.iterator())
-        val my = myActions.map[Tick(tick)]
+        val my = myActions.map[tick]
         if(my!=null) {
           synchronized(myActions) {
             state.act(my.iterator())

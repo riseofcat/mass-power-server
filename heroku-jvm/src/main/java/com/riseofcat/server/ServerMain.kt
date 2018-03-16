@@ -2,7 +2,7 @@ package com.riseofcat.server
 
 import com.riseofcat.lib.*
 import com.riseofcat.lib_gwt.IConverter
-import com.riseofcat.share.base.*
+import com.riseofcat.share.ping.*
 import com.riseofcat.share.mass.ClientPayload
 import com.riseofcat.share.mass.ServerPayload
 

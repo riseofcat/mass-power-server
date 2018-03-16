@@ -1,7 +1,7 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
-import com.riseofcat.share.base.*
+import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
@@ -25,15 +25,7 @@ interface InStateAction { fun act(state:State) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
 interface EatMe:SpeedObject { var size:Int }
-@Serializable class BigAction(
-  @Optional val n:NewCarAction? = null,
-  @Optional val p:PlayerAction? = null
-):InStateAction {
-  override fun act(state:State) {
-    n?.act(state)
-    p?.act(state)
-  }
-}
+
 @Serializable class NewCarAction(var id:PlayerId):InStateAction {
   override fun act(state:State) {
     state.changeSize(100)
@@ -100,8 +92,6 @@ inline val Angle.cos get() = cos(radians)
 }
 val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
 fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
-fun NewCarAction.toBig() = BigAction(n = this)
-fun PlayerAction.toBig() = BigAction(p = this)
 fun State.act(actions:Iterator<InStateAction>):State {
   actions.forEach {it.act(this)}
   return this

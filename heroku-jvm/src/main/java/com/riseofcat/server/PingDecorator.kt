@@ -1,8 +1,8 @@
 package com.riseofcat.server
 
 import com.riseofcat.lib.TypeMap
-import com.riseofcat.share.base.ClientSay
-import com.riseofcat.share.base.ServerSay
+import com.riseofcat.share.ping.ClientSay
+import com.riseofcat.share.ping.ServerSay
 import java.util.concurrent.ConcurrentHashMap
 
 class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingIntervalMs:Int):SesServ<ClientSay<C>,ServerSay<S>>() {

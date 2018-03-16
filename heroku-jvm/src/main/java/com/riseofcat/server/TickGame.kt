@@ -3,7 +3,7 @@ package com.riseofcat.server
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.ShareTodo
-import com.riseofcat.share.base.Tick
+import com.riseofcat.share.ping.Tick
 import com.riseofcat.share.mass.*
 
 import java.util.ArrayList
@@ -23,9 +23,9 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       val result = tick-GameConst.DELAY_TICKS+1
       return if(result<0) Tick(0) else Tick(result)
     }
-  private val removeBeforeTick:Int
+  private val removeBeforeTick:Tick
     get() = tick-GameConst.REMOVE_TICKS+1
-  private val futureTick:Int
+  private val futureTick:Tick
     get() = tick+GameConst.FUTURE_TICKS
 
   init {

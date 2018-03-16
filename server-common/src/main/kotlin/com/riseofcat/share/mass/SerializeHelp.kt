@@ -1,6 +1,6 @@
 package com.riseofcat.share.mass
 
-import com.riseofcat.share.base.*
+import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 
 object SerializeHelp {

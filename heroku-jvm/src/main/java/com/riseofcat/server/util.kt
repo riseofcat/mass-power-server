@@ -1,8 +1,8 @@
 package com.riseofcat.server
 
 import com.riseofcat.lib.*
-import com.riseofcat.share.base.ClientSay
-import com.riseofcat.share.base.ServerSay
+import com.riseofcat.share.ping.ClientSay
+import com.riseofcat.share.ping.ServerSay
 import com.riseofcat.share.mass.ClientPayload
 import com.riseofcat.share.mass.ServerPayload
 import com.riseofcat.share.mass.SerializeHelp
