@@ -34,7 +34,13 @@ object Lib {
   }
 
   object Log {
-    enum class LogMode { ERROR, INFO, DEBUG, BREAKPOINT }
+    enum class LogMode { FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
+
+    fun fatalError(message:String,t:Throwable? = null):Nothing {
+      _log(message,LogMode.FATAL_ERROR)
+      if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}//todo duplicate
+      TODO(message)
+    }
 
     fun error(message:String,t:Throwable? = null) {
       _log(message,LogMode.ERROR)

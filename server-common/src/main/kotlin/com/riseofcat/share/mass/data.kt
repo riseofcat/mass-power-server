@@ -1,7 +1,6 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
-import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
@@ -15,7 +14,7 @@ object GameConst {
   val BASE_WIDTH = 1000
   val BASE_HEIGHT = 1000
   val TITLE = "mass-power.io"
-  val DELAY_TICKS = PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1//количество тиков для хранения действий //bigger delayed
+  val DELAY_TICKS = Tick(PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1)//количество тиков для хранения действий //bigger delayed
   val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
   val FUTURE_TICKS = DELAY_TICKS*3
   val REACTIVE_LIVE = Tick(60)
