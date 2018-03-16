@@ -7,7 +7,7 @@ import kotlin.math.*
 
 object GameConst {
   val UPDATE_MS = 40
-  val UPDATE_S = UPDATE_MS/1000f
+  val UPDATE_S = UPDATE_MS/1000.0
   val MIN_SIZE = 20
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
@@ -18,7 +18,7 @@ object GameConst {
   val DELAY_TICKS = PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1//количество тиков для хранения действий //bigger delayed
   val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
   val FUTURE_TICKS = DELAY_TICKS*3
-  val REACTIVE_LIVE = 60*10
+  val REACTIVE_LIVE = 60
 }
 
 interface InStateAction { fun act(state:State) }
@@ -45,14 +45,17 @@ interface EatMe:SpeedObject { var size:Int }
   var action:Action):InStateAction {
   override fun act(state:State) {
     val car = state.cars.find{ it.owner == id}?:return
-    car.speed = car.speed+action.direction.xy*100f
+    car.speed = car.speed+action.direction.xy*100.0
     val size = car.size/15+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
-    state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180f)).xy*300f,car.pos.copy(), state.tick.copy()))
+    state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180)).xy*300.0,car.pos.copy(), state.tick.copy()))
+    for(i in 1..100) {
+      state.reactive.add(Reactive(id,size,XY(state.rnd(), state.rnd())*300.0,car.pos.copy(), state.tick.copy()))
+    }
   }
 }
 @Serializable data class Action(var direction:Angle)
-@Serializable data class Angle(var radians:Float) {
+@Serializable data class Angle(var radians:Double) {
   init {
     val circles = radians/(2*kotlin.math.PI)
     if(kotlin.math.abs(circles)>0) {
@@ -81,21 +84,23 @@ interface EatMe:SpeedObject { var size:Int }
   @Optional val foods:MutableList<Food> = mutableListOf(),
   @Optional val reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
-  var size:Int = 0,
+  var size:Double = 0.0,
   var tick:Tick = Tick(0))
 @Serializable data class PlayerId(var id:Int)
-@Serializable data class XY(var x:Float=0f,var y:Float=0f)
+@Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
+  constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
+}
 
 val EatMe.radius get() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
-fun degreesAngle(degrees:Float) = Angle(degrees/180*PI.toFloat())
-fun degreesAngle(degrees:Int) = Angle(degrees/180*PI.toFloat())
+fun degreesAngle(degrees:Double) = Angle(degrees/180*PI)
+fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
 operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
 operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
-fun Angle.sin() = kotlin.math.sin(radians.toDouble()).toFloat()
-fun Angle.cos() = kotlin.math.cos(radians.toDouble()).toFloat()
-val Angle.xy get() = XY(cos(),sin())
-val Angle.degrees:Float get() = (radians*180/kotlin.math.PI).toFloat()
-val Angle.gdxTransformRotation:Float get() = degrees
+inline val Angle.sin get() = kotlin.math.sin(radians)
+inline val Angle.cos get() = kotlin.math.cos(radians)
+val Angle.xy get() = XY(cos,sin)
+val Angle.degrees get() = radians*180/kotlin.math.PI
+val Angle.gdxTransformRotation get() = degrees
 fun NewCarAction.toBig() = BigAction(n = this)
 fun PlayerAction.toBig() = BigAction(p = this)
 fun State.act(actions:Iterator<InStateAction>):State {
@@ -106,8 +111,8 @@ fun State.act(actions:Iterator<InStateAction>):State {
 fun State.tick() = apply {//todo передавать tick в аргументах?
   tick+=1
   (cars+reactive).forEach {o->
-    o.pos msum o.speed*GameConst.UPDATE_S
-    o.speed mscale 0.98f
+    o.pos = o.pos msum o.speed*GameConst.UPDATE_S
+    o.speed = o.speed mscale 0.98
 
     if(o.pos.x>=width) o.pos.x = o.pos.x-width
     else if(o.pos.x<0) o.pos.x = o.pos.x+width
@@ -137,8 +142,8 @@ fun State.tick() = apply {//todo передавать tick в аргумента
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
 }
 
-val State.width get() = (GameConst.BASE_WIDTH+size).toFloat()
-val State.height get() = (GameConst.BASE_HEIGHT+size).toFloat()
+val State.width get() = GameConst.BASE_WIDTH+size
+val State.height get() = GameConst.BASE_HEIGHT+size
 fun State.distance(a:XY,b:XY):Float {
   var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width-a.x)
   dx = kotlin.math.min(dx,a.x+width-b.x)
@@ -151,9 +156,8 @@ fun State.rnd(min:Int,max:Int):Int {
   return min+random%(max-min+1)
 }
 fun State.rnd(max:Int) = rnd(0,max)
-fun State.rndf(min:Float,max:Float) = min+rnd(999)/1000f*(max-min)//todo optimize
-fun State.rndf(max:Float = 1f) = rndf(0f,max)
-fun State.rndPos() = XY(rndf(width),rndf(height))
+fun State.rnd(min:Double = 0.0,max:Double = 1.0) = min+rnd(999)/1000f*(max-min)//todo optimize
+fun State.rndPos() = XY(rnd(width.toDouble()),rnd(height.toDouble()))
 fun State.changeSize(delta:Int) {
   val oldW = width
   val oldH = height
@@ -164,27 +168,20 @@ fun State.changeSize(delta:Int) {
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.scale(xy:XY) = copy().also {it mscale xy}
-internal inline infix fun XY.mscale(scl:Float) = this mscale XY(scl, scl)
-internal inline infix fun XY.scale(scl:Float) = copy().also {it mscale scl}
-internal inline infix fun XY.msum(b:XY):XY {
-  x += b.x
-  y += b.y
-  return this
-}
+internal inline infix fun XY.mscale(scl:Double) = this mscale XY(scl, scl)
+internal inline infix fun XY.scale(scl:Double) = copy().also {it mscale scl}
+internal inline infix fun XY.msum(b:XY) = apply {x += b.x; y += b.y}
 internal inline infix fun XY.sum(b:XY) = copy() msum b
-internal inline infix fun XY.mscale(xy:XY) {
-  x*=xy.x
-  y*=xy.y
-}
+internal inline infix fun XY.mscale(xy:XY) = apply {x *= xy.x;y *= xy.y}
 fun XY.rotate(angleA:Angle):XY {
   val result = copy()
   val angle = calcAngle() + angleA
-  val len = len()
-  result.x = (len*angle.cos()).toFloat()
-  result.y = (len*angle.sin()).toFloat()
+  val len = len
+  result.x = len*angle.cos
+  result.y = len*angle.sin
   return result
 }
-operator fun XY.times(scl:Float) = this scale scl
-fun XY.len() = dst(XY(0f,0f))//todo get() =
-fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)).toDouble())
-fun XY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()).toFloat())
+operator fun XY.times(scl:Double) = this scale scl
+val XY.len get() = dst(XY(0.0,0.0))
+fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)))
+fun XY.calcAngle():Angle = Angle(atan2(y,x))

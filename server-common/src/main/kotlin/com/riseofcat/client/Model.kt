@@ -19,8 +19,8 @@ class Model(conf:Conf) {
   fun calcDisplayState():State? = sync?.let {getState(it.calcClientTck().toInt())}
   private var cache:StateWrapper? = null
 
-  class Sync(internal val serverTick:Float,oldSync:Sync?) {
-    internal val clientTick:Float
+  class Sync(internal val serverTick:Double,oldSync:Sync?) {
+    internal val clientTick:Double
     internal val time:Long
 
     init {
@@ -31,15 +31,15 @@ class Model(conf:Conf) {
         this.clientTick = oldSync.calcClientTck()
     }
 
-    private fun calcSrvTck(t:Long):Float {
+    private fun calcSrvTck(t:Long):Double {
       return serverTick+(t-time)/GameConst.UPDATE_MS.toFloat()
     }
 
-    fun calcSrvTck():Float {
+    fun calcSrvTck():Double {
       return calcSrvTck(Common.timeMs)
     }
 
-    fun calcClientTck():Float {
+    fun calcClientTck():Double {
       val t = Common.timeMs
       return calcSrvTck(t)+(clientTick-serverTick)*(1f-Lib.Fun.arg0toInf((t-time).toDouble(),600f))
     }
