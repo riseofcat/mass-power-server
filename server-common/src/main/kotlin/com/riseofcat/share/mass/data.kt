@@ -45,10 +45,10 @@ interface EatMe:SpeedObject { var size:Int }
   var action:Action):InStateAction {
   override fun act(state:State) {
     val car = state.cars.find{ it.owner == id}?:return
-    car.speed = car.speed+action.direction.xy*100.0
+    car.speed = car.speed+action.direction.xy(100.0)
     val size = car.size/15+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
-    state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180)).xy*300.0,car.pos.copy(), state.tick.copy()))
+    state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180)).xy(300.0),car.pos.copy(), state.tick.copy()))
   }
 }
 @Serializable data class Action(val direction:Angle)
@@ -57,13 +57,13 @@ interface EatMe:SpeedObject { var size:Int }
     fix()
   }
   fun fix() {
-    if(abs(degrees) > 360) degrees %= 360
+    if(abs(degrees) > 360) degrees %= 360//todo потестировать отрицательные значения
     if(degrees < 0) degrees+=360
   }
 }
 operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
 operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
-val Angle.xy get() = XY(cos,sin)
+fun Angle.xy(size:Double = 1.0) = XY(cos*size,sin*size)
 var Angle.degrees
   get() = radians*180/PI
   set(value) {
