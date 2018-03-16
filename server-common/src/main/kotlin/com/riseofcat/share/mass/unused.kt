@@ -1,6 +1,7 @@
 package com.riseofcat.share.mass.unused
 
 import com.riseofcat.share.mass.*
+import kotlin.math.*
 
 fun XY.rotate(angleA:Angle):XY {
   val result = copy()
@@ -10,3 +11,4 @@ fun XY.rotate(angleA:Angle):XY {
   result.y = len*angle.sin
   return result
 }
+fun degreesAngle(degrees:Double) = Angle(degrees/180*PI)

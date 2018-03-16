@@ -1,7 +1,6 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
-import com.riseofcat.lib.*
 import com.riseofcat.share.base.*
 import kotlinx.serialization.*
 import kotlin.math.*
@@ -100,7 +99,6 @@ inline val Angle.cos get() = cos(radians)
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
 }
 val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
-fun degreesAngle(degrees:Double) = Angle(degrees/180*PI)
 fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
 fun NewCarAction.toBig() = BigAction(n = this)
 fun PlayerAction.toBig() = BigAction(p = this)
