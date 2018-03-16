@@ -1,6 +1,7 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
+import com.riseofcat.lib.*
 import com.riseofcat.share.base.*
 import kotlinx.serialization.*
 import kotlin.math.*
@@ -51,16 +52,27 @@ interface EatMe:SpeedObject { var size:Int }
     state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180)).xy*300.0,car.pos.copy(), state.tick.copy()))
   }
 }
-@Serializable data class Action(var direction:Angle)
+@Serializable data class Action(val direction:Angle)
 @Serializable data class Angle(var radians:Double) {
   init {
-    val circles = radians/(2*kotlin.math.PI)
-    if(kotlin.math.abs(circles)>0) {
-      circles.toInt()
-      circles.sign
-    }
+    fix()
+  }
+  fun fix() {
+    if(abs(degrees) > 360) degrees %= 360
+    if(degrees < 0) degrees+=360
   }
 }
+operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
+operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
+val Angle.xy get() = XY(cos,sin)
+var Angle.degrees
+  get() = radians*180/PI
+  set(value) {
+    radians = value * PI/ 180
+  }
+inline val Angle.sin get() = sin(radians)
+inline val Angle.cos get() = cos(radians)
+
 @Serializable data class Car(
   var owner:PlayerId,
   override var size:Int,
@@ -87,17 +99,9 @@ interface EatMe:SpeedObject { var size:Int }
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
 }
-
-val EatMe.radius get() = (kotlin.math.sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
+val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
 fun degreesAngle(degrees:Double) = Angle(degrees/180*PI)
 fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
-operator fun Angle.plus(deltaAngle:Angle) = Angle(this.radians+deltaAngle.radians)
-operator fun Angle.minus(sub:Angle) = Angle(this.radians-sub.radians)
-inline val Angle.sin get() = kotlin.math.sin(radians)
-inline val Angle.cos get() = kotlin.math.cos(radians)
-val Angle.xy get() = XY(cos,sin)
-val Angle.degrees get() = radians*180/kotlin.math.PI
-val Angle.gdxTransformRotation get() = degrees
 fun NewCarAction.toBig() = BigAction(n = this)
 fun PlayerAction.toBig() = BigAction(p = this)
 fun State.act(actions:Iterator<InStateAction>):State {
@@ -142,11 +146,11 @@ fun State.tick() = apply {//todo передавать tick в аргумента
 val State.width get() = GameConst.BASE_WIDTH+size
 val State.height get() = GameConst.BASE_HEIGHT+size
 fun State.distance(a:XY,b:XY):Float {
-  var dx = kotlin.math.min(kotlin.math.abs(b.x-a.x),b.x+width-a.x)
-  dx = kotlin.math.min(dx,a.x+width-b.x)
-  var dy = kotlin.math.min(kotlin.math.abs(b.y-a.y),b.y+height-a.y)
-  dy = kotlin.math.min(dy,a.y+height-b.y)
-  return kotlin.math.sqrt((dx*dx+dy*dy).toDouble()).toFloat()
+  var dx = min(abs(b.x-a.x),b.x+width-a.x)
+  dx = min(dx,a.x+width-b.x)
+  var dy = min(abs(b.y-a.y),b.y+height-a.y)
+  dy = min(dy,a.y+height-b.y)
+  return sqrt((dx*dx+dy*dy).toDouble()).toFloat()
 }
 fun State.rnd(min:Int,max:Int):Int {
   random = random*1664525+1013904223 and 0x7fffffff
@@ -161,7 +165,6 @@ fun State.changeSize(delta:Int) {
   size += delta
   (cars + reactive + foods).forEach {p -> p.pos mscale XY(width/oldW,height/oldH)}
 }
-
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.scale(xy:XY) = copy().also {it mscale xy}
@@ -170,14 +173,6 @@ internal inline infix fun XY.scale(scl:Double) = copy().also {it mscale scl}
 internal inline infix fun XY.msum(b:XY) = apply {x += b.x; y += b.y}
 internal inline infix fun XY.sum(b:XY) = copy() msum b
 internal inline infix fun XY.mscale(xy:XY) = apply {x *= xy.x;y *= xy.y}
-fun XY.rotate(angleA:Angle):XY {
-  val result = copy()
-  val angle = calcAngle() + angleA
-  val len = len
-  result.x = len*angle.cos
-  result.y = len*angle.sin
-  return result
-}
 operator fun XY.times(scl:Double) = this scale scl
 val XY.len get() = dst(XY(0.0,0.0))
 fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)))

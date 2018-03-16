@@ -34,7 +34,7 @@ object Lib {
   }
 
   object Log {
-    enum class LogMode { INFO, ERROR, DEBUG }
+    enum class LogMode { ERROR, INFO, DEBUG, BREAKPOINT }
 
     fun error(message:String,t:Throwable? = null) {
       _log(message,LogMode.ERROR)
@@ -44,7 +44,7 @@ object Lib {
     fun info(s:String) = _log(s,LogMode.INFO)
     fun debug(s:String) = _log(s,LogMode.DEBUG)
     inline fun _log(str:CharSequence,mode:LogMode) {
-      if(mode.ordinal<LogMode.DEBUG.ordinal) {
+      if(mode.ordinal<LogMode.BREAKPOINT.ordinal) {
         _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")
       }
     }
