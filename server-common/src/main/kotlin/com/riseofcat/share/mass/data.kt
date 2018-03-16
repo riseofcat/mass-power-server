@@ -18,7 +18,7 @@ object GameConst {
   val DELAY_TICKS = PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1//количество тиков для хранения действий //bigger delayed
   val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
   val FUTURE_TICKS = DELAY_TICKS*3
-  val REACTIVE_LIVE = 60
+  val REACTIVE_LIVE = Tick(60)
 }
 
 interface InStateAction { fun act(state:State) }
@@ -49,9 +49,6 @@ interface EatMe:SpeedObject { var size:Int }
     val size = car.size/15+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
     state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180)).xy*300.0,car.pos.copy(), state.tick.copy()))
-    for(i in 1..100) {
-      state.reactive.add(Reactive(id,size,XY(state.rnd(), state.rnd())*300.0,car.pos.copy(), state.tick.copy()))
-    }
   }
 }
 @Serializable data class Action(var direction:Angle)
@@ -120,7 +117,7 @@ fun State.tick() = apply {//todo передавать tick в аргумента
     else if(o.pos.y<0) o.pos.y = o.pos.y+height
   }
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  while(reactItr.hasNext()) if((tick-reactItr.next().born).tick > GameConst.REACTIVE_LIVE) reactItr.remove()
+  while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
   for(car in cars) {
     val foodItr = foods.iterator()
     while(foodItr.hasNext()) {
