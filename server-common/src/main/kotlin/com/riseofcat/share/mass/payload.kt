@@ -22,7 +22,7 @@ import kotlinx.serialization.*
   @Optional val actions:List<TickAction> = listOf(),
   @Optional var error:ServerError? = null
 )
-@Serializable class Welcome(var id:PlayerId)
+@Serializable class Welcome(val id:PlayerId)
 @Serializable data class Stable(
   val tick:Tick,//все actions уже пришли и новых больше не будет. Если кто-то кого-то убил, то в этом кадре засчитывается фраг. Но само убийство и набор очков могло произойти в прошлом
   @Optional val state:State? = null
