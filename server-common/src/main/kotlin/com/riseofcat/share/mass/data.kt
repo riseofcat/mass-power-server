@@ -3,6 +3,7 @@ package com.riseofcat.share.mass
 import com.riseofcat.client.*
 import kotlinx.serialization.*
 import kotlin.math.*
+import kotlin.system.*
 
 object GameConst {
   val UPDATE_MS = 40
@@ -15,6 +16,7 @@ object GameConst {
   val BASE_HEIGHT = 1000
   val TITLE = "mass-power.io"
   val DELAY_TICKS = Tick(PingClient.DEFAULT_LATENCY_MS*3/GameConst.UPDATE_MS+1)//количество тиков для хранения действий //bigger delayed
+  val NEW_CAR_DELAY = DELAY_TICKS + 1
   val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
   val FUTURE_TICKS = DELAY_TICKS*3
   val REACTIVE_LIVE = Tick(60)
@@ -85,18 +87,24 @@ inline val Angle.cos get() = cos(radians)
   var random:Int = 0,
   var size:Double = 0.0,
   var tick:Tick = Tick(0))
+fun State.deepCopy() = copy(//todo data класс не копирует массивы
+  cars = cars.map {it.copy()}.toMutableList(),//todo deep copy pos
+  foods = foods.map {it.copy()}.toMutableList(),
+  reactive = reactive.map {it.copy()}.toMutableList()
+)
+
 @Serializable data class PlayerId(var id:Int)
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
 }
 val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
 fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
-fun State.act(actions:Iterator<InStateAction>):State {
+infix fun State.act(actions:Iterator<InStateAction>):State {
   actions.forEach {it.act(this)}
   return this
 }
 
-fun State.tick() = apply {//todo передавать tick в аргументах?
+fun State.tick() = measureNanoTime{apply {//todo передавать tick в аргументах?
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
@@ -128,16 +136,18 @@ fun State.tick() = apply {//todo передавать tick в аргумента
     }
   }
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
-}
+}}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
+var averageTickNanos = 0f
+private val FRAMES = 20
 
 val State.width get() = GameConst.BASE_WIDTH+size
 val State.height get() = GameConst.BASE_HEIGHT+size
-fun State.distance(a:XY,b:XY):Float {
+fun State.distance(a:XY,b:XY):Double {
   var dx = min(abs(b.x-a.x),b.x+width-a.x)
   dx = min(dx,a.x+width-b.x)
   var dy = min(abs(b.y-a.y),b.y+height-a.y)
   dy = min(dy,a.y+height-b.y)
-  return sqrt((dx*dx+dy*dy).toDouble()).toFloat()
+  return sqrt(dx*dx+dy*dy)
 }
 fun State.rnd(min:Int,max:Int):Int {
   random = random*1664525+1013904223 and 0x7fffffff
@@ -154,12 +164,12 @@ fun State.changeSize(delta:Int) {
 }
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
-internal inline infix fun XY.scale(xy:XY) = copy().also {it mscale xy}
+internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}
 internal inline infix fun XY.mscale(scl:Double) = this mscale XY(scl, scl)
-internal inline infix fun XY.scale(scl:Double) = copy().also {it mscale scl}
-internal inline infix fun XY.msum(b:XY) = apply {x += b.x; y += b.y}
+internal inline infix fun XY.scale(xy:XY) = copy() mscale xy                      //Не стабильный вариант: copy().also {it mscale xy} //todo Удалить коментарий
+internal inline infix fun XY.scale(scl:Double) = copy() mscale scl                //Не стабильный вариант: copy().also {it mscale scl}//todo Удалить коментарий
+internal inline infix fun XY.msum(b:XY) = copy()./*todo no copy*/apply {x += b.x; y += b.y}
 internal inline infix fun XY.sum(b:XY) = copy() msum b
-internal inline infix fun XY.mscale(xy:XY) = apply {x *= xy.x;y *= xy.y}
 operator fun XY.times(scl:Double) = this scale scl
 val XY.len get() = dst(XY(0.0,0.0))
 fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)))

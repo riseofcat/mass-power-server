@@ -8,7 +8,7 @@ import kotlinx.serialization.json.*
 
 val createMs = Lib.timeMs
 
-object Lib {
+object Lib {//todo lower case
 
   val timeMs get() = Common.timeMs
   val timeS get() = Common.timeMs/Const.MILLIS_IN_SECOND
@@ -28,12 +28,12 @@ object Lib {
     }
   }
 
-  object Const {
+  object Const {//todo loWer case
     const val MILLIS_IN_SECOND = 1000f
     const val MEGA = 1E6f;
   }
 
-  object Log {
+  object Log {//todo lower case
     enum class LogMode { FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
 
     fun fatalError(message:String,t:Throwable? = null):Nothing {
@@ -49,6 +49,7 @@ object Lib {
 
     fun info(s:String) = _log(s,LogMode.INFO)
     fun debug(s:String) = _log(s,LogMode.DEBUG)
+    fun breakpoint(s:String = "") = _log(s,LogMode.BREAKPOINT)
     inline fun _log(str:CharSequence,mode:LogMode) {
       if(mode.ordinal<LogMode.BREAKPOINT.ordinal) {
         _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")

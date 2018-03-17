@@ -6,20 +6,18 @@ import java.util.*
 import java.util.concurrent.*
 
 class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
+  val STABLE_STATE_SYNC_TICKS:Int? = 500
   private val startTime = System.currentTimeMillis()
   private var previousActionsVersion = 0
-  @Volatile private var tick = Tick(0)//todo volatile redundant? //todo float
+  private val tick get() = state.tick + GameConst.DELAY_TICKS
   private val state = State()
   private var actions:MutableList<Action> = mutableListOf()
   private val mapPlayerVersion = ConcurrentHashMap<PlayerId,Int>()
-  private val stableTick get() = (tick-GameConst.DELAY_TICKS+1).let {if(it<Tick(0)) Tick(0) else it}
-  private val removeBeforeTick:Tick get() = tick-GameConst.REMOVE_TICKS+1
 
   init {
     room.onPlayerAdded.add {player->
       synchronized(this@TickGame) {
-        val d = Tick(1)
-        actions.add(Action(++previousActionsVersion,TickAction(tick+d,player.id,n = NewCarAction(player.id))))
+        actions.add(Action(++previousActionsVersion,TickAction(tick+GameConst.NEW_CAR_DELAY,player.id,n = NewCarAction(player.id))))
         actions.sortBy {it.ta.tick}
         val payload = createStablePayload(Welcome(player.id))
         payload.actions = actions.map{it.ta}
@@ -32,10 +30,11 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       synchronized(this@TickGame) {
         for(a in message.payload.actions) {
           val payload = ServerPayload(tick.toDbl())
-          var delay = Tick(0)
-          if(a.tick<stableTick) {
-            if(a.tick<removeBeforeTick) continue
-            else delay = stableTick-a.tick
+          var delay = Tick(0)//todo redundant
+          if(a.tick<state.tick) {
+            if(a.tick>state.tick-GameConst.REMOVE_TICKS) {
+              delay = state.tick-a.tick
+            }
           }
           actions.add(Action(++previousActionsVersion,TickAction(a.tick+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
           updatePlayerInPayload(payload,message.player)
@@ -49,10 +48,10 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       override fun run() {
         while(System.currentTimeMillis()-startTime>tick.tick * GameConst.UPDATE_MS) {
           synchronized(this@TickGame) {
-            state.act(actions.map{it.ta}.filter {it.tick == stableTick}.iterator()).tick()
-            actions.removeIf{it.ta.tick == stableTick}//todo duplicate
-            tick += 1
-            if(true)if(tick.tick%200==0) for(player in room.getPlayers()) player.session.send(createStablePayload())
+            state act actions.map{it.ta}.filter {it.tick == state.tick}.iterator()
+            actions.removeAll{it.ta.tick == state.tick}
+            state.tick()
+            if(STABLE_STATE_SYNC_TICKS != null && tick.tick%STABLE_STATE_SYNC_TICKS==0) for(player in room.getPlayers()) player.session.send(createStablePayload())
           }
         }
       }
@@ -79,7 +78,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     val result = ServerPayload(
       tick = tick.toDbl(),
       welcome =  welcome,
-      stable = Stable(stableTick,state)
+      stable = Stable(state.tick,state)
     )
     return result
   }

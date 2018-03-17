@@ -31,7 +31,7 @@ fun Tick.toDbl() = TickDbl(tick.toDouble())
 )
 @Serializable class Welcome(val id:PlayerId)
 @Serializable data class Stable(
-  val tick:Tick,//все actions уже пришли и новых больше не будет. Если кто-то кого-то убил, то в этом кадре засчитывается фраг. Но само убийство и набор очков могло произойти в прошлом
+  @Deprecated("tick есть в state.tick") val tick:Tick,//все actions уже пришли и новых больше не будет. Если кто-то кого-то убил, то в этом кадре засчитывается фраг. Но само убийство и набор очков могло произойти в прошлом
   val state:State//? = null todo nullable  and @Optional
 )
 

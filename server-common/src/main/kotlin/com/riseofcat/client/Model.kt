@@ -3,46 +3,39 @@ package com.riseofcat.client
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
-import kotlin.system.*
-
 
 class Model(conf:Conf) {
-  val client:PingClient<ServerPayload,ClientPayload>
+  val CACHE = true
+  val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
   var playerId:PlayerId? = null
   private val actions:MutableList<TickAction> = Common.createConcurrentList()
-  private val myActions:MutableList<TickAction> = mutableListOf()
-  private var stable:StateWrapper? = null
+  private val myLocal:MutableList<TickAction> = mutableListOf()
+  private var stable:StateWrapper? = null//todo StateWrapper(State(), Tick(0))//Сделать default state чтобы играть offline до появления интернета или пока сервак не отвечает
   private var sync:Sync? = null
-  val playerName:String get() = playerId?.let {"Player $it"} ?: "Wait connection..."
-  private var cache:StateWrapper? = null
+  val playerName get() = playerId?.let {"Player $it"} ?: "Wait connection..."
 
   init {
-    client = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
     client.connect {s:ServerPayload->
       synchronized(this) {
         sync = Sync(s.tick.double+client.smartLatencyS/GameConst.UPDATE_S,sync)
         if(s.welcome!=null) playerId = s.welcome.id
         if(s.stable!=null) {
-          stable = StateWrapper(s.stable.state,s.stable.tick)
-          clearCache(s.stable.tick)
+          stable = StateWrapper(s.stable.state)
+          clearCache()//todo ? clearCache(s.stable.tick)
         }
         actions.addAll(s.actions)
         actions.sortBy {it.tick}
 
-        val currentUserActions = s.actions.filter {it.pid==playerId}.map {it.tick}
-        val serverMaxApplyTick:Tick = currentUserActions.max()?:Tick(-1)//Последний tick который принял сервер от этого игрока
-        myActions.removeAll {it.tick <= serverMaxApplyTick}
-        val serverMinApplyTick:Tick = currentUserActions.min()?:Tick(-1)//Последний tick который принял сервер от этого игрока
-        if(false) clearCache(serverMinApplyTick+1)
+        val myMaxApplyTick:Tick = s.actions.filter {it.pid==playerId}.map {it.tick}.max()?:Tick(0)//Последний tick который принял сервер от этого игрока
+        myLocal.removeAll {it.tick <= myMaxApplyTick}
+        val serverMinApplyTick:Tick = s.actions.map{it.tick}.min()?:Tick(0)
+        clearCache(serverMinApplyTick)
       }
     }
   }
 
   fun calcDisplayState():State? = sync?.let {getState(Tick(it.calcClientTck().toInt()))}
-
-  fun ready():Boolean {
-    return playerId!=null
-  }
+  fun ready() = playerId!=null
 
   fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
@@ -53,9 +46,9 @@ class Model(conf:Conf) {
         tick = clientTick+w,//todo serverTick?
         action = action
       )
-      synchronized(myActions) {
-        playerId?.let {myActions.add(TickAction(clientTick+w, it, p = PlayerAction(it, a.action)))}
-        myActions.sortBy {it.tick}
+      synchronized(myLocal) {
+        playerId?.let {myLocal.add(TickAction(clientTick+w, it, p = PlayerAction(it, a.action)))}
+        myLocal.sortBy {it.tick}
       }
       val payload = ClientPayload(
         tick = clientTick.toDbl(),
@@ -76,17 +69,18 @@ class Model(conf:Conf) {
       }
     }
   }
+  fun dispose() { client.close() }
 
-  private fun clearCache(tick:Tick) {
-    if(cache!=null&&tick<cache!!.tick) cache = null
-  }
-
-  private fun getNearestCache(tick:Tick) = if(cache!=null&&cache!!.tick<=tick) cache else null
-
-  private fun saveCache(value:StateWrapper) {
-    cache = value
-  }
-
+  private var cache:StateWrapper? = null
+  private fun clearCache(tick:Tick = Tick(0)) = cache?.let {if(tick<=it._state.tick) cache = null}
+  private fun saveCache(value:StateWrapper) { cache = value }
+  private fun getNearestCache(tick:Tick):StateWrapper? =
+    if(CACHE) {
+      cache?.let {if(tick>=it._state.tick) it else null}
+    }
+    else {
+      null
+    }
   private fun getState(tick:Tick):State? {
     var result = getNearestCache(tick)
     if(result==null) {
@@ -97,26 +91,24 @@ class Model(conf:Conf) {
       }
     }
     result!!.tick(tick)
-    return result!!.state
+    return result!!._state
   }
 
-  fun dispose() {
-    client.close()
-  }
-
-  var averageTickNanos = 0f
-  private inner class StateWrapper(var state:State,var tick:Tick) {
-    constructor(obj:StateWrapper):this(obj.state.copy(),obj.tick)
+  private inner class StateWrapper(state:State) {
+    val _state = state.deepCopy()
+    constructor(obj:StateWrapper):this(obj._state)
     fun tick(targetTick:Tick) {
-      while(tick<targetTick) {
-        val iterator = (actions+myActions)
-          .filter {it.tick==tick}
-          .iterator()
-        state.act(iterator)
-
-        val FRAMES = 20
-        measureNanoTime{state.tick()}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
-        tick+=1
+      while(_state.tick<targetTick) {
+        val filtered = (actions+myLocal).filter {it.tick==_state.tick}
+        val size = filtered.size
+        if(size > 0) {
+          Lib.Log.breakpoint("size > 0")
+          if(filtered.any{it.p != null}) {
+            Lib.Log.breakpoint("p != null")
+          }
+        }
+        _state act filtered.iterator()
+        _state.tick()
       }
     }
   }
