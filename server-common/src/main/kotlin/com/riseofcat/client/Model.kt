@@ -73,7 +73,6 @@ class Model(conf:Conf) {
     synchronized(this) {
       val clientTick:Tick = Tick(sync!!.calcClientTck().toInt())//todo +0.5f?
       if(!ready()) return
-      if(false) if(sync!!.calcSrvTck()-sync!!.calcClientTck()>GameConst.DELAY_TICKS.tick*1.5||sync!!.calcClientTck()-sync!!.calcSrvTck()>GameConst.FUTURE_TICKS.tick*1.5) return
       val w = (client.smartLatencyS/GameConst.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
       val a = ClientPayload.ClientAction(
         tick = clientTick+w,//todo serverTick?
