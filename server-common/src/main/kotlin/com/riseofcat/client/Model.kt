@@ -2,10 +2,9 @@ package com.riseofcat.client
 
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
-import com.riseofcat.share.*
-import com.riseofcat.share.ping.*
 import com.riseofcat.share.mass.*
 import kotlin.system.*
+
 
 class Model(conf:Conf) {
   val client:PingClient<ServerPayload,ClientPayload>
@@ -15,35 +14,7 @@ class Model(conf:Conf) {
   private var stable:StateWrapper? = null
   private var sync:Sync? = null
   val playerName:String get() = playerId?.let {"Player $it"} ?: "Wait connection..."
-  private var previousActionId = 0
-  fun calcDisplayState():State? = sync?.let {getState(Tick(it.calcClientTck().toInt()))}
   private var cache:StateWrapper? = null
-
-  class Sync(internal val serverTick:Double,oldSync:Sync?) {
-    internal val clientTick:Double
-    internal val time:Long
-
-    init {
-      time = Common.timeMs
-      if(oldSync==null)
-        this.clientTick = serverTick
-      else
-        this.clientTick = oldSync.calcClientTck()
-    }
-
-    private fun calcSrvTck(t:Long):Double {
-      return serverTick+(t-time)/GameConst.UPDATE_MS.toFloat()
-    }
-
-    fun calcSrvTck():Double {
-      return calcSrvTck(Common.timeMs)
-    }
-
-    fun calcClientTck():Double {
-      val t = Common.timeMs
-      return calcSrvTck(t)+(clientTick-serverTick)*(1f-Lib.Fun.arg0toInf((t-time).toDouble(),600f))
-    }
-  }
 
   init {
     client = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
@@ -65,13 +36,15 @@ class Model(conf:Conf) {
     }
   }
 
+  fun calcDisplayState():State? = sync?.let {getState(Tick(it.calcClientTck().toInt()))}
+
   fun ready():Boolean {
     return playerId!=null
   }
 
   fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
-      val clientTick:Tick = Tick(sync!!.calcClientTck().toInt())//todo +0.5f?
+      val clientTick = Tick(sync!!.calcClientTck().toInt())//todo +0.5f?
       if(!ready()) return
       val w = (client.smartLatencyS/GameConst.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
       val a = ClientPayload.ClientAction(
@@ -129,15 +102,9 @@ class Model(conf:Conf) {
     client.close()
   }
 
-  private inner class Action(
-    action:com.riseofcat.share.mass.Action,
-    val pa:PlayerAction = PlayerAction(playerId!!,action)):InStateAction by pa
-
-  private inner class StateWrapper(
-    var state:State,
-    var tick:Tick) {
+  var averageTickNanos = 0f
+  private inner class StateWrapper(var state:State,var tick:Tick) {
     constructor(obj:StateWrapper):this(obj.state.copy(),obj.tick)
-
     fun tick(targetTick:Tick) {
       while(tick<targetTick) {
         val iterator = (actions+myActions)
@@ -145,14 +112,22 @@ class Model(conf:Conf) {
           .iterator()
         state.act(iterator)
 
-        measureNanoTime{
-          state.tick()
-        }.let{averageTickNanos = (averageTickNanos*frames + it) / (frames+1)}
+        val FRAMES = 20
+        measureNanoTime{state.tick()}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
         tick+=1
       }
     }
   }
 }
 
-val frames = 20
-var averageTickNanos = 0f
+private class Sync(internal val serverTick:Double,oldSync:Sync?) {
+  internal val clientTick:Double
+  internal val time:Long
+  init {
+    time = Common.timeMs
+    clientTick = if(oldSync==null) serverTick else oldSync.calcClientTck()
+  }
+  private fun calcSrvTck(t:Long) = serverTick+(t-time)/GameConst.UPDATE_MS
+  private fun calcSrvTck() = calcSrvTck(Common.timeMs)
+  fun calcClientTck() = Common.timeMs.let {calcSrvTck(it)+(clientTick-serverTick)*(1f-Lib.Fun.arg0toInf((it-time).toDouble(),600f))}
+}
