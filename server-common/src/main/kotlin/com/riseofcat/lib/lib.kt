@@ -7,6 +7,11 @@ import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
 
 val createMs = Lib.timeMs
+inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
+  CBOR.load<T>(CBOR.dump(this))
+} catch(t:Throwable) {
+  Lib.Log.fatalError("deepCopy",t)
+}
 
 object Lib {//todo lower case
 

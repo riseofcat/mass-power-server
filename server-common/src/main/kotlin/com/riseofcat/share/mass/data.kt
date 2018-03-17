@@ -1,7 +1,9 @@
 package com.riseofcat.share.mass
 
 import com.riseofcat.client.*
+import com.riseofcat.lib.*
 import kotlinx.serialization.*
+import kotlinx.serialization.cbor.*
 import kotlin.math.*
 import kotlin.system.*
 
@@ -87,11 +89,6 @@ inline val Angle.cos get() = cos(radians)
   var random:Int = 0,
   var size:Double = 0.0,
   var tick:Tick = Tick(0))
-fun State.deepCopy() = copy(//todo data класс не копирует массивы
-  cars = cars.map {it.copy()}.toMutableList(),//todo deep copy pos
-  foods = foods.map {it.copy()}.toMutableList(),
-  reactive = reactive.map {it.copy()}.toMutableList()
-)
 
 @Serializable data class PlayerId(var id:Int)
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
