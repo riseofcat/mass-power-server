@@ -29,9 +29,11 @@ class Model(conf:Conf) {
         actions.addAll(s.actions)
         actions.sortBy {it.tick}
 
-        val serverMaxApplyTick:Tick = s.actions.filter {it.pid==playerId}.map{it.tick}.max()?:Tick(-1)//Последний tick который принял сервер от этого игрока
+        val currentUserActions = s.actions.filter {it.pid==playerId}.map {it.tick}
+        val serverMaxApplyTick:Tick = currentUserActions.max()?:Tick(-1)//Последний tick который принял сервер от этого игрока
         myActions.removeAll {it.tick <= serverMaxApplyTick}
-//        clearCache(serverMinApplyTick + 1)//todo ?
+        val serverMinApplyTick:Tick = currentUserActions.min()?:Tick(-1)//Последний tick который принял сервер от этого игрока
+        if(false) clearCache(serverMinApplyTick+1)
       }
     }
   }
