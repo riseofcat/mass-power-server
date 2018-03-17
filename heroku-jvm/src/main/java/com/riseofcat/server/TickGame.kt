@@ -19,10 +19,10 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     room.onPlayerAdded.add {player->
       synchronized(this@TickGame) {
         val d = Tick(1)
-        actions.add(Action(++previousActionsVersion,tick+d,player.id,n = NewCarAction(player.id)))
-        actions.sortBy {it.tick}
+        actions.add(Action(++previousActionsVersion,TickAction(tick+d,player.id,n = NewCarAction(player.id))))
+        actions.sortBy {it.ta.tick}
         val payload = createStablePayload(Welcome(player.id))
-        for(a in actions) payload.actions.add(TickAction(a.tick,a.pid, n=a.n, p=a.pa))
+        payload.actions = actions.map{it.ta}
         player.session.send(payload)
         mapPlayerVersion.put(player.id,previousActionsVersion)
       }
@@ -37,7 +37,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
             if(a.tick<removeBeforeTick) continue
             else delay = stableTick-a.tick
           }
-          actions.add(Action(++previousActionsVersion,a.tick+delay, message.player.id, pa = PlayerAction(message.player.id,a.action)))
+          actions.add(Action(++previousActionsVersion,TickAction(a.tick+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
           updatePlayerInPayload(payload,message.player)
           message.player.session.send(payload)//todo move out of for
         }
@@ -49,8 +49,8 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       override fun run() {
         while(System.currentTimeMillis()-startTime>tick.tick * GameConst.UPDATE_MS) {
           synchronized(this@TickGame) {
-            state.act(actions.toList().filter {it.tick == stableTick}.iterator()).tick()//todo toList redundant
-            actions.removeIf{it.tick == stableTick}//todo duplicate
+            state.act(actions.map{it.ta}.filter {it.tick == stableTick}.iterator()).tick()
+            actions.removeIf{it.ta.tick == stableTick}//todo duplicate
             tick += 1
             if(true)if(tick.tick%200==0) for(player in room.getPlayers()) player.session.send(createStablePayload())
           }
@@ -66,14 +66,11 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   }
 
   private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-    payload.actions = mutableListOf()
     synchronized(this) {
       payload.tick = tick.toDbl()//todo redundant? but synchronized
-      for(a in actions) {
-        if(a.actionVersion>mapPlayerVersion[p.id]?:Lib.Log.fatalError("unknowk id")) {
-          payload.actions.add(TickAction(a.tick, a.pid, p = a.pa, n = a.n))
-        }
-      }
+      payload.actions = actions
+        .filter {it.actionVersion>mapPlayerVersion[p.id]?:Lib.Log.fatalError("unknowk id")}
+        .map {it.ta}
       mapPlayerVersion.put(p.id,previousActionsVersion)
     }
   }
@@ -88,13 +85,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   }
 
   private class ConcreteRoomsServer:RoomsDecorator<ClientPayload,ServerPayload>()
-  private class Action(val actionVersion:Int, val tick:Tick, val pid:PlayerId, val pa:PlayerAction?=null, val n:NewCarAction?=null):InStateAction {
-    override fun act(state:State) {
-      pa?.act(state)
-      n?.act(state)
-    }
-
-  }
+  private class Action(val actionVersion:Int, val ta:TickAction)
 
   private fun todo() {
     val player:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player? = null

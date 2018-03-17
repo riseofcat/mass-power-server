@@ -26,7 +26,7 @@ fun Tick.toDbl() = TickDbl(tick.toDouble())
   var tick:TickDbl,
   @Optional val welcome:Welcome? = null,
   @Optional val stable:Stable? = null,
-  @Optional var actions:MutableList<TickAction> = mutableListOf(),
+  @Optional var actions:List<TickAction> = mutableListOf(),
   @Optional val error:ServerError? = null
 )
 @Serializable class Welcome(val id:PlayerId)
