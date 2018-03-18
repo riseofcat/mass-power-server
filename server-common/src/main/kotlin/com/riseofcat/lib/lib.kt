@@ -6,20 +6,22 @@ import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
 
-val createMs = Lib.timeMs
+val createMs = lib.timeMs
 inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
   CBOR.load<T>(CBOR.dump(this))
 } catch(t:Throwable) {
-  Lib.Log.fatalError("deepCopy",t)
+  lib.log.fatalError("deepCopy",t)
 }
 
-object Lib {//todo lower case
+object lib {
 
+  const val MILLIS_IN_SECOND = 1000f
+  const val MEGA = 1E6f;
   val timeMs get() = Common.timeMs
-  val timeS get() = Common.timeMs/Const.MILLIS_IN_SECOND
-  val sinceStartS get() = (timeMs-createMs)/Const.MILLIS_IN_SECOND
+  val timeS get() = Common.timeMs/MILLIS_IN_SECOND
+  val sinceStartS get() = (timeMs-createMs)/MILLIS_IN_SECOND
   fun pillarTimeMs(max:Long) = Fun.pillar(timeMs, max)
-  fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/Lib.Const.MILLIS_IN_SECOND
+  fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/MILLIS_IN_SECOND
   val json = JSON(unquoted = true, nonstrict = true)
   val objStrSer = json
   inline fun <reified T:Any>getKClass() = T::class
@@ -33,12 +35,11 @@ object Lib {//todo lower case
     }
   }
 
-  object Const {//todo loWer case
-    const val MILLIS_IN_SECOND = 1000f
-    const val MEGA = 1E6f;
+  object const {
+
   }
 
-  object Log {//todo lower case
+  object log {
     enum class LogMode { FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
 
     fun fatalError(message:String,t:Throwable? = null):Nothing {

@@ -5,20 +5,20 @@ import java.lang.management.*
 
 class LibJvm {
   companion object {
-    @JvmStatic val log = Lib.Log
+    @JvmStatic val log = lib.log
     @JvmStatic fun test() = "LibJvm ${System.getProperties()["java.runtime.version"]}"
     @JvmStatic fun info() = JvmInfo()
   }
 }
 
 data class JvmInfo internal constructor(
-  val maxMemory:Float = Runtime.getRuntime().maxMemory()/Lib.Const.MEGA,
-  val usedMemory:Float = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/Lib.Const.MEGA,
+  val maxMemory:Float = Runtime.getRuntime().maxMemory()/lib.MEGA,
+  val usedMemory:Float = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/lib.MEGA,
   val currentThreads:Int = Thread.activeCount(),
   val availableProcessors:Int = Runtime.getRuntime().availableProcessors(),
   val cpuLoad:Float = ManagementFactory.getOperatingSystemMXBean().systemLoadAverage.toFloat(),
-  val totalSpace:Float = File(".").totalSpace/Lib.Const.MEGA,
-  val freeSpace:Float = File(".").freeSpace/Lib.Const.MEGA,
+  val totalSpace:Float = File(".").totalSpace/lib.MEGA,
+  val freeSpace:Float = File(".").freeSpace/lib.MEGA,
   val stackSizeMB:Float = 0f
 )
 //-Xss set java thread stack size//todo test

@@ -68,7 +68,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     synchronized(this) {
       payload.tick = tick.toDbl()//todo redundant? but synchronized
       payload.actions = actions
-        .filter {it.actionVersion>mapPlayerVersion[p.id]?:Lib.Log.fatalError("unknowk id")}
+        .filter {it.actionVersion>mapPlayerVersion[p.id]?:lib.log.fatalError("unknowk id")}
         .map {it.ta}
       mapPlayerVersion.put(p.id,previousActionsVersion)
     }

@@ -6,7 +6,7 @@ import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 
 val PingClient.Companion.DEFAULT_LATENCY_MS get() = 250
-val PingClient.Companion.DEFAULT_LATENCY_S get() = DEFAULT_LATENCY_MS/Lib.Const.MILLIS_IN_SECOND
+val PingClient.Companion.DEFAULT_LATENCY_S get() = DEFAULT_LATENCY_MS/lib.MILLIS_IN_SECOND
 
 class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
   private val incoming = Signal<S>()
@@ -30,15 +30,15 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
       override fun onMessage(packet:String) {
         val serverSay:ServerSay<S> = try {
-          Lib.Log.debug(packet)
-          Lib.objStrSer.parse(typeS, packet)
+          lib.log.debug(packet)
+          lib.objStrSer.parse(typeS, packet)
         } catch(t:Throwable) {
-          Lib.Log.error("serverSay parse", t)
+          lib.log.error("serverSay parse", t)
           TODO("")
         }
 
         if(serverSay.latency!=null) {
-          latencyS = serverSay.latency!!/Lib.Const.MILLIS_IN_SECOND
+          latencyS = serverSay.latency!!/lib.MILLIS_IN_SECOND
 
           latencies.add(LatencyTime(serverSay.latency!!,Common.timeMs))
           while(latencies.size>100) latencies.removeFirst()
@@ -46,12 +46,12 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           var weights = 0f
           val time = Common.timeMs
           for(l in latencies) {
-            var w = (1-Lib.Fun.arg0toInf((time-l.time).toDouble(),10000f)).toDouble()
-            w *= (1-Lib.Fun.arg0toInf(l.latency.toDouble(),DEFAULT_LATENCY_MS.toFloat())).toDouble()
+            var w = (1-lib.Fun.arg0toInf((time-l.time).toDouble(),10000f)).toDouble()
+            w *= (1-lib.Fun.arg0toInf(l.latency.toDouble(),DEFAULT_LATENCY_MS.toFloat())).toDouble()
             sum += (w*l.latency).toFloat()
             weights += w.toFloat()
           }
-          if(weights>Float.MIN_VALUE*1E10) smartLatencyS = sum/weights/Lib.Const.MILLIS_IN_SECOND
+          if(weights>Float.MIN_VALUE*1E10) smartLatencyS = sum/weights/lib.MILLIS_IN_SECOND
         }
         if(serverSay.ping) {
           val answer = ClientSay<C>()
@@ -93,10 +93,10 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private fun sayNow(say:ClientSay<C>) {
     try {
-      socket.send(Lib.objStrSer.stringify(typeC, say))
+      socket.send(lib.objStrSer.stringify(typeC, say))
       return
     } catch(t:Throwable) {
-      Lib.Log.error("socket.send error", t)
+      lib.log.error("socket.send error", t)
     }
   }
 

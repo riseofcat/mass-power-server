@@ -21,7 +21,7 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
         }
       }
       if(room==null) {
-        Lib.Log.info("new room created")
+        lib.log.info("new room created")
         room = Room()
         rooms.add(room!!)
         onRoomCreated.dispatch(room!!)

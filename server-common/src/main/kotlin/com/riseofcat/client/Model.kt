@@ -102,9 +102,9 @@ class Model(conf:Conf) {
         val filtered = (actions+myLocal).filter {it.tick==_state.tick}
         val size = filtered.size
         if(size > 0) {
-          Lib.Log.breakpoint("size > 0")
+          lib.log.breakpoint("size > 0")
           if(filtered.any{it.p != null}) {
-            Lib.Log.breakpoint("p != null")
+            lib.log.breakpoint("p != null")
           }
         }
         _state act filtered.iterator()
@@ -123,5 +123,5 @@ private class Sync(internal val serverTick:Double,oldSync:Sync?) {
   }
   private fun calcSrvTck(t:Long) = serverTick+(t-time)/GameConst.UPDATE_MS
   private fun calcSrvTck() = calcSrvTck(Common.timeMs)
-  fun calcClientTck() = Common.timeMs.let {calcSrvTck(it)+(clientTick-serverTick)*(1f-Lib.Fun.arg0toInf((it-time).toDouble(),600f))}
+  fun calcClientTck() = Common.timeMs.let {calcSrvTck(it)+(clientTick-serverTick)*(1f-lib.Fun.arg0toInf((it-time).toDouble(),600f))}
 }
