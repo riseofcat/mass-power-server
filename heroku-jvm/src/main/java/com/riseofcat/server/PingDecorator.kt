@@ -1,6 +1,6 @@
 package com.riseofcat.server
 
-import com.riseofcat.lib.TypeMap
+import com.riseofcat.lib.*
 import com.riseofcat.share.ping.ClientSay
 import com.riseofcat.share.ping.ServerSay
 import java.util.concurrent.ConcurrentHashMap
@@ -19,14 +19,13 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
   }
 
   override fun message(session:Ses<ServerSay<S>>,say:ClientSay<C>) {
-    val s = map[session]
-    if(say.pong&&s!!.lastPingTime!=null) {
-      val l = (System.currentTimeMillis()-s.lastPingTime!!+1)/2
-      s.latency = l.toInt()
+    val s = map[session] ?: lib.log.fatalError("session not found")
+    if(say.pong) {
+      val lat = 1 + (lib.timeMs-s.lastPingTime)/2
+      if(s.latency == null) session.send(ServerSay(latency = lat.toInt()))
+      s.latency = lat.toInt()
     }
-    if(say.payload!=null) {
-      server.message(s!!,say.payload!!)
-    }
+    if(say.payload!=null) server.message(s,say.payload!!)
   }
 
   inner class PingSes constructor(private val sess:Ses<ServerSay<S>>):Ses<S>() {
@@ -42,10 +41,9 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
     override fun stop() = sess.stop()
 
     override fun send(payload:S) {
-      val timeMs = System.currentTimeMillis()
-      val say = ServerSay(payload, latency, timeMs>lastPingTime+pingIntervalMs)
-      if(say.ping) lastPingTime = timeMs
-      sess.send(say)
+      val ping = lib.timeMs>lastPingTime+pingIntervalMs
+      if(ping) lastPingTime = lib.timeMs
+      sess.send(ServerSay(payload, latency,ping))
     }
   }
 

@@ -14,11 +14,10 @@ inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
 }
 
 object lib {
-
-  const val MILLIS_IN_SECOND = 1000f
+  const val MILLIS_IN_SECOND = 1000.0
   const val MEGA = 1E6f;
-  val timeMs get() = Common.timeMs
-  val timeS get() = Common.timeMs/MILLIS_IN_SECOND
+  val timeMs:Long get() = Common.timeMs
+  val timeS:Long get() = Common.timeMs/1000L
   val sinceStartS get() = (timeMs-createMs)/MILLIS_IN_SECOND
   fun pillarTimeMs(max:Long) = Fun.pillar(timeMs, max)
   fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/MILLIS_IN_SECOND
