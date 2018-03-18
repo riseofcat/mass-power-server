@@ -30,28 +30,21 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
   }
 
   inner class PingSes constructor(private val sess:Ses<ServerSay<S>>):Ses<S>() {
-    var lastPingTime:Long? = null
+    var lastPingTime:Long = 0
     var latency:Int? = null
-    override val id:Int
-      get() = sess.id
-    override val typeMap:TypeMap
-      get() = sess.typeMap
+    override val id:Int get() = sess.id
+    override val typeMap:TypeMap get() = sess.typeMap
 
     init {
       put(Extra(this))
     }
 
-    override fun stop() {
-      sess.stop()
-    }
+    override fun stop() = sess.stop()
 
     override fun send(payload:S) {
-      val say = ServerSay(payload)
-      say.latency = latency
-      if(lastPingTime==null||System.currentTimeMillis()>lastPingTime!!+pingIntervalMs) {
-        say.ping = true
-        lastPingTime = System.currentTimeMillis()
-      }
+      val timeMs = System.currentTimeMillis()
+      val say = ServerSay(payload, latency, timeMs>lastPingTime+pingIntervalMs)
+      if(say.ping) lastPingTime = timeMs
       sess.send(say)
     }
   }
