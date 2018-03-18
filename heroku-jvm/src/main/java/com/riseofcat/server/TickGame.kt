@@ -31,12 +31,12 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
         for(a in message.payload.actions) {
           val payload = ServerPayload(tick.toDbl())
           var delay = Tick(0)//todo redundant
-          if(a.tick<state.tick) {
-            if(a.tick>state.tick-GameConst.REMOVE_TICKS) {
-              delay = state.tick-a.tick
+          if(a.tick.intTick()<state.tick) {
+            if(a.tick.intTick()>state.tick-GameConst.REMOVE_TICKS) {
+              delay = state.tick-a.tick.intTick()
             }
           }
-          actions.add(Action(++previousActionsVersion,TickAction(a.tick+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
+          actions.add(Action(++previousActionsVersion,TickAction(a.tick.intTick()+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
           updatePlayerInPayload(payload,message.player)
           message.player.session.send(payload)//todo move out of for
         }
@@ -83,10 +83,9 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     return result
   }
 
-  private class ConcreteRoomsServer:RoomsDecorator<ClientPayload,ServerPayload>()
   private class Action(val actionVersion:Int, val ta:TickAction)
 
-  private fun todo() {
+  private fun todo() {//todo move to service
     val player:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player? = null
     val startTime = player!!.session.get(UsageMonitorDecorator.Extra::class.java)!!.startTime
     val latency = player!!.session.get(PingDecorator.Extra::class.java)!!.latency

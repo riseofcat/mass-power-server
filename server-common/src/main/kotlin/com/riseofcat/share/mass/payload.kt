@@ -3,6 +3,7 @@ package com.riseofcat.share.mass
 import kotlinx.serialization.*
 
 @Serializable data class Tick(val tick:Int):Comparable<Tick> {
+  constructor(longTick:Long):this(longTick.toInt())
   override fun compareTo(other:Tick) = this.tick.compareTo(other.tick)
 }
 
@@ -10,6 +11,14 @@ operator fun Tick.times(multiply:Int) = Tick(this.tick * multiply)
 fun Tick.toDbl() = TickDbl(tick.toDouble())
 
 @Serializable data class TickDbl(val double:Double)
+
+fun TickDbl.intTick() = Tick(double.toInt())
+operator fun TickDbl.plus(l:Long) = TickDbl(double + l)
+operator fun TickDbl.plus(d:Double) = TickDbl(double + d)
+operator fun TickDbl.plus(other:TickDbl) = TickDbl(double + other.double)
+operator fun TickDbl.minus(other:TickDbl) = TickDbl(double - other.double)
+operator fun TickDbl.times(scl:Double) = TickDbl(double * scl)
+
 @Serializable class TickAction(
   val tick:Tick,
   val pid:PlayerId,
@@ -40,7 +49,7 @@ fun Tick.toDbl() = TickDbl(tick.toDouble())
   val actions:MutableList<ClientAction>
 ) {
   @Serializable class ClientAction(
-    val tick:Tick,
+    val tick:TickDbl,
     val action:Action
   )
 }

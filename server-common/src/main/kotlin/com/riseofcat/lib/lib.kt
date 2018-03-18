@@ -67,9 +67,9 @@ object lib {
   }
 
   object Fun {
-    fun arg0toInf(y:Double,middle:Float):Float {
-      return (y/middle.toDouble()/(1+y/middle)).toFloat()
-    }
+    fun arg0toInf(y:Double,middle:Double) = y/middle/(1+y/middle)
+    fun arg0toInf(y:Long,middle:Long) = arg0toInf(y.toDouble(), middle.toDouble())
+    fun arg0toInf(y:Int,middle:Int) = arg0toInf(y.toDouble(), middle.toDouble())
     fun pillar(value:Long, max:Long) = if((value/max)%2==0L) { value%max } else { max-value%max }//Имеет график /\/\/\/\
   }
 }

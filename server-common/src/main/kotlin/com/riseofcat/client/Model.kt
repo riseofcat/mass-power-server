@@ -10,18 +10,18 @@ class Model(conf:Conf) {
   var playerId:PlayerId? = null
   private val actions:MutableList<TickAction> = Common.createConcurrentList()
   private val myLocal:MutableList<TickAction> = mutableListOf()
-  private var stable:StateWrapper? = null//todo StateWrapper(State(), Tick(0))//Сделать default state чтобы играть offline до появления интернета или пока сервак не отвечает
+  private var stable:StateWrapper = StateWrapper(State())
   private var sync:Sync? = null
   val playerName get() = playerId?.let {"Player $it"} ?: "Wait connection..."
 
   init {
     client.connect {s:ServerPayload->
       synchronized(this) {
-        sync = Sync(s.tick.double+client.smartLatencyS/GameConst.UPDATE_S,sync)
+        sync = Sync(s.tick+client.smartLatencyS/GameConst.UPDATE_S,sync)
         if(s.welcome!=null) playerId = s.welcome.id
         if(s.stable!=null) {
           stable = StateWrapper(s.stable.state)
-          clearCache()//todo ? clearCache(s.stable.tick)
+          clearCache()
         }
         actions.addAll(s.actions)
         actions.sortBy {it.tick}
@@ -34,24 +34,24 @@ class Model(conf:Conf) {
     }
   }
 
-  fun calcDisplayState():State? = sync?.let {getState(Tick(it.calcClientTck().toInt()))}
+  fun calcDisplayState():State? = sync?.let {getState(it.calcClientTck().intTick())}
   fun ready() = playerId!=null
 
   fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
-      val clientTick = Tick(sync!!.calcClientTck().toInt())//todo +0.5f?
+      val clientTick = sync!!.calcClientTck()
       if(!ready()) return
-      val w = (client.smartLatencyS/GameConst.UPDATE_S+1).toInt()//todo delta serverTick-clientTick
+      val wait = (client.smartLatencyS/GameConst.UPDATE_S+1)//todo delta serverTick-clientTick
       val a = ClientPayload.ClientAction(
-        tick = clientTick+w,//todo serverTick?
+        tick = clientTick+wait,//todo serverTick?
         action = action
       )
       synchronized(myLocal) {
-        playerId?.let {myLocal.add(TickAction(clientTick+w, it, p = PlayerAction(it, a.action)))}
+        playerId?.let {myLocal.add(TickAction((clientTick+wait).intTick(), it, p = PlayerAction(it, a.action)))}
         myLocal.sortBy {it.tick}
       }
       val payload = ClientPayload(
-        tick = clientTick.toDbl(),
+        tick = clientTick,
         actions = mutableListOf(a)
       )
       client.say(payload)
@@ -84,9 +84,8 @@ class Model(conf:Conf) {
   private fun getState(tick:Tick):State? {
     var result = getNearestCache(tick)
     if(result==null) {
-      if(stable==null) return null
       synchronized(this) {
-        result = StateWrapper(stable!!)
+        result = StateWrapper(stable)
         saveCache(result!!)
       }
     }
@@ -114,14 +113,15 @@ class Model(conf:Conf) {
   }
 }
 
-private class Sync(internal val serverTick:Double,oldSync:Sync?) {
-  internal val clientTick:Double
+private class Sync(internal val serverTick:TickDbl,oldSync:Sync?) {
+  internal val clientTick:TickDbl
   internal val time:Long
   init {
     time = Common.timeMs
     clientTick = if(oldSync==null) serverTick else oldSync.calcClientTck()
   }
-  private fun calcSrvTck(t:Long) = serverTick+(t-time)/GameConst.UPDATE_MS
-  private fun calcSrvTck() = calcSrvTck(Common.timeMs)
-  fun calcClientTck() = Common.timeMs.let {calcSrvTck(it)+(clientTick-serverTick)*(1f-lib.Fun.arg0toInf((it-time).toDouble(),600f))}
+  private fun calcSrvTck():TickDbl = serverTick+(Common.timeMs-time)/GameConst.UPDATE_MS
+  fun calcClientTck():TickDbl {
+    return calcSrvTck()+(clientTick-serverTick)*(1.0-lib.Fun.arg0toInf(lib.timeMs-time,600))
+  }
 }

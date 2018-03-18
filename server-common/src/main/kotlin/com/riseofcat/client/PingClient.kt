@@ -38,16 +38,16 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
         }
 
         if(serverSay.latency!=null) {
-          latencyS = serverSay.latency!!/lib.MILLIS_IN_SECOND
+          latencyS = serverSay.latency/lib.MILLIS_IN_SECOND
 
-          latencies.add(LatencyTime(serverSay.latency!!,Common.timeMs))
+          latencies.add(LatencyTime(serverSay.latency,Common.timeMs))
           while(latencies.size>100) latencies.removeFirst()
           var sum = 0f
           var weights = 0f
           val time = Common.timeMs
           for(l in latencies) {
-            var w = (1-lib.Fun.arg0toInf((time-l.time).toDouble(),10000f)).toDouble()
-            w *= (1-lib.Fun.arg0toInf(l.latency.toDouble(),DEFAULT_LATENCY_MS.toFloat())).toDouble()
+            var w = 1.0-lib.Fun.arg0toInf(time-l.time,10_000)
+            w *= (1-lib.Fun.arg0toInf(l.latency,DEFAULT_LATENCY_MS))
             sum += (w*l.latency).toFloat()
             weights += w.toFloat()
           }
@@ -58,7 +58,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           answer.pong = true
           say(answer)
         }
-        if(serverSay.payload!=null) incoming.dispatch(serverSay.payload!!)
+        if(serverSay.payload!=null) incoming.dispatch(serverSay.payload)
       }
 
     })
@@ -102,5 +102,5 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private class LatencyTime(val latency:Int,val time:Long)
 
-  companion object{}
+  companion object
 }
