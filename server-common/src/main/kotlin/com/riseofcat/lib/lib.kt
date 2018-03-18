@@ -41,15 +41,18 @@ object lib {
   object log {
     enum class LogMode { FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
 
+    private inline fun handleThrowable(t:Throwable?) {
+      if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
+    }
     fun fatalError(message:String,t:Throwable? = null):Nothing {
       _log(message,LogMode.FATAL_ERROR)
-      if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}//todo duplicate
-      TODO(message)
+      handleThrowable(t)
+      throw Throwable("${LogMode.FATAL_ERROR}: $message")
     }
 
     fun error(message:String,t:Throwable? = null) {
       _log(message,LogMode.ERROR)
-      if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
+      handleThrowable(t)
     }
 
     fun info(s:String) = _log(s,LogMode.INFO)
