@@ -2,10 +2,10 @@ package com.riseofcat.share.ping
 
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
-//todo val
+
 @Serializable class ClientSay<T>(
-  @Optional var pong:Boolean = false,
-  @Optional var payload:T? = null
+  @Optional val pong:Boolean = false,
+  @Optional val payload:T? = null
 )
 
 @Serializable class ServerSay<T>(

@@ -54,9 +54,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           if(weights>Float.MIN_VALUE*1E10) smartLatency = (sum/weights).toDuration()
         }
         if(serverSay.ping) {
-          val answer = ClientSay<C>()
-          answer.pong = true
-          say(answer)
+          say(ClientSay<C>(pong=true))
         }
         if(serverSay.payload!=null) incoming.dispatch(serverSay.payload)
       }
@@ -79,9 +77,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   }
 
   fun say(payload:C) {
-    val answer = ClientSay<C>()
-    answer.payload = payload
-    say(answer)
+    say(ClientSay<C>(payload = payload))
   }
 
   private fun say(say:ClientSay<C>) {
