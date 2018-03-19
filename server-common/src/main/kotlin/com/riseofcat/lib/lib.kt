@@ -57,10 +57,15 @@ object lib {
   }
 
   object log {
-    enum class LogMode { FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
+    enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
 
     private inline fun handleThrowable(t:Throwable?) {
       if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
+    }
+    @Deprecated("TODO")
+    fun todo(str:String):Nothing {
+      _log(str,LogMode.TODO)
+      throw Throwable("${LogMode.TODO}: $str")
     }
     fun fatalError(message:String,t:Throwable? = null):Nothing {
       _log(message,LogMode.FATAL_ERROR)

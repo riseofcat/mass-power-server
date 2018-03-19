@@ -67,7 +67,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     try {
       socket.connect()
     } catch(e:Throwable) {
-      //todo handle offline
+      lib.log.todo("handle offline")
     }
 
   }
