@@ -16,7 +16,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val latencies:MutableList<LatencyTime> = mutableListOf()
 
   init {
-    latencies.add(LatencyTime(DEFAULT_LATENCY,Common.timeMs))
+//    latencies.add(LatencyTime(DEFAULT_LATENCY,Common.timeMs))//todo delete
     socket = Common.createWebSocket(host,port,path)
     socket.addListener(object:LibWebSocket.Listener {
       override fun onOpen() {
@@ -32,30 +32,26 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           lib.log.debug(packet)
           lib.objStrSer.parse(typeS, packet)
         } catch(t:Throwable) {
-          lib.log.error("serverSay parse", t)
-          TODO("")
+          lib.log.fatalError("serverSay parse", t)
         }
 
         if(serverSay.sync!=null) {
           latency = serverSay.sync.latency
           serverSay.sync.serverTime
 
-          latencies.add(LatencyTime(serverSay.sync.latency,Common.timeMs))
+          latencies.add(LatencyTime(serverSay.sync,lib.time))
           while(latencies.size>100) latencies.removeFirst()
           var sum = Duration(0)
-          var weights = 0f
-          val time = Common.timeMs
+          var weights = 0.0
           for(l in latencies) {
-            var w = 1.0-lib.Fun.arg0toInf(time-l.time,10_000)
-            w *= (1-lib.Fun.arg0toInf(l.latency.ms,DEFAULT_LATENCY.ms))
-            sum = (sum + l.latency * w).toDuration()
-            weights += w.toFloat()
+            var w = 1.0-lib.Fun.arg0toInf(lib.time-l.local,Duration(10_000))
+            w *= 1.0-lib.Fun.arg0toInf(l.sync.latency,DEFAULT_LATENCY)
+            sum += l.sync.latency*w
+            weights += w
           }
-          if(weights>Float.MIN_VALUE*1E10) smartLatency = (sum/weights).toDuration()
+          if(weights>Float.MIN_VALUE*1E10) smartLatency = sum/weights
         }
-        if(serverSay.ping) {
-          say(ClientSay<C>(pong=true))
-        }
+        if(serverSay.ping) say(ClientSay<C>(pong=true))
         if(serverSay.payload!=null) incoming.dispatch(serverSay.payload)
       }
 
@@ -67,18 +63,12 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     try {
       socket.connect()
     } catch(e:Throwable) {
-      lib.log.todo("handle offline")
+      lib.log.todo("handle offline")//todo
     }
-
   }
 
-  fun close() {
-    socket.close()
-  }
-
-  fun say(payload:C) {
-    say(ClientSay<C>(payload = payload))
-  }
+  fun close() = socket.close()
+  fun say(payload:C) = say(ClientSay<C>(payload = payload))
 
   private fun say(say:ClientSay<C>) {
     if(socket.state == LibWebSocket.State.OPEN)
@@ -96,7 +86,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     }
   }
 
-  private class LatencyTime(val latency:Duration,val time:Long)
+  private class LatencyTime(val sync:TimeSync, val local:TimeStamp)
 
   companion object
 }

@@ -19,7 +19,7 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
 
   override fun message(session:Ses<ServerSay<S>>,say:ClientSay<C>) {
     val s = map[session] ?: lib.log.fatalError("session not found")
-    if(say.pong) session send ServerSay(sync = TimeSync((Duration(1) + (lib.time-s.lastPing)/2).toDuration(), lib.time))
+    if(say.pong) session send ServerSay(sync = TimeSync(Duration(1)+(lib.time-s.lastPing)/2,lib.time))
     if(say.payload!=null) server.message(s,say.payload!!)
   }
 

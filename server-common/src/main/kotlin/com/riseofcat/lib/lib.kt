@@ -17,7 +17,8 @@ operator fun TimeStamp.plus(t:Duration):TimeStamp = TimeStamp(ms+t.ms)
 operator fun Duration.plus(t:Duration):Duration = Duration(ms+t.ms)
 operator fun Duration.minus(t:Duration):Duration = Duration(ms-t.ms)
 operator fun Duration.div(int:Int):Duration = Duration(ms/int)
-operator fun Duration.div(f:Float):Duration = Duration(ms/f.toLong())
+operator fun Duration.div(f:Float):Duration = Duration((ms/f).toLong())
+operator fun Duration.div(double:Double):Duration = Duration((ms/double).toLong())
 operator fun Duration.times(d:Double):Duration = Duration((ms*d).toLong())
 
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
@@ -28,7 +29,6 @@ val Time.sd get():Double = ms / 1000.0
 
 @Serializable data class TimeStamp(override val ms:Long):Time
 @Serializable data class Duration(override val ms:Long):Time
-fun Time.toDuration():Duration = Duration(ms)
 
 val createTime = lib.time
 inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
@@ -62,7 +62,6 @@ object lib {
     private inline fun handleThrowable(t:Throwable?) {
       if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
     }
-    @Deprecated("TODO")
     fun todo(str:String):Nothing {
       _log(str,LogMode.TODO)
       throw Throwable("${LogMode.TODO}: $str")
@@ -93,6 +92,7 @@ object lib {
     fun arg0toInf(y:Double,middle:Double) = y/middle/(1+y/middle)
     fun arg0toInf(y:Long,middle:Long) = arg0toInf(y.toDouble(), middle.toDouble())
     fun arg0toInf(y:Int,middle:Int) = arg0toInf(y.toDouble(), middle.toDouble())
+    fun arg0toInf(y:Time,middle:Time) = arg0toInf(y.ms, middle.ms)
     fun pillar(value:Long, max:Long) = if((value/max)%2==0L) { value%max } else { max-value%max }//Имеет график /\/\/\/\
   }
 }
