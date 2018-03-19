@@ -6,7 +6,25 @@ import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
 
-val createMs = lib.timeMs
+interface Time {
+  val ms:Long
+}
+operator fun Time.minus(t:Time):Time = TimeSimple(ms - t.ms)
+operator fun Time.plus(t:Time):Time = TimeSimple(ms + t.ms)
+operator fun Time.div(int:Int):Time = TimeSimple(ms / int)
+operator fun Time.div(f:Float):Time = TimeSimple(ms/f.toLong())
+operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
+operator fun Time.times(d:Double):Time = TimeSimple((ms * d).toLong())
+val Time.s get():Long = ms / 1000
+val Time.sf get():Float = ms / 1000f
+val Time.sd get():Double = ms / 1000.0
+
+data class TimeSimple(override val ms:Long):Time
+@Serializable data class Timestamp(override val ms:Long):Time
+@Serializable data class Duration(override val ms:Long):Time
+fun Time.toDuration():Duration = Duration(ms)
+
+val createTime = lib.time
 inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
   CBOR.load<T>(CBOR.dump(this))
 } catch(t:Throwable) {
@@ -15,11 +33,9 @@ inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
 
 object lib {
   const val MILLIS_IN_SECOND = 1000.0
-  const val MEGA = 1E6f;
-  val timeMs:Long get() = Common.timeMs
-  val timeS:Long get() = Common.timeMs/1000L
-  val sinceStartS get() = (timeMs-createMs)/MILLIS_IN_SECOND
-  fun pillarTimeMs(max:Long) = Fun.pillar(timeMs, max)
+  val time get() = Timestamp(Common.timeMs)
+  val sinceStart get() = time-createTime
+  fun pillarTimeMs(max:Long) = Fun.pillar(time.ms, max)
   fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/MILLIS_IN_SECOND
   val json = JSON(unquoted = true, nonstrict = true)
   val objStrSer = json
@@ -32,10 +48,6 @@ object lib {
     fun <T:Any> parse(loader: KSerialLoader<T>, str: String): T {
       return CBOR.load(loader, HexConverter.parseHexBinary(str))
     }
-  }
-
-  object const {
-
   }
 
   object log {

@@ -17,7 +17,7 @@ class Model(conf:Conf) {
   init {
     client.connect {s:ServerPayload->
       synchronized(this) {
-        sync = Sync(s.tick+client.smartLatencyS/GameConst.UPDATE_S,sync)
+        sync = Sync(s.tick+client.smartLatency.s/GameConst.UPDATE_S,sync)
         if(s.welcome!=null) playerId = s.welcome.id
         if(s.stable!=null) {
           stable = StateWrapper(s.stable.state)
@@ -41,7 +41,7 @@ class Model(conf:Conf) {
     synchronized(this) {
       val clientTick = sync!!.calcClientTck()
       if(!ready()) return
-      val wait = (client.smartLatencyS/GameConst.UPDATE_S+1)//todo delta serverTick-clientTick
+      val wait = (client.smartLatency.s/GameConst.UPDATE_S+1)//todo delta serverTick-clientTick
       val a = ClientPayload.ClientAction(
         tick = clientTick+wait,//todo serverTick?
         action = action
@@ -122,6 +122,6 @@ private class Sync(internal val serverTick:TickDbl,oldSync:Sync?) {
   }
   private fun calcSrvTck():TickDbl = serverTick+(Common.timeMs-time)/GameConst.UPDATE_MS
   fun calcClientTck():TickDbl {
-    return calcSrvTck()+(clientTick-serverTick)*(1.0-lib.Fun.arg0toInf(lib.timeMs-time,600))
+    return calcSrvTck()+(clientTick-serverTick)*(1.0-lib.Fun.arg0toInf(lib.time.ms-time,600))
   }
 }

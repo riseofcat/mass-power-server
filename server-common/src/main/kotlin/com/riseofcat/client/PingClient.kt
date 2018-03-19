@@ -5,19 +5,18 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 
-val PingClient.Companion.DEFAULT_LATENCY_MS get() = 250
-val PingClient.Companion.DEFAULT_LATENCY_S get() = DEFAULT_LATENCY_MS/lib.MILLIS_IN_SECOND
+val PingClient.Companion.DEFAULT_LATENCY get() = Duration(250)
 
 class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
-  var smartLatencyS = DEFAULT_LATENCY_S
-  var latencyS = DEFAULT_LATENCY_S
+  var smartLatency = DEFAULT_LATENCY
+  var latency:Duration = DEFAULT_LATENCY
   private val latencies:MutableList<LatencyTime> = mutableListOf()
 
   init {
-    latencies.add(LatencyTime(DEFAULT_LATENCY_MS,Common.timeMs))
+    latencies.add(LatencyTime(DEFAULT_LATENCY,Common.timeMs))
     socket = Common.createWebSocket(host,port,path)
     socket.addListener(object:LibWebSocket.Listener {
       override fun onOpen() {
@@ -37,21 +36,22 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           TODO("")
         }
 
-        if(serverSay.latency!=null) {
-          latencyS = serverSay.latency/lib.MILLIS_IN_SECOND
+        if(serverSay.sync!=null) {
+          latency = serverSay.sync.latency
+          serverSay.sync.serverTime
 
-          latencies.add(LatencyTime(serverSay.latency,Common.timeMs))
+          latencies.add(LatencyTime(serverSay.sync.latency,Common.timeMs))
           while(latencies.size>100) latencies.removeFirst()
-          var sum = 0f
+          var sum = Duration(0)
           var weights = 0f
           val time = Common.timeMs
           for(l in latencies) {
             var w = 1.0-lib.Fun.arg0toInf(time-l.time,10_000)
-            w *= (1-lib.Fun.arg0toInf(l.latency,DEFAULT_LATENCY_MS))
-            sum += (w*l.latency).toFloat()
+            w *= (1-lib.Fun.arg0toInf(l.latency.ms,DEFAULT_LATENCY.ms))
+            sum = (sum + l.latency * w).toDuration()
             weights += w.toFloat()
           }
-          if(weights>Float.MIN_VALUE*1E10) smartLatencyS = sum/weights/lib.MILLIS_IN_SECOND
+          if(weights>Float.MIN_VALUE*1E10) smartLatency = (sum/weights).toDuration()
         }
         if(serverSay.ping) {
           val answer = ClientSay<C>()
@@ -100,7 +100,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     }
   }
 
-  private class LatencyTime(val latency:Int,val time:Long)
+  private class LatencyTime(val latency:Duration,val time:Long)
 
   companion object
 }

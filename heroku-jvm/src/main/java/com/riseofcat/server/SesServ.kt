@@ -14,7 +14,7 @@ abstract class Ses<S> {
   abstract val id:Int
   abstract val typeMap:TypeMap
   abstract fun stop()
-  abstract fun send(message:S)
+  infix abstract fun send(message:S)
 
   fun <T:TypeMap.Marker> put(value:T) {
     if(typeMapCache==null) {

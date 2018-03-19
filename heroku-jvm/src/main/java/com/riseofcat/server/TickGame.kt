@@ -19,7 +19,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       synchronized(this@TickGame) {
         actions.add(Action(++previousActionsVersion,TickAction(tick+GameConst.NEW_CAR_DELAY,player.id,n = NewCarAction(player.id))))
         actions.sortBy {it.ta.tick}
-        val payload = createStablePayload(Welcome(player.id))
+        val payload = createStablePayload(Welcome(player.id, lib.time))
         payload.actions = actions.map{it.ta}
         player.session.send(payload)
         mapPlayerVersion.put(player.id,previousActionsVersion)
@@ -68,7 +68,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     synchronized(this) {
       payload.tick = tick.toDbl()//todo redundant? but synchronized
       payload.actions = actions
-        .filter {it.actionVersion>mapPlayerVersion[p.id]?:lib.log.fatalError("unknowk id")}
+        .filter {it.actionVersion>mapPlayerVersion[p.id]?:lib.log.fatalError("unknown id")}
         .map {it.ta}
       mapPlayerVersion.put(p.id,previousActionsVersion)
     }
@@ -88,6 +88,6 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   private fun todo() {//todo move to service
     val player:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player? = null
     val startTime = player!!.session.get(UsageMonitorDecorator.Extra::class.java)!!.startTime
-    val latency = player!!.session.get(PingDecorator.Extra::class.java)!!.latency
+//    val latency = player!!.session.get(PingDecorator.Extra::class.java)!!.latency
   }
 }

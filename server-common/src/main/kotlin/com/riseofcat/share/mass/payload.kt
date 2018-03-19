@@ -1,5 +1,6 @@
 package com.riseofcat.share.mass
 
+import com.riseofcat.lib.*
 import kotlinx.serialization.*
 
 @Serializable data class Tick(val tick:Int):Comparable<Tick> {
@@ -38,7 +39,10 @@ operator fun TickDbl.times(scl:Double) = TickDbl(double * scl)
   @Optional var actions:List<TickAction> = mutableListOf(),
   @Optional val error:ServerError? = null
 )
-@Serializable class Welcome(val id:PlayerId)
+@Serializable class Welcome(
+  val id:PlayerId,
+  val serverTime:Timestamp
+)
 @Serializable data class Stable(
   @Deprecated("tick есть в state.tick") val tick:Tick,//все actions уже пришли и новых больше не будет. Если кто-то кого-то убил, то в этом кадре засчитывается фраг. Но само убийство и набор очков могло произойти в прошлом
   val state:State//? = null todo nullable  and @Optional

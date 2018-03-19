@@ -11,14 +11,15 @@ class LibJvm {
   }
 }
 
+const val MEGA = 1E6f
 data class JvmInfo internal constructor(
-  val maxMemory:Float = Runtime.getRuntime().maxMemory()/lib.MEGA,
-  val usedMemory:Float = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/lib.MEGA,
+  val maxMemory:Float = Runtime.getRuntime().maxMemory()/MEGA,
+  val usedMemory:Float = (Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/MEGA,
   val currentThreads:Int = Thread.activeCount(),
   val availableProcessors:Int = Runtime.getRuntime().availableProcessors(),
   val cpuLoad:Float = ManagementFactory.getOperatingSystemMXBean().systemLoadAverage.toFloat(),
-  val totalSpace:Float = File(".").totalSpace/lib.MEGA,
-  val freeSpace:Float = File(".").freeSpace/lib.MEGA,
+  val totalSpace:Float = File(".").totalSpace/MEGA,
+  val freeSpace:Float = File(".").freeSpace/MEGA,
   val stackSizeMB:Float = 0f
 )
 //-Xss set java thread stack size//todo test
