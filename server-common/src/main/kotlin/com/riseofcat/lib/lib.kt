@@ -9,18 +9,24 @@ import kotlinx.serialization.json.*
 interface Time {
   val ms:Long
 }
-operator fun Time.minus(t:Time):Time = TimeSimple(ms - t.ms)
-operator fun Time.plus(t:Time):Time = TimeSimple(ms + t.ms)
-operator fun Time.div(int:Int):Time = TimeSimple(ms / int)
-operator fun Time.div(f:Float):Time = TimeSimple(ms/f.toLong())
+
+operator fun TimeStamp.minus(t:TimeStamp):Duration = Duration(ms-t.ms)
+operator fun TimeStamp.minus(t:Duration):TimeStamp = TimeStamp(ms-t.ms)
+operator fun TimeStamp.plus(t:Duration):TimeStamp = TimeStamp(ms+t.ms)
+
+operator fun Duration.plus(t:Duration):Duration = Duration(ms+t.ms)
+operator fun Duration.minus(t:Duration):Duration = Duration(ms-t.ms)
+operator fun Duration.div(int:Int):Duration = Duration(ms/int)
+operator fun Duration.div(f:Float):Duration = Duration(ms/f.toLong())
+operator fun Duration.times(d:Double):Duration = Duration((ms*d).toLong())
+
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
-operator fun Time.times(d:Double):Time = TimeSimple((ms * d).toLong())
+
 val Time.s get():Long = ms / 1000
 val Time.sf get():Float = ms / 1000f
 val Time.sd get():Double = ms / 1000.0
 
-data class TimeSimple(override val ms:Long):Time
-@Serializable data class Timestamp(override val ms:Long):Time
+@Serializable data class TimeStamp(override val ms:Long):Time
 @Serializable data class Duration(override val ms:Long):Time
 fun Time.toDuration():Duration = Duration(ms)
 
@@ -33,7 +39,7 @@ inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
 
 object lib {
   const val MILLIS_IN_SECOND = 1000.0
-  val time get() = Timestamp(Common.timeMs)
+  val time get() = TimeStamp(Common.timeMs)
   val sinceStart get() = time-createTime
   fun pillarTimeMs(max:Long) = Fun.pillar(time.ms, max)
   fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/MILLIS_IN_SECOND

@@ -16,5 +16,5 @@ import kotlinx.serialization.*
 
 @Serializable class TimeSync(
   val latency:Duration,
-  val serverTime:Timestamp
+  val serverTime:TimeStamp
 )

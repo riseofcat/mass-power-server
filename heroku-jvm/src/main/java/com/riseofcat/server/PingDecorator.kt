@@ -24,7 +24,7 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
   }
 
   inner class PingSes constructor(private val sess:Ses<ServerSay<S>>):Ses<S>() {
-    var lastPing:Timestamp = Timestamp(0)
+    var lastPing:TimeStamp = TimeStamp(0)
     override val id:Int get() = sess.id
     override val typeMap:TypeMap get() = sess.typeMap
 

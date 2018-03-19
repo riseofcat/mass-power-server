@@ -41,7 +41,7 @@ operator fun TickDbl.times(scl:Double) = TickDbl(double * scl)
 )
 @Serializable class Welcome(
   val id:PlayerId,
-  val serverTime:Timestamp
+  val serverTime:TimeStamp
 )
 @Serializable data class Stable(
   @Deprecated("tick есть в state.tick") val tick:Tick,//все actions уже пришли и новых больше не будет. Если кто-то кого-то убил, то в этом кадре засчитывается фраг. Но само убийство и набор очков могло произойти в прошлом
