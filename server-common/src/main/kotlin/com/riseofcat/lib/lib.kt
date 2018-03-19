@@ -16,6 +16,8 @@ operator fun TimeStamp.plus(t:Duration):TimeStamp = TimeStamp(ms+t.ms)
 
 operator fun Duration.plus(t:Duration):Duration = Duration(ms+t.ms)
 operator fun Duration.minus(t:Duration):Duration = Duration(ms-t.ms)
+infix fun Duration.diffAbs(latency:Duration):Duration = (this - latency).abs
+val Duration.abs:Duration get() = Duration(kotlin.math.abs(ms))
 operator fun Duration.div(int:Int):Duration = Duration(ms/int)
 operator fun Duration.div(f:Float):Duration = Duration((ms/f).toLong())
 operator fun Duration.div(double:Double):Duration = Duration((ms/double).toLong())
@@ -81,7 +83,7 @@ object lib {
     fun debug(s:String) = _log(s,LogMode.DEBUG)
     fun breakpoint(s:String = "") = _log(s,LogMode.BREAKPOINT)
     inline fun _log(str:CharSequence,mode:LogMode) {
-      if(mode.ordinal<LogMode.BREAKPOINT.ordinal) {
+      if(mode.ordinal<LogMode.DEBUG.ordinal) {
         _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")
       }
     }

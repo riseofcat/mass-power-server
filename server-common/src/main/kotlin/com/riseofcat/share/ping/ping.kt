@@ -14,7 +14,7 @@ import kotlinx.serialization.*
   @Optional val ping:Boolean = false
 )
 
-@Serializable class TimeSync(
+@Serializable data class TimeSync(
   val latency:Duration,
   val serverTime:TimeStamp
 )
