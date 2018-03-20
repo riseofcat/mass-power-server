@@ -3,13 +3,12 @@ package com.riseofcat.share.mass
 import com.riseofcat.client.*
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
-import kotlinx.serialization.cbor.*
 import kotlin.math.*
 import kotlin.system.*
 
 object GameConst {
-  val UPDATE_MS = 40
-  val UPDATE_S = UPDATE_MS/1000.0
+  val UPDATE = Duration(40)
+  val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
@@ -17,7 +16,7 @@ object GameConst {
   val BASE_WIDTH = 1000
   val BASE_HEIGHT = 1000
   val TITLE = "mass-power.io"
-  val DELAY_TICKS = Tick(PingClient.DEFAULT_LATENCY.ms*3/GameConst.UPDATE_MS+1)//количество тиков для хранения действий //bigger delayed
+  val DELAY_TICKS = Tick(PingClient.DEFAULT_LATENCY.ms*3/GameConst.UPDATE.ms+1)//количество тиков для хранения действий //bigger delayed
   val NEW_CAR_DELAY = DELAY_TICKS + 1
   val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
   val FUTURE_TICKS = DELAY_TICKS*3

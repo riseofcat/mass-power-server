@@ -10,6 +10,9 @@ interface Time {
   val ms:Long
 }
 
+@Serializable data class TimeStamp(override val ms:Long):Time
+@Serializable data class Duration(override val ms:Long):Time
+
 operator fun TimeStamp.minus(t:TimeStamp):Duration = Duration(ms-t.ms)
 operator fun TimeStamp.minus(t:Duration):TimeStamp = TimeStamp(ms-t.ms)
 operator fun TimeStamp.plus(t:Duration):TimeStamp = TimeStamp(ms+t.ms)
@@ -23,15 +26,14 @@ operator fun Duration.div(int:Int):Duration = Duration(ms/int)
 operator fun Duration.div(f:Float):Duration = Duration((ms/f).toLong())
 operator fun Duration.div(double:Double):Duration = Duration((ms/double).toLong())
 operator fun Duration.times(d:Double):Duration = Duration((ms*d).toLong())
+operator fun Duration.times(int:Int):Duration = Duration(ms*int)
 
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
+operator fun Time.div(t:Time) = ms/t.ms
 
 val Time.s get():Long = ms / 1000
 val Time.sf get():Float = ms / 1000f
 val Time.sd get():Double = ms / 1000.0
-
-@Serializable data class TimeStamp(override val ms:Long):Time
-@Serializable data class Duration(override val ms:Long):Time
 
 val createTime = lib.time
 inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {

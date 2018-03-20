@@ -7,7 +7,7 @@ import java.util.concurrent.*
 
 class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val STABLE_STATE_SYNC_TICKS:Int? = 500
-  private val startTime = System.currentTimeMillis()
+  private val startTime = lib.time
   private var previousActionsVersion = 0
   private val tick get() = state.tick + GameConst.DELAY_TICKS
   private val state = State()
@@ -19,7 +19,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       synchronized(this@TickGame) {
         actions.add(Action(++previousActionsVersion,TickAction(tick+GameConst.NEW_CAR_DELAY,player.id,n = NewCarAction(player.id))))
         actions.sortBy {it.ta.tick}
-        val payload = createStablePayload(Welcome(player.id, lib.time))
+        val payload = createStablePayload(Welcome(player.id, startTime))
         payload.actions = actions.map{it.ta}
         player.session.send(payload)
         mapPlayerVersion.put(player.id,previousActionsVersion)
@@ -44,9 +44,9 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
     }
     val timer = Timer()
-    timer.schedule(object:TimerTask() {
+    timer.schedule(object:TimerTask() {//todo можно обойтись без таймера. Делать тики только при запросах с клиента. Тогда и проще будет с синхронизацией
       override fun run() {
-        while(System.currentTimeMillis()-startTime>tick.tick * GameConst.UPDATE_MS) {
+        while(lib.time-startTime>GameConst.UPDATE * tick.tick) {
           synchronized(this@TickGame) {
             state act actions.map{it.ta}.filter {it.tick == state.tick}.iterator()
             actions.removeAll{it.ta.tick == state.tick}
@@ -55,7 +55,7 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
           }
         }
       }
-    },0,(GameConst.UPDATE_MS/2).toLong())
+    },0,GameConst.UPDATE.ms/2)
   }
 
   private fun updatePlayer(p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {

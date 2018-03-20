@@ -115,13 +115,16 @@ class Model(conf:Conf) {
 
 private class Sync(internal val serverTick:TickDbl,oldSync:Sync?) {
   internal val clientTick:TickDbl
-  internal val time:Long
+  internal val time:TimeStamp
   init {
-    time = Common.timeMs
+    time = lib.time
     clientTick = if(oldSync==null) serverTick else oldSync.calcClientTck()
   }
-  private fun calcSrvTck():TickDbl = serverTick+(Common.timeMs-time)/GameConst.UPDATE_MS
+  private fun calcSrvTck():TickDbl {
+    val duration:Duration = lib.time-time
+    return serverTick+duration/GameConst.UPDATE
+  }
   fun calcClientTck():TickDbl {
-    return calcSrvTck()+(clientTick-serverTick)*(1.0-lib.Fun.arg0toInf(lib.time.ms-time,600))
+    return calcSrvTck()+(clientTick-serverTick)*(1.0-lib.Fun.arg0toInf(lib.time-time,Duration(600)))
   }
 }
