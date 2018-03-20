@@ -12,7 +12,9 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
   private val latencies:MutableList<LatencyTime> = Common.createConcurrentList()//todo queue
+  private var welcome:ClientWelcome?=null
 
+  val lastLatency get() = latencies.lastOrNull()?.latency?:DEFAULT_LATENCY
   val smartLatency get():Duration {
     if(latencies.size == 0) return DEFAULT_LATENCY
 
@@ -21,13 +23,20 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     for(l in latencies) {
       var w:Double = 1E5//todo перенести логику точности в классы Time
       w *= 1.0-lib.Fun.arg0toInf(lib.time-l.clientTime,Duration(10_000))
-      w *= 1.0-lib.Fun.arg0toInf(DEFAULT_LATENCY diffAbs l.sync.latency,DEFAULT_LATENCY)
-      sum += l.sync.latency*w
+      w *= 1.0-lib.Fun.arg0toInf(DEFAULT_LATENCY diffAbs l.latency,DEFAULT_LATENCY)
+      sum += l.latency*w
       weights += w
     }
     return sum/weights
   }
-  val latency get() = latencies.lastOrNull()?.sync?.latency?:DEFAULT_LATENCY
+
+  val serverTime:TimeStamp get() {//todo потестировать перевод времени
+    var result = lib.time
+    welcome?.run {
+      result += server.serverTime - clientTime + smartLatency
+    }
+    return result
+  }
 
   init {
 //    latencies.add(LatencyTime(DEFAULT_LATENCY,Common.timeMs))//todo delete
@@ -49,8 +58,9 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           lib.log.fatalError("serverSay parse", t)
         }
 
-        if(serverSay.sync!=null) {
-          latencies.add(LatencyTime(serverSay.sync,lib.time))
+        if(serverSay.welcome != null) welcome = ClientWelcome(serverSay.welcome, lib.time)
+        if(serverSay.latency!=null) {
+          latencies.add(LatencyTime(serverSay.latency,lib.time))
           while(latencies.size>20) latencies.removeFirst()//todo queue
         }
         if(serverSay.ping) say(ClientSay<C>(pong=true))
@@ -88,7 +98,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     }
   }
 
-  private class LatencyTime(val sync:TimeSync, val clientTime:TimeStamp)
+  private class LatencyTime(val latency:Duration, val clientTime:TimeStamp)
 
   companion object
 }
+data class ClientWelcome(val server:Welcome, val clientTime:TimeStamp)

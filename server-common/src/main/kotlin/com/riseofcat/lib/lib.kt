@@ -13,6 +13,7 @@ interface Time {
 operator fun TimeStamp.minus(t:TimeStamp):Duration = Duration(ms-t.ms)
 operator fun TimeStamp.minus(t:Duration):TimeStamp = TimeStamp(ms-t.ms)
 operator fun TimeStamp.plus(t:Duration):TimeStamp = TimeStamp(ms+t.ms)
+operator fun Duration.plus(t:TimeStamp):TimeStamp = TimeStamp(ms+t.ms)
 
 operator fun Duration.plus(t:Duration):Duration = Duration(ms+t.ms)
 operator fun Duration.minus(t:Duration):Duration = Duration(ms-t.ms)
