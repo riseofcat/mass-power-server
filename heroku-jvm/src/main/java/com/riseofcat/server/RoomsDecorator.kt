@@ -42,6 +42,7 @@ open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,
   }
 
   inner class Room {
+    val createTime = lib.time
     val onPlayerAdded = Signal<Player>()
     val onPlayerRemoved = Signal<Player>()
     val onMessage = Signal<PlayerMessage>()

@@ -6,25 +6,27 @@ import com.riseofcat.share.mass.*
 import java.util.*
 import java.util.concurrent.*
 
-class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
-  val DELAY_TICKS = Tick(DEFAULT_LATENCY*3/GameConst.UPDATE+1)//количество тиков для хранения действий //bigger delayed//todo вычислять динамически
-  val NEW_CAR_DELAY = DELAY_TICKS + 1
-  val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
-
-  val STABLE_STATE_SYNC_TICKS:Int? = 500
-  private val startTime = lib.time
+class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
+  val STABLE_STATE_UPDATE:Duration? = Duration(10_000)
   private var previousActionsVersion = 0
-  private val tick get() = state.tick + DELAY_TICKS
   private val state = State()
   private var actions:MutableList<Action> = mutableListOf()
   private val mapPlayerVersion = ConcurrentHashMap<PlayerId,Int>()
+  private var previousStableUpdate:TimeStamp = lib.time
+
+  val realtimeTick get() = Tick((lib.time - room.createTime)/GameConst.UPDATE)
+  val recommendedLatency get() = DEFAULT_LATENCY//todo
+  val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
+  val maxDelay get() = recommendedDelay*2
+  val newCarDelay get() = recommendedDelay*2
+  val removeAfterDelay get() = recommendedDelay*3//0 - значит всё что позже stable - удаляется
 
   init {
     room.onPlayerAdded.add {player->
       synchronized(this@TickGame) {
-        actions.add(Action(++previousActionsVersion,TickAction(tick+NEW_CAR_DELAY,player.id,n = NewCarAction(player.id))))
+        actions.add(Action(++previousActionsVersion,TickAction(realtimeTick+newCarDelay,player.id,n = NewCarAction(player.id))))
         actions.sortBy {it.ta.tick}
-        val payload = createStablePayload(Welcome(player.id, startTime))
+        val payload = createStablePayload(Welcome(player.id, room.createTime))
         payload.actions = actions.map{it.ta}
         player.session.send(payload)
         mapPlayerVersion.put(player.id,previousActionsVersion)
@@ -35,11 +37,10 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       synchronized(this@TickGame) {
         for(a in message.payload.actions) {
           val payload = ServerPayload()
-          var delay = Tick(0)//todo redundant
+          var delay = Tick(0)
           if(a.tick<state.tick) {
-            if(a.tick>state.tick-REMOVE_TICKS) {
-              delay = state.tick-a.tick
-            }
+            if(a.tick <= state.tick-removeAfterDelay) continue
+            delay = state.tick-a.tick//задерживаем
           }
           actions.add(Action(++previousActionsVersion,TickAction(a.tick+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
           updatePlayerInPayload(payload,message.player)
@@ -49,15 +50,19 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
     }
     val timer = Timer()
-    timer.schedule(object:TimerTask() {//todo можно обойтись без таймера. Делать тики только при запросах с клиента. Тогда и проще будет с синхронизацией
+    timer.schedule(object:TimerTask() {
+      //todo можно обойтись без таймера. Делать тики только при запросах с клиента. Тогда и проще будет с синхронизацией
       override fun run() {
-        while(lib.time-startTime>GameConst.UPDATE * tick.tick) {
+        while(state.tick < realtimeTick - maxDelay) {
           synchronized(this@TickGame) {
-            state act actions.map{it.ta}.filter {it.tick == state.tick}.iterator()
-            actions.removeAll{it.ta.tick == state.tick}
+            state act actions.map {it.ta}.filter {it.tick==state.tick}.iterator()
+            actions.removeAll {it.ta.tick==state.tick}
             state.tick()
-            if(STABLE_STATE_SYNC_TICKS != null && tick.tick%STABLE_STATE_SYNC_TICKS==0) for(player in room.getPlayers()) player.session.send(createStablePayload())
           }
+        }
+        if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
+          previousStableUpdate = lib.time
+          for(player in room.getPlayers()) player.session.send(createStablePayload())
         }
       }
     },0,GameConst.UPDATE.ms/2)
@@ -90,3 +95,4 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   private class Action(val actionVersion:Int, val ta:TickAction)
 
 }
+

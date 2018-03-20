@@ -1,6 +1,7 @@
 package com.riseofcat.lib
 
 import com.riseofcat.common.*
+import com.riseofcat.share.mass.*
 import kotlinx.serialization.*
 import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
@@ -27,6 +28,8 @@ operator fun Duration.div(f:Float):Duration = Duration((ms/f).toLong())
 operator fun Duration.div(double:Double):Duration = Duration((ms/double).toLong())
 operator fun Duration.times(d:Double):Duration = Duration((ms*d).toLong())
 operator fun Duration.times(int:Int):Duration = Duration(ms*int)
+operator fun Duration.times(tick:Tick):Duration = Duration(ms*tick.tick)
+operator fun Tick.times(d:Duration):Duration = d * this
 
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
 operator fun Time.div(t:Time) = ms/t.ms
