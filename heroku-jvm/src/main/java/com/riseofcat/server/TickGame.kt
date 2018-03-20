@@ -55,13 +55,14 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     fun condition() = state.tick<realtimeTick-maxDelay
     if(!condition()) return
 
+    val test = true//todo test performance
     synchronized(this@TickGame) {
       while(condition()) {
         state act actions.map {it.ta}.filter {it.tick==state.tick}.iterator()
-        if(true)actions.removeAll {it.ta.tick==state.tick}
+        if(!test)actions.removeAll {it.ta.tick==state.tick}
         state.tick()
       }
-      if(false)actions.removeAll {it.ta.tick<state.tick}//todo test performance
+      if(test)actions.removeAll {it.ta.tick<state.tick}
 
       if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
         previousStableUpdate = lib.time
