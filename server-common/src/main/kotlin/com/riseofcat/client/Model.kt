@@ -10,7 +10,6 @@ class Model(conf:Conf) {
   private val actions:MutableList<TickAction> = Common.createConcurrentList()
   private val myLocal:MutableList<TickAction> = mutableListOf()
   private var stable:StateWrapper = StateWrapper(State())
-  private var sync:Sync? = null
   val playerName get() = welcome?.id?.let {"Player $it"} ?: "Wait connection..."
   var welcome:Welcome?=null//todo lateinit?  Может сделать что если приходит новый Welcome, то игрока перевели в другую комнату
 
@@ -18,10 +17,6 @@ class Model(conf:Conf) {
     client.connect {s:ServerPayload->
       synchronized(this) {
         if(s.welcome!=null) welcome = s.welcome
-        welcome?.run {
-          val tick = Tick((client.serverTime-roomCreate)/GameConst.UPDATE)
-          sync = Sync(tick,sync)
-        }
         if(s.stable!=null) {
           stable = StateWrapper(s.stable.state)
           clearCache()
@@ -37,20 +32,21 @@ class Model(conf:Conf) {
     }
   }
 
-  fun calcDisplayState():State? = sync?.let {getState(it.calcClientTck())}
+  val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
+  fun calcDisplayState():State? = getState(realtimeTick)
   fun ready() = welcome!=null
 
   fun action(action:com.riseofcat.share.mass.Action) {
     synchronized(this) {
-      val clientTick = sync!!.calcClientTck()
+      val t = realtimeTick
       if(!ready()) return
-      val wait = Tick((client.smartLatency.s/GameConst.UPDATE_S+1).toInt())//todo delta serverTick-clientTick
+      val wait = Tick(client.smartPingDelay/GameConst.UPDATE+1)//todo latency имеет другой смысл. Нужно высчитывать среднюю latency на сервере и делать задержку большуюю чем средняя latency
       val a = ClientPayload.ClientAction(
-        tick = clientTick+wait,//todo serverTick?
+        tick = t+wait,
         action = action
       )
       synchronized(myLocal) {
-        welcome?.run {myLocal.add(TickAction(clientTick+wait, id, p = PlayerAction(id, a.action)))}
+        welcome?.run {myLocal.add(TickAction(t+wait, id, p = PlayerAction(id, a.action)))}
         myLocal.sortBy {it.tick}
       }
       client.say(ClientPayload(mutableListOf(a)))
@@ -109,21 +105,5 @@ class Model(conf:Conf) {
         _state.tick()
       }
     }
-  }
-}
-
-private class Sync(internal val serverTick:Tick,oldSync:Sync?) {
-  internal val clientTick:Tick
-  internal val time:TimeStamp
-  init {
-    time = lib.time
-    clientTick = if(oldSync==null) serverTick else oldSync.calcClientTck()
-  }
-  private fun calcSrvTck():Tick {
-    val duration:Duration = lib.time-time
-    return serverTick+duration/GameConst.UPDATE
-  }
-  fun calcClientTck():Tick {
-    return calcSrvTck()+(clientTick-serverTick)*(1.0-lib.Fun.arg0toInf(lib.time-time,Duration(600)))
   }
 }

@@ -14,8 +14,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val latencies:MutableList<LatencyTime> = Common.createConcurrentList()//todo queue
   private var welcome:ClientWelcome?=null
 
-  val lastLatency get() = latencies.lastOrNull()?.latency?:DEFAULT_LATENCY
-  val smartLatency get():Duration {
+  val lastPingDelay get() = latencies.lastOrNull()?.latency?:DEFAULT_LATENCY
+  val smartPingDelay get():Duration {
     if(latencies.size == 0) return DEFAULT_LATENCY
 
     var sum = Duration(0)
@@ -33,7 +33,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   val serverTime:TimeStamp get() {//todo потестировать перевод времени
     var result = lib.time
     welcome?.run {
-      result += server.serverTime - clientTime + smartLatency
+      result += server.serverTime - clientTime + smartPingDelay
     }
     return result
   }
