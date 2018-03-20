@@ -16,10 +16,6 @@ object GameConst {
   val BASE_WIDTH = 1000
   val BASE_HEIGHT = 1000
   val TITLE = "mass-power.io"
-  val DELAY_TICKS = Tick(PingClient.DEFAULT_LATENCY.ms*3/GameConst.UPDATE.ms+1)//количество тиков для хранения действий //bigger delayed
-  val NEW_CAR_DELAY = DELAY_TICKS + 1
-  val REMOVE_TICKS = DELAY_TICKS*3//bigger removed
-  val FUTURE_TICKS = DELAY_TICKS*3
   val REACTIVE_LIVE = Tick(60)
 }
 

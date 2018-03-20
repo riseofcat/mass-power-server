@@ -31,6 +31,12 @@ operator fun Duration.times(int:Int):Duration = Duration(ms*int)
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
 operator fun Time.div(t:Time) = ms/t.ms
 
+fun <E> List<E>.sumBy(selector:(E) -> Duration):Duration {
+  var result = Duration(0)
+  forEach {result+=selector(it)}
+  return result
+}
+
 val Time.s get():Long = ms / 1000
 val Time.sf get():Float = ms / 1000f
 val Time.sd get():Double = ms / 1000.0

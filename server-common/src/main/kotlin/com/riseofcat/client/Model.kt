@@ -12,11 +12,13 @@ class Model(conf:Conf) {
   private var stable:StateWrapper = StateWrapper(State())
   val playerName get() = welcome?.id?.let {"Player $it"} ?: "Wait connection..."
   var welcome:Welcome?=null//todo lateinit?  Может сделать что если приходит новый Welcome, то игрока перевели в другую комнату
+  var recommendendLatency:Duration?=null
 
   init {
     client.connect {s:ServerPayload->
       synchronized(this) {
         if(s.welcome!=null) welcome = s.welcome
+        if(s.recommendedLatency != null) recommendendLatency = s.recommendedLatency
         if(s.stable!=null) {
           stable = StateWrapper(s.stable.state)
           clearCache()
@@ -32,6 +34,7 @@ class Model(conf:Conf) {
     }
   }
 
+  val latency:Duration get() = recommendendLatency?: Duration(150)
   val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
   fun calcDisplayState():State? = getState(realtimeTick)
   fun ready() = welcome!=null
@@ -40,7 +43,7 @@ class Model(conf:Conf) {
     synchronized(this) {
       val t = realtimeTick
       if(!ready()) return
-      val wait = Tick(client.smartPingDelay/GameConst.UPDATE+1)//todo latency имеет другой смысл. Нужно высчитывать среднюю latency на сервере и делать задержку большуюю чем средняя latency
+      val wait = Tick(latency/GameConst.UPDATE+1)
       val a = ClientPayload.ClientAction(
         tick = t+wait,
         action = action

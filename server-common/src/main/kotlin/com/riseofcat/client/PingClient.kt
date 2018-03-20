@@ -5,26 +5,27 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 
-val PingClient.Companion.DEFAULT_LATENCY get() = Duration(150)
-
 class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
-  private val latencies:MutableList<LatencyTime> = Common.createConcurrentList()//todo queue
+  private val pingDelays:MutableList<LatencyTime> = Common.createConcurrentList()//todo queue
   private var welcome:ClientWelcome?=null
 
-  val lastPingDelay get() = latencies.lastOrNull()?.latency?:DEFAULT_LATENCY
+  val lastPingDelay get() = pingDelays.lastOrNull()?.pingDelay
   val smartPingDelay get():Duration {
-    if(latencies.size == 0) return DEFAULT_LATENCY
+    if(pingDelays.size == 0) return Duration(0)
 
     var sum = Duration(0)
     var weights = 0.0
-    for(l in latencies) {
+
+    val average = pingDelays.sumBy{it.pingDelay}/pingDelays.size
+
+    for(l in pingDelays) {
       var w:Double = 1E5//todo перенести логику точности в классы Time
       w *= 1.0-lib.Fun.arg0toInf(lib.time-l.clientTime,Duration(10_000))
-      w *= 1.0-lib.Fun.arg0toInf(DEFAULT_LATENCY diffAbs l.latency,DEFAULT_LATENCY)
-      sum += l.latency*w
+      w *= 1.0-lib.Fun.arg0toInf(average diffAbs l.pingDelay,Duration(100))
+      sum += l.pingDelay*w
       weights += w
     }
     return sum/weights
@@ -39,7 +40,6 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   }
 
   init {
-//    latencies.add(LatencyTime(DEFAULT_LATENCY,Common.timeMs))//todo delete
     socket = Common.createWebSocket(host,port,path)
     socket.addListener(object:LibWebSocket.Listener {
       override fun onOpen() {
@@ -60,8 +60,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
         if(serverSay.welcome != null) welcome = ClientWelcome(serverSay.welcome, lib.time)
         if(serverSay.latency!=null) {
-          latencies.add(LatencyTime(serverSay.latency,lib.time))
-          while(latencies.size>20) latencies.removeFirst()//todo queue
+          pingDelays.add(LatencyTime(serverSay.latency,lib.time))
+          while(pingDelays.size>20) pingDelays.removeFirst()//todo queue
         }
         if(serverSay.ping) say(ClientSay<C>(pong=true))
         if(serverSay.payload!=null) incoming.dispatch(serverSay.payload)
@@ -98,8 +98,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     }
   }
 
-  private class LatencyTime(val latency:Duration, val clientTime:TimeStamp)
-
-  companion object
+  private class LatencyTime(val pingDelay:Duration, val clientTime:TimeStamp)
 }
+
 data class ClientWelcome(val server:Welcome, val clientTime:TimeStamp)
