@@ -1,6 +1,5 @@
 package com.riseofcat.share.mass
 
-import com.riseofcat.client.*
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*

@@ -39,7 +39,6 @@ operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
   val roomCreate:TimeStamp
 )
 @Serializable data class Stable(
-  @Deprecated("tick есть в state.tick") val tick:Tick,//все actions уже пришли и новых больше не будет. Если кто-то кого-то убил, то в этом кадре засчитывается фраг. Но само убийство и набор очков могло произойти в прошлом
   val state:State//? = null todo nullable  and @Optional
 )
 
