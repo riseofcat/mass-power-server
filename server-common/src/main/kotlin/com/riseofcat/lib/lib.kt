@@ -34,7 +34,7 @@ operator fun Tick.times(d:Duration):Duration = d * this
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
 operator fun Time.div(t:Time) = ms/t.ms
 
-fun <E> List<E>.sumBy(selector:(E) -> Duration):Duration {
+fun <E> Collection<E>.sumByDuration(selector:(E) -> Duration):Duration {
   var result = Duration(0)
   forEach {result+=selector(it)}
   return result

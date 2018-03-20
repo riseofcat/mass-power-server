@@ -15,7 +15,9 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   private var previousStableUpdate:TimeStamp = lib.time
 
   val realtimeTick get() = Tick((lib.time - room.createTime)/GameConst.UPDATE)
-  val recommendedLatency get() = DEFAULT_LATENCY//todo
+  //todo averageLatency считать умнее
+  val averageLatency get() = room.getPlayers().sumByDuration{it.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay?: DEFAULT_LATENCY}/room.getPlayers().size
+  val recommendedLatency get() = averageLatency
   val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
   val maxDelay get() = recommendedDelay*2
   val newCarDelay get() = recommendedDelay*2
@@ -36,7 +38,7 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     room.onMessage.add {message->
       synchronized(this@TickGame) {
         for(a in message.payload.actions) {
-          val payload = ServerPayload()
+          val payload = ServerPayload(recommendedLatency = recommendedLatency)
           var delay = Tick(0)
           if(a.tick<state.tick) {
             if(a.tick <= state.tick-removeAfterDelay) continue
@@ -87,7 +89,7 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     val result = ServerPayload(
       welcome =  welcome,
       stable = Stable(state.tick,state),
-      recommendedLatency = Duration(100)//todo считать среднюю задержку
+      recommendedLatency = recommendedLatency
     )
     return result
   }

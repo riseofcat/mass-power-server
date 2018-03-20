@@ -19,7 +19,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     var sum = Duration(0)
     var weights = 0.0
 
-    val average = pingDelays.sumBy{it.pingDelay}/pingDelays.size
+    val average = pingDelays.sumByDuration{it.pingDelay}/pingDelays.size
 
     for(l in pingDelays) {
       var w:Double = 1E5//todo перенести логику точности в классы Time
