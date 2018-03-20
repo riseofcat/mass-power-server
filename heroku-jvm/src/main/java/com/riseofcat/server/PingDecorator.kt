@@ -50,7 +50,7 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
   }
 
   inner class Extra(private val pingSes:PingSes):TypeMap.Marker {
-    val lastLatency:Duration? get() = pingSes.latency//служебная информация, может быть и не нужна
+    val lastLatency:Duration? get() = pingSes.latency//todo нужно будет для подсчёта средней latency на этом сервере, чтобы фильтровать клиентов если они будут тормозить и переводить в другую комнату с лагающими
   }
 
 }
