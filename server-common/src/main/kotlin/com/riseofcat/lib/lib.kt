@@ -81,7 +81,7 @@ object lib {
       throw Throwable("${LogMode.TODO}: $str")
     }
     fun fatalError(message:String,t:Throwable? = null):Nothing {
-      _log(message,LogMode.FATAL_ERROR)
+      _log(message,LogMode.FATAL_ERROR, 2)
       handleThrowable(t)
       throw Throwable("${LogMode.FATAL_ERROR}: $message")
     }
@@ -94,9 +94,9 @@ object lib {
     fun info(s:String) = _log(s,LogMode.INFO)
     fun debug(s:String) = _log(s,LogMode.DEBUG)
     fun breakpoint(s:String = "") = _log(s,LogMode.BREAKPOINT)
-    inline fun _log(str:CharSequence,mode:LogMode) {
+    inline fun _log(str:CharSequence,mode:LogMode, codeDepth:Int = 2) {
       if(mode.ordinal<LogMode.DEBUG.ordinal) {
-        _println("$mode: $str | in ${Common.getCodeLineInfo(2)}")
+        _println("$mode: $str | in ${Common.getCodeLineInfo(codeDepth)}")
       }
     }
     inline fun _println(str:CharSequence) = println(str)

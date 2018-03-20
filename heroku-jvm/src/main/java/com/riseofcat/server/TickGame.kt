@@ -1,17 +1,16 @@
 package com.riseofcat.server
 
 import com.riseofcat.client.*
+import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
-import java.util.*
-import java.util.concurrent.*
 
 class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val STABLE_STATE_UPDATE:Duration? = Duration(10_000)
-  private var previousActionsVersion = 0
+  @Volatile private var previousActionsVersion = 0//todo почитать про volatile в Kotlin
   private val state = State()
-  private var actions:MutableList<Action> = mutableListOf()
-  private val mapPlayerVersion = ConcurrentHashMap<PlayerId,Int>()
+  private var actions:MutableList<Action> = Common.createConcurrentList()
+  private val mapPlayerVersion = Common.createConcurrentHashMap<PlayerId,Int>()
   private var previousStableUpdate:TimeStamp = lib.time
 
   val realtimeTick get() = Tick((lib.time - room.createTime)/GameConst.UPDATE)
@@ -25,18 +24,17 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   init {
     room.onPlayerAdded.add {player->
-      synchronized(this@TickGame) {
+      updateGame()
+      redundantSynchronize(this@TickGame) {
         actions.add(Action(++previousActionsVersion,TickAction(realtimeTick+newCarDelay,player.id,n = NewCarAction(player.id))))
-        actions.sortBy {it.ta.tick}
         val payload = createStablePayload(Welcome(player.id, room.createTime))
-        payload.actions = actions.map{it.ta}
         player.session.send(payload)
-        mapPlayerVersion.put(player.id,previousActionsVersion)
       }
-      for(p in room.getPlayers()) if(p!=player) updatePlayer(p)//Говорим другим, что пришёл новый игрок
+      for(p in room.getPlayers()) updatePlayer(p)//Говорим другим, что пришёл новый игрок
     }
     room.onMessage.add {message->
-      synchronized(this@TickGame) {
+      updateGame()
+      redundantSynchronize(this@TickGame) {
         for(a in message.payload.actions) {
           val payload = ServerPayload(recommendedLatency = recommendedLatency)
           var delay = Tick(0)
@@ -51,23 +49,25 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       }
       for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
     }
-    val timer = Timer()
-    timer.schedule(object:TimerTask() {
-      //todo можно обойтись без таймера. Делать тики только при запросах с клиента. Тогда и проще будет с синхронизацией
-      override fun run() {
-        while(state.tick < realtimeTick - maxDelay) {
-          synchronized(this@TickGame) {
-            state act actions.map {it.ta}.filter {it.tick==state.tick}.iterator()
-            actions.removeAll {it.ta.tick==state.tick}
-            state.tick()
-          }
-        }
-        if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
-          previousStableUpdate = lib.time
-          for(player in room.getPlayers()) player.session.send(createStablePayload())
-        }
+  }
+
+  private fun updateGame() {
+    fun condition() = state.tick<realtimeTick-maxDelay
+    if(!condition()) return
+
+    synchronized(this@TickGame) {
+      while(condition()) {
+        state act actions.map {it.ta}.filter {it.tick==state.tick}.iterator()
+        if(true)actions.removeAll {it.ta.tick==state.tick}
+        state.tick()
       }
-    },0,GameConst.UPDATE.ms/2)
+      if(false)actions.removeAll {it.ta.tick<state.tick}//todo test performance
+
+      if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
+        previousStableUpdate = lib.time
+        for(player in room.getPlayers()) player.session.send(createStablePayload())
+      }
+    }
   }
 
   private fun updatePlayer(p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
@@ -77,24 +77,21 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   }
 
   private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-    synchronized(this) {
-      payload.actions = actions
-        .filter {it.actionVersion>mapPlayerVersion[p.id]?:lib.log.fatalError("unknown id")}
-        .map {it.ta}
-      mapPlayerVersion.put(p.id,previousActionsVersion)
+    redundantSynchronize(this) {
+      val filtered = actions.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
+      payload.actions = filtered.map {it.ta}
+      val maxActionVer = filtered.map {it.actionVersion}.max()
+      if(maxActionVer != null) mapPlayerVersion.put(p.id,maxActionVer)
     }
   }
 
-  internal fun createStablePayload(welcome:Welcome?=null):ServerPayload {
-    val result = ServerPayload(
-      welcome =  welcome,
-      stable = Stable(state.tick,state),
-      recommendedLatency = recommendedLatency
-    )
-    return result
-  }
-
-  private class Action(val actionVersion:Int, val ta:TickAction)
-
+  internal fun createStablePayload(welcome:Welcome?=null):ServerPayload = ServerPayload(
+    welcome =  welcome,
+    stable = Stable(state.tick,state),
+    recommendedLatency = recommendedLatency
+  )
 }
+
+inline fun <R> redundantSynchronize(lock:Any,block:()->R) = if(true) block() else synchronized(lock,block) //todo test performance
+private class Action(val actionVersion:Int, val ta:TickAction)
 
