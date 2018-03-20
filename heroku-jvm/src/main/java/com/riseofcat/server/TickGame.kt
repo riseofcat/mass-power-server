@@ -89,9 +89,4 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   private class Action(val actionVersion:Int, val ta:TickAction)
 
-  private fun todo() {//todo move to service
-    val player:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player? = null
-    val startTime = player!!.session.get(UsageMonitorDecorator.Extra::class.java)!!.startTime
-    val pingDelay = player!!.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay
-  }
 }
