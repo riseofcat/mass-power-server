@@ -29,14 +29,14 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     room.onMessage.add {message->
       synchronized(this@TickGame) {
         for(a in message.payload.actions) {
-          val payload = ServerPayload(tick.toDbl())
+          val payload = ServerPayload()
           var delay = Tick(0)//todo redundant
-          if(a.tick.intTick()<state.tick) {
-            if(a.tick.intTick()>state.tick-GameConst.REMOVE_TICKS) {
-              delay = state.tick-a.tick.intTick()
+          if(a.tick<state.tick) {
+            if(a.tick>state.tick-GameConst.REMOVE_TICKS) {
+              delay = state.tick-a.tick
             }
           }
-          actions.add(Action(++previousActionsVersion,TickAction(a.tick.intTick()+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
+          actions.add(Action(++previousActionsVersion,TickAction(a.tick+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
           updatePlayerInPayload(payload,message.player)
           message.player.session.send(payload)//todo move out of for
         }
@@ -59,14 +59,13 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   }
 
   private fun updatePlayer(p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-    val payload = ServerPayload(tick.toDbl())
+    val payload = ServerPayload()
     updatePlayerInPayload(payload,p)
     p.session.send(payload)
   }
 
   private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
     synchronized(this) {
-      payload.tick = tick.toDbl()//todo redundant? but synchronized
       payload.actions = actions
         .filter {it.actionVersion>mapPlayerVersion[p.id]?:lib.log.fatalError("unknown id")}
         .map {it.ta}
@@ -76,7 +75,6 @@ class TickGame(room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   internal fun createStablePayload(welcome:Welcome?=null):ServerPayload {
     val result = ServerPayload(
-      tick = tick.toDbl(),
       welcome =  welcome,
       stable = Stable(state.tick,state)
     )

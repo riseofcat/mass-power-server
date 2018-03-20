@@ -5,21 +5,15 @@ import kotlinx.serialization.*
 
 @Serializable data class Tick(val tick:Int):Comparable<Tick> {
   constructor(longTick:Long):this(longTick.toInt())
-  override fun compareTo(other:Tick) = this.tick.compareTo(other.tick)
+  override fun compareTo(other:Tick) = tick.compareTo(other.tick)
 }
 
 operator fun Tick.times(multiply:Int) = Tick(this.tick * multiply)
-fun Tick.toDbl() = TickDbl(tick.toDouble())
-
-@Deprecated("use serverTime")
-@Serializable data class TickDbl(val double:Double)
-
-fun TickDbl.intTick() = Tick(double.toInt())
-operator fun TickDbl.plus(l:Long) = TickDbl(double + l)
-operator fun TickDbl.plus(d:Double) = TickDbl(double + d)
-operator fun TickDbl.plus(other:TickDbl) = TickDbl(double + other.double)
-operator fun TickDbl.minus(other:TickDbl) = TickDbl(double - other.double)
-operator fun TickDbl.times(scl:Double) = TickDbl(double * scl)
+operator fun Tick.plus(i:Int) = Tick(tick+i)
+operator fun Tick.plus(l:Long) = Tick(tick+l)
+operator fun Tick.plus(other:Tick) = Tick(tick + other.tick)
+operator fun Tick.minus(other:Tick) = Tick(tick - other.tick)
+operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
 
 @Serializable class TickAction(
   val tick:Tick,
@@ -34,7 +28,6 @@ operator fun TickDbl.times(scl:Double) = TickDbl(double * scl)
 }
 
 @Serializable class ServerPayload(
-  var tick:TickDbl,
   @Optional val welcome:Welcome? = null,
   @Optional val stable:Stable? = null,
   @Optional var actions:List<TickAction> = mutableListOf(),
@@ -49,19 +42,11 @@ operator fun TickDbl.times(scl:Double) = TickDbl(double * scl)
   val state:State//? = null todo nullable  and @Optional
 )
 
-@Serializable class ClientPayload(
-  val tick:TickDbl,
-  val actions:MutableList<ClientAction>
-) {
+@Serializable class ClientPayload(val actions:MutableList<ClientAction>) {
   @Serializable class ClientAction(
-    val tick:TickDbl,
+    val tick:Tick,
     val action:Action
   )
 }
 
 @Serializable class ServerError(val code:Int = 0,@Optional val message:String? = null)
-
-operator fun Tick.plus(i:Int) = Tick(tick+i)
-operator fun Tick.plus(t:Tick) = Tick(tick+t.tick)
-operator fun Tick.minus(t:Tick) = Tick(tick - t.tick)
-operator fun Tick.compareTo(other:Tick) = tick - other.tick
