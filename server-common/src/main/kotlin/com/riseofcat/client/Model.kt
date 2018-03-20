@@ -4,6 +4,8 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
+val DEFAULT_LATENCY = Duration(150)
+
 class Model(conf:Conf) {
   val CACHE = true
   val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
@@ -34,7 +36,7 @@ class Model(conf:Conf) {
     }
   }
 
-  val latency:Duration get() = recommendendLatency?: Duration(150)
+  val latency:Duration get() = recommendendLatency?: DEFAULT_LATENCY
   val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
   fun calcDisplayState():State? = getState(realtimeTick)
   fun ready() = welcome!=null

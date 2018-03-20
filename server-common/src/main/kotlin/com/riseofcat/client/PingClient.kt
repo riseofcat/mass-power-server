@@ -9,7 +9,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
-  private val pingDelays:MutableList<LatencyTime> = Common.createConcurrentList()//todo queue
+  private val pingDelays:MutableList<PingDelay> = Common.createConcurrentList()//todo queue
   private var welcome:ClientWelcome?=null
 
   val lastPingDelay get() = pingDelays.lastOrNull()?.pingDelay
@@ -59,8 +59,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
         }
 
         if(serverSay.welcome != null) welcome = ClientWelcome(serverSay.welcome, lib.time)
-        if(serverSay.latency!=null) {
-          pingDelays.add(LatencyTime(serverSay.latency,lib.time))
+        if(serverSay.pingDelay!=null) {
+          pingDelays.add(PingDelay(serverSay.pingDelay,lib.time))
           while(pingDelays.size>20) pingDelays.removeFirst()//todo queue
         }
         if(serverSay.ping) say(ClientSay<C>(pong=true))
@@ -98,7 +98,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     }
   }
 
-  private class LatencyTime(val pingDelay:Duration, val clientTime:TimeStamp)
+  private class PingDelay(val pingDelay:Duration, val clientTime:TimeStamp)
 }
 
 data class ClientWelcome(val server:Welcome, val clientTime:TimeStamp)

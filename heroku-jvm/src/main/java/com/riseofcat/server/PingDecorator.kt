@@ -20,16 +20,16 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
   override fun message(session:Ses<ServerSay<S>>,say:ClientSay<C>) {
     val s = map[session] ?: lib.log.fatalError("session not found")
     if(say.pong) {
-      val latency = Duration(1)+(lib.time-s.lastPing)/2
-      s.latency = latency
-      session send ServerSay(latency = latency)
+      val pingDelay = Duration(1)+(lib.time-s.lastPing)/2
+      s.pingDelay = pingDelay
+      session send ServerSay(pingDelay = pingDelay)
     }
     if(say.payload!=null) server.message(s,say.payload!!)
   }
 
   inner class PingSes constructor(private val sess:Ses<ServerSay<S>>):Ses<S>() {
     var lastPing:TimeStamp = TimeStamp(0)
-    var latency:Duration? = null
+    var pingDelay:Duration? = null
     override val id:Int get() = sess.id
     override val typeMap:TypeMap get() = sess.typeMap
 
@@ -50,7 +50,7 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
   }
 
   inner class Extra(private val pingSes:PingSes):TypeMap.Marker {
-    val lastPingDelay:Duration? get() = pingSes.latency//нужно будет для подсчёта средней latency на этом сервере, чтобы фильтровать клиентов если они будут тормозить и переводить в другую комнату с лагающими
+    val lastPingDelay:Duration? get() = pingSes.pingDelay//нужно будет для подсчёта средней pingDelay на этом сервере, чтобы фильтровать клиентов если они будут тормозить и переводить в другую комнату с лагающими
   }
 
 }

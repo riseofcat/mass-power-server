@@ -10,7 +10,7 @@ import kotlinx.serialization.*
 
 @Serializable class ServerSay<T>(
   @Optional val payload:T? = null,
-  @Optional val latency:Duration? = null,
+  @Optional val pingDelay:Duration? = null,
   @Optional val ping:Boolean = false,
   @Optional val welcome:Welcome? = null
 )

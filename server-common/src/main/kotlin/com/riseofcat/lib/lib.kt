@@ -20,7 +20,7 @@ operator fun Duration.plus(t:TimeStamp):TimeStamp = TimeStamp(ms+t.ms)
 
 operator fun Duration.plus(t:Duration):Duration = Duration(ms+t.ms)
 operator fun Duration.minus(t:Duration):Duration = Duration(ms-t.ms)
-infix fun Duration.diffAbs(latency:Duration):Duration = (this - latency).abs
+infix fun Duration.diffAbs(d:Duration):Duration = (this - d).abs
 val Duration.abs:Duration get() = Duration(kotlin.math.abs(ms))
 operator fun Duration.div(int:Int):Duration = Duration(ms/int)
 operator fun Duration.div(f:Float):Duration = Duration((ms/f).toLong())

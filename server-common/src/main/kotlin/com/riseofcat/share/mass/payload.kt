@@ -32,7 +32,7 @@ operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
   @Optional val stable:Stable? = null,
   @Optional var actions:List<TickAction> = mutableListOf(),
   @Optional val error:ServerError? = null,
-  @Optional val recommendedLatency:Duration? = null//todo передавать с сервера
+  @Optional val recommendedLatency:Duration? = null
 )
 @Serializable class Welcome(
   val id:PlayerId,
