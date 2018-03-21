@@ -1,9 +1,9 @@
 package com.riseofcat.share.mass
 
+import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
-import kotlin.system.*
 
 object GameConst {
   val UPDATE = Duration(40)
@@ -92,7 +92,7 @@ infix fun State.act(actions:Iterator<ICommand>):State {
   return this
 }
 
-fun State.tick() = measureNanoTime {
+fun State.tick() = Common.measureNanoTime {
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S

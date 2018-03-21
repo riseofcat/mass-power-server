@@ -12,6 +12,7 @@ expect class Common {
     fun getStackTraceString(t:Throwable):String?
     val timeMs:Long
     fun getCodeLineInfo(depth:Int):CharSequence
+    fun measureNanoTime(block:()->Unit):Long
   }
 }
 

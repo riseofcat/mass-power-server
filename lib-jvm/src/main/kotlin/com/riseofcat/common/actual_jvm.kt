@@ -89,6 +89,8 @@ actual class Common {
     } catch(e:Throwable) {
       e.stackTrace.getOrNull(depth)?.prettyString ?: ""
     }
+
+    actual fun measureNanoTime(block:()->Unit):Long = kotlin.system.measureNanoTime(block)
   }
 }
 
