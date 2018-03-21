@@ -95,7 +95,7 @@ infix fun State.act(actions:Iterator<InStateAction>):State {
   return this
 }
 
-fun State.tick() = measureNanoTime{apply {//todo передавать tick в аргументах?
+fun State.tick() = measureNanoTime{apply {
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
@@ -108,24 +108,52 @@ fun State.tick() = measureNanoTime{apply {//todo передавать tick в а
   }
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
   while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
-  for(car in cars) {
-    val foodItr = foods.iterator()
-    while(foodItr.hasNext()) {
-      val (size1,_,pos) = foodItr.next()
-      if(distance(car.pos,pos)<=car.radius) {
-        car.size += size1
-        foodItr.remove()
+
+  cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
+
+  var handleFoodCars = cars
+
+  while(handleFoodCars.size > 0) {
+    val changedSizeCars:MutableSet<Car> = mutableSetOf()
+    for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
+      val foodItr = foods.iterator()
+      while(foodItr.hasNext()) {
+        val (size1,_,pos) = foodItr.next()
+        if(distance(car.pos,pos)<=car.radius) {
+          car.size += size1
+          foodItr.remove()
+          changedSizeCars.add(car)
+        }
+      }
+      reactItr = reactive.iterator()
+      while(reactItr.hasNext()) {
+        val r = reactItr.next()
+        if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius) {
+          car.size += r.size
+          reactItr.remove()
+          changedSizeCars.add(car)
+        }
       }
     }
-    reactItr = reactive.iterator()
-    while(reactItr.hasNext()) {
-      val r = reactItr.next()
-      if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius) {
-        car.size += r.size
-        reactItr.remove()
+    handleFoodCars = changedSizeCars.toMutableList()
+  }
+
+  var handleCarsDestroy = true
+  while(handleCarsDestroy) {
+    handleCarsDestroy = false
+    val carItr = cars.iterator()
+    while(carItr.hasNext()) {
+      val del = carItr.next()
+      for(car in cars.copy()) {//todo copy() нужно чтобы не было concurrent modification
+        if(del != car && del.size < car.size && distance(car.pos, del.pos)<=car.radius) {
+          car.size += del.size
+          carItr.remove()
+          handleCarsDestroy = true
+        }
       }
     }
   }
+
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
 }}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
 var averageTickNanos = 0f
