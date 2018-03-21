@@ -42,11 +42,9 @@ interface EatMe:SpeedObject { var size:Int }
 }
 @Serializable data class Action(val direction:Angle)
 @Serializable data class Angle(var radians:Double) {
-  init {
-    fix()
-  }
+  init { fix() }
   fun fix() {
-    if(abs(degrees) > 360) degrees %= 360//todo потестировать отрицательные значения
+    if(abs(degrees) > 360) degrees %= 360
     if(degrees < 0) degrees+=360
   }
 }
@@ -95,12 +93,11 @@ infix fun State.act(actions:Iterator<InStateAction>):State {
   return this
 }
 
-fun State.tick() = measureNanoTime{apply {
+fun State.tick() = measureNanoTime {
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
     o.speed = o.speed mscale 0.98
-
     if(o.pos.x>=width) o.pos.x = o.pos.x-width
     else if(o.pos.x<0) o.pos.x = o.pos.x+width
     if(o.pos.y>=height) o.pos.y = o.pos.y-height
@@ -108,11 +105,8 @@ fun State.tick() = measureNanoTime{apply {
   }
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
   while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
-
   cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
-
   var handleFoodCars = cars
-
   while(handleFoodCars.size > 0) {
     val changedSizeCars:MutableSet<Car> = mutableSetOf()
     for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
@@ -153,9 +147,8 @@ fun State.tick() = measureNanoTime{apply {
       }
     }
   }
-
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
-}}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
+}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
 var averageTickNanos = 0f
 private val FRAMES = 20
 
@@ -174,7 +167,7 @@ fun State.rnd(min:Int,max:Int):Int {
 }
 fun State.rnd(max:Int) = rnd(0,max)
 fun State.rnd(min:Double = 0.0,max:Double = 1.0) = min+rnd(999)/1000f*(max-min)//todo optimize
-fun State.rndPos() = XY(rnd(width.toDouble()),rnd(height.toDouble()))
+fun State.rndPos() = XY(rnd(width),rnd(height))
 fun State.changeSize(delta:Int) {
   val oldW = width
   val oldH = height
@@ -185,8 +178,8 @@ inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}
 internal inline infix fun XY.mscale(scl:Double) = this mscale XY(scl, scl)
-internal inline infix fun XY.scale(xy:XY) = copy() mscale xy                      //Не стабильный вариант: copy().also {it mscale xy} //todo Удалить коментарий
-internal inline infix fun XY.scale(scl:Double) = copy() mscale scl                //Не стабильный вариант: copy().also {it mscale scl}//todo Удалить коментарий
+internal inline infix fun XY.scale(xy:XY) = copy() mscale xy
+internal inline infix fun XY.scale(scl:Double) = copy() mscale scl
 internal inline infix fun XY.msum(b:XY) = copy()./*todo no copy*/apply {x += b.x; y += b.y}
 internal inline infix fun XY.sum(b:XY) = copy() msum b
 operator fun XY.times(scl:Double) = this scale scl
