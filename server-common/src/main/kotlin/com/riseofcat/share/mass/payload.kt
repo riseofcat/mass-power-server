@@ -15,22 +15,22 @@ operator fun Tick.plus(other:Tick) = Tick(tick + other.tick)
 operator fun Tick.minus(other:Tick) = Tick(tick - other.tick)
 operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
 
-@Serializable class TickAction(
+@Serializable class AllCommand(
   val tick:Tick,
   val pid:PlayerId,
-  @Optional val n:NewCarAction? = null,
-  @Optional val p:PlayerAction? = null
-):InStateAction {
+  @Optional var newCarCmd:NewCarCommand? = null,//todo val
+  @Optional var moveCmd:MoveCommand? = null//todo val
+):ICommand {
   override fun act(state:State) {
-    n?.act(state)
-    p?.act(state)
+    newCarCmd?.act(state)
+    moveCmd?.act(state)
   }
 }
 
 @Serializable class ServerPayload(
   @Optional val welcome:Welcome? = null,
   @Optional val stable:State? = null,
-  @Optional var actions:List<TickAction> = mutableListOf(),
+  @Optional var actions:List<AllCommand> = mutableListOf(),
   @Optional val error:ServerError? = null,
   @Optional val recommendedLatency:Duration? = null
 )
@@ -41,7 +41,8 @@ operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
 @Serializable class ClientPayload(val actions:MutableList<ClientAction>) {
   @Serializable class ClientAction(
     val tick:Tick,
-    val action:Action
+    @Optional var moveDirection:Angle? = null,//todo val
+    @Optional var newCar:Boolean = false//todo val
   )
 }
 

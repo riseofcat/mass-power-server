@@ -1,32 +1,30 @@
 package com.riseofcat.server
 
-import com.riseofcat.client.*
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
 class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val STABLE_STATE_UPDATE:Duration? = Duration(10_000)
-  @Volatile private var previousActionsVersion = 0//todo почитать про volatile в Kotlin
   private val state = State()
-  private var actions:MutableList<Action> = Common.createConcurrentList()
+  private var commands:MutableList<CommandAndVersion> = Common.createConcurrentList()
   private val mapPlayerVersion = Common.createConcurrentHashMap<PlayerId,Int>()
   private var previousStableUpdate:TimeStamp = lib.time
 
   val realtimeTick get() = Tick((lib.time - room.createTime)/GameConst.UPDATE)
   //todo averageLatency считать умнее
-  val averageLatency get() = room.getPlayers().sumByDuration{it.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay?: DEFAULT_LATENCY}/room.getPlayers().size
+  val averageLatency get() = room.getPlayers().sumByDuration{it.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay?: Duration(150)}/room.getPlayers().size
   val recommendedLatency get() = averageLatency*2
   val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
   val maxDelay get() = recommendedDelay*2
   val newCarDelay get() = recommendedDelay*2
-  val removeAfterDelay get() = recommendedDelay*3//0 - значит всё что позже stable - удаляется
+  val removeAfterDelay get() = recommendedDelay*3//Если 0 - значит всё что позже stable - удаляется
 
   init {
     room.onPlayerAdded.add {player->
       updateGame()
       redundantSynchronize(this@TickGame) {
-        actions.add(Action(++previousActionsVersion,TickAction(realtimeTick+newCarDelay,player.id,n = NewCarAction(player.id))))
+        if(false) commands.add(CommandAndVersion(AllCommand(realtimeTick+newCarDelay,player.id,newCarCmd = NewCarCommand(player.id))))
         val payload = createStablePayload(Welcome(player.id, room.createTime))
         player.session.send(payload)
       }
@@ -39,10 +37,16 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
           if(a.tick<=state.tick-removeAfterDelay){
             continue//Команда игнорируется
           }
-
           val t = if(a.tick>=state.tick) a.tick else state.tick
-          val ta = TickAction(t,message.player.id,p = PlayerAction(message.player.id,a.action))
-          actions.add(Action(++previousActionsVersion,ta))
+          val allCmd = AllCommand(t,message.player.id)
+          if(a.newCar) {//todo валидировать клиента (но уже наверное на тиках в стейте)
+            allCmd.newCarCmd = NewCarCommand(message.player.id)
+          }
+          val moveDirection = a.moveDirection
+          if(moveDirection!= null) {
+            allCmd.moveCmd = MoveCommand(message.player.id,moveDirection)
+          }
+          commands.add(CommandAndVersion(allCmd))
         }
         val payload = ServerPayload(recommendedLatency = recommendedLatency)
         updatePlayerInPayload(payload,message.player)
@@ -59,11 +63,11 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     val test = true//todo test performance
     synchronized(this@TickGame) {
       while(condition()) {
-        state act actions.map {it.ta}.filter {it.tick==state.tick}.iterator()
-        if(!test)actions.removeAll {it.ta.tick==state.tick}
+        state act commands.map {it.command}.filter {it.tick==state.tick}.iterator()
+        if(!test)commands.removeAll {it.command.tick==state.tick}
         state.tick()
       }
-      if(test)actions.removeAll {it.ta.tick<state.tick}
+      if(test)commands.removeAll {it.command.tick<state.tick}
 
       if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
         previousStableUpdate = lib.time
@@ -80,12 +84,17 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
     redundantSynchronize(this) {
-      val filtered = actions.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
-      payload.actions = filtered.map {it.ta}
+      val filtered = commands.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
+      payload.actions = filtered.map {it.command}
       val maxActionVer = filtered.map {it.actionVersion}.max()
       if(maxActionVer != null) mapPlayerVersion.put(p.id,maxActionVer)
     }
   }
+
+  inner class CommandAndVersion(val command:AllCommand) {
+    val actionVersion:Int = ++previousActionsVersion
+  }
+  @Volatile private var previousActionsVersion = 0//todo почитать про volatile в Kotlin
 
   internal fun createStablePayload(welcome:Welcome?=null):ServerPayload = ServerPayload(
     welcome =  welcome,
@@ -95,5 +104,4 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 }
 
 inline fun <R> redundantSynchronize(lock:Any,block:()->R) = if(true) block() else synchronized(lock,block) //todo test performance
-private class Action(val actionVersion:Int, val ta:TickAction)
 

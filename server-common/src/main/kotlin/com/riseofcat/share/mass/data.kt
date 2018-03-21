@@ -18,29 +18,28 @@ object GameConst {
   val REACTIVE_LIVE = Tick(60)
 }
 
-interface InStateAction { fun act(state:State) }
+interface ICommand { fun act(state:State) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
 interface EatMe:SpeedObject { var size:Int }
 
-@Serializable class NewCarAction(var id:PlayerId):InStateAction {
+@Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
     state.changeSize(100)
     state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY(),XY()))
   }
 }
-@Serializable class PlayerAction(
+@Serializable class MoveCommand(
   var id:PlayerId,
-  var action:Action):InStateAction {
+  val direction:Angle):ICommand {
   override fun act(state:State) {
     val car = state.cars.find{ it.owner == id}?:return
-    car.speed = car.speed+action.direction.xy(100.0)
+    car.speed = car.speed+direction.xy(100.0)
     val size = car.size/15+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
-    state.reactive.add(Reactive(id,size,(action.direction+degreesAngle(180)).xy(300.0),car.pos.copy(), state.tick.copy()))
+    state.reactive.add(Reactive(id,size,(direction+degreesAngle(180)).xy(300.0),car.pos.copy(), state.tick.copy()))
   }
 }
-@Serializable data class Action(val direction:Angle)
 @Serializable data class Angle(var radians:Double) {
   init { fix() }
   fun fix() {
@@ -88,7 +87,7 @@ inline val Angle.cos get() = cos(radians)
 }
 val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
 fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
-infix fun State.act(actions:Iterator<InStateAction>):State {
+infix fun State.act(actions:Iterator<ICommand>):State {
   actions.forEach {it.act(this)}
   return this
 }

@@ -4,16 +4,14 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-val DEFAULT_LATENCY = Duration(150)
-
 class Model(conf:Conf) {
   val CACHE = true
   val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
-  private val actions:MutableList<TickAction> = Common.createConcurrentList()
-  private val myLocal:MutableList<TickAction> = mutableListOf()
+  private val actions:MutableList<AllCommand> = Common.createConcurrentList()
+  private val myLocal:MutableList<AllCommand> = mutableListOf()//todo избавиться от myLocal
   private var stable:StateWrapper = StateWrapper(State())
   val playerName get() = welcome?.id?.let {"Player $it"} ?: "Wait connection..."
-  var welcome:Welcome?=null//todo lateinit?  Может сделать что если приходит новый Welcome, то игрока перевели в другую комнату
+  var welcome:Welcome?=null//todo lateinit? //todo Может сделать что если приходит новый Welcome, то игрока перевели в другую комнату
   var recommendendLatency:Duration?=null
 
   init {
@@ -36,40 +34,40 @@ class Model(conf:Conf) {
     }
   }
 
-  val latency:Duration get() = recommendendLatency?: DEFAULT_LATENCY
+  val latency:Duration get() = recommendendLatency?: Duration(150)
   val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
   fun calcDisplayState():State? = getState(realtimeTick)
   fun ready() = welcome!=null
-
-  fun action(action:com.riseofcat.share.mass.Action) {
-    synchronized(this) {
-      val t = realtimeTick
-      if(!ready()) return
-      val wait = Tick(latency/GameConst.UPDATE+1)
-      val a = ClientPayload.ClientAction(
-        tick = t+wait,
-        action = action
-      )
-      synchronized(myLocal) {
-        welcome?.run {myLocal.add(TickAction(t+wait, id, p = PlayerAction(id, a.action)))}
-        myLocal.sortBy {it.tick}
-      }
-      client.say(ClientPayload(mutableListOf(a)))
+  val meAlive get() = getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false
+  fun move(direction:Angle) = synchronized(this) {
+    if(!ready()) return
+    val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
+    val a = ClientPayload.ClientAction(tick = t)
+    a.moveDirection = direction
+    synchronized(myLocal) {//todo может synchronized не надо...
+      welcome?.run {myLocal.add(AllCommand(t, id, moveCmd = MoveCommand(id, direction)))}
+      //actions.sortBy{it.tick}
     }
+    client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
   }
-
+  fun newCar() = synchronized(this) {//todo дублирование кода
+    if(!ready()) return
+    val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
+    val a = ClientPayload.ClientAction(tick = t)
+    a.newCar = true
+    synchronized(myLocal) {//todo может synchronized не надо...
+      welcome?.run {myLocal.add(AllCommand(t, id, newCarCmd = NewCarCommand(id)))}
+      //actions.sortBy{it.tick}
+    }
+    client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
+  }
   fun dispose() { client.close() }
 
   private var cache:StateWrapper? = null
   private fun clearCache(tick:Tick = Tick(0)) = cache?.let {if(tick<=it._state.tick) cache = null}
   private fun saveCache(value:StateWrapper) { cache = value }
-  private fun getNearestCache(tick:Tick):StateWrapper? =
-    if(CACHE) {
-      cache?.let {if(tick>=it._state.tick) it else null}
-    }
-    else {
-      null
-    }
+  private fun getNearestCache(tick:Tick):StateWrapper? = if(CACHE) _getNearestCache(tick) else null
+  private fun _getNearestCache(tick:Tick) = cache?.let {if(tick>=it._state.tick) it else null}
   private fun getState(tick:Tick):State? {
     var result = getNearestCache(tick)
     if(result==null) {
@@ -88,13 +86,6 @@ class Model(conf:Conf) {
     fun tick(targetTick:Tick) {
       while(_state.tick<targetTick) {
         val filtered = (actions+myLocal).filter {it.tick==_state.tick}
-        val size = filtered.size
-        if(size > 0) {
-          lib.log.breakpoint("size > 0")
-          if(filtered.any{it.p != null}) {
-            lib.log.breakpoint("p != null")
-          }
-        }
         _state act filtered.iterator()
         _state.tick()
       }
@@ -102,14 +93,18 @@ class Model(conf:Conf) {
   }
 }
 
-fun Model.touch(pos:XY) {//todo move out?
+fun Model.touch(pos:XY) {
   val displayState = calcDisplayState()
   if(displayState==null||welcome==null) return
-  for((owner,_,_,pos1) in displayState.cars) {
-    if(welcome?.id==owner) {
-      val direction = (pos - pos1).calcAngle() + degreesAngle(0*180)
-      action(Action(direction))
-      break
+  if(meAlive) {
+    for((owner,_,_,pos1) in displayState.cars) {
+      if(welcome?.id==owner) {
+        val direction = (pos - pos1).calcAngle() + degreesAngle(0*180)
+        move(direction)
+        break
+      }
     }
+  } else {
+    newCar()
   }
 }
