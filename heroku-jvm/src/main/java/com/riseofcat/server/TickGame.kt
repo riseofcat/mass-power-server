@@ -36,12 +36,13 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       updateGame()
       redundantSynchronize(this@TickGame) {
         for(a in message.payload.actions) {
-          var delay = Tick(0)
-          if(a.tick<state.tick) {
-            if(a.tick <= state.tick-removeAfterDelay) continue
-            delay = state.tick-a.tick//задерживаем
+          if(a.tick<=state.tick-removeAfterDelay){
+            continue//Команда игнорируется
           }
-          actions.add(Action(++previousActionsVersion,TickAction(a.tick+delay, message.player.id, p = PlayerAction(message.player.id,a.action))))
+
+          val t = if(a.tick>=state.tick) a.tick else state.tick
+          val ta = TickAction(t,message.player.id,p = PlayerAction(message.player.id,a.action))
+          actions.add(Action(++previousActionsVersion,ta))
         }
         val payload = ServerPayload(recommendedLatency = recommendedLatency)
         updatePlayerInPayload(payload,message.player)
