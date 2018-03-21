@@ -29,7 +29,7 @@ operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
 
 @Serializable class ServerPayload(
   @Optional val welcome:Welcome? = null,
-  @Optional val stable:Stable? = null,
+  @Optional val stable:State? = null,
   @Optional var actions:List<TickAction> = mutableListOf(),
   @Optional val error:ServerError? = null,
   @Optional val recommendedLatency:Duration? = null
@@ -38,10 +38,6 @@ operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
   val id:PlayerId,
   val roomCreate:TimeStamp
 )
-@Serializable data class Stable(
-  val state:State//? = null todo nullable  and @Optional
-)
-
 @Serializable class ClientPayload(val actions:MutableList<ClientAction>) {
   @Serializable class ClientAction(
     val tick:Tick,

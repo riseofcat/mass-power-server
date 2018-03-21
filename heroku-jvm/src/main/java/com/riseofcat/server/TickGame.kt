@@ -88,7 +88,7 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   internal fun createStablePayload(welcome:Welcome?=null):ServerPayload = ServerPayload(
     welcome =  welcome,
-    stable = Stable(state),
+    stable = state,
     recommendedLatency = recommendedLatency
   )
 }

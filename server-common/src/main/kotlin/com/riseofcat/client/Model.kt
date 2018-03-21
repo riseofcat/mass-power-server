@@ -22,7 +22,7 @@ class Model(conf:Conf) {
         if(s.welcome!=null) welcome = s.welcome
         if(s.recommendedLatency != null) recommendendLatency = s.recommendedLatency
         if(s.stable!=null) {
-          stable = StateWrapper(s.stable.state)
+          stable = StateWrapper(s.stable)
           clearCache()
         }
         actions.addAll(s.actions)
@@ -58,17 +58,6 @@ class Model(conf:Conf) {
     }
   }
 
-  fun touch(pos:XY) {//todo move out?
-    val displayState = calcDisplayState()
-    if(displayState==null||welcome==null) return
-    for((owner,_,_,pos1) in displayState.cars) {
-      if(welcome?.id==owner) {
-        val direction = (pos - pos1).calcAngle() + degreesAngle(0*180)
-        action(Action(direction))
-        break
-      }
-    }
-  }
   fun dispose() { client.close() }
 
   private var cache:StateWrapper? = null
@@ -109,6 +98,18 @@ class Model(conf:Conf) {
         _state act filtered.iterator()
         _state.tick()
       }
+    }
+  }
+}
+
+fun Model.touch(pos:XY) {//todo move out?
+  val displayState = calcDisplayState()
+  if(displayState==null||welcome==null) return
+  for((owner,_,_,pos1) in displayState.cars) {
+    if(welcome?.id==owner) {
+      val direction = (pos - pos1).calcAngle() + degreesAngle(0*180)
+      action(Action(direction))
+      break
     }
   }
 }
