@@ -140,7 +140,7 @@ fun State.tick() = Common.measureNanoTime {
       for(car in cars.copy()) {//todo copy() нужно чтобы не было concurrent modification
         if(del != car && del.size < car.size && distance(car.pos, del.pos)<=car.radius) {
           car.size += del.size
-          carItr.remove()
+          carItr.remove()//todo Illegal State Exception если очень много действий
           handleCarsDestroy = true
         }
       }
