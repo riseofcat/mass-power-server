@@ -111,5 +111,6 @@ object lib {
   }
 }
 
-fun <T> MutableList<T>.copy() = this.toMutableList()
+fun <T> MutableList<T>.copy() = toMutableList()
+inline infix fun <T> MutableList<T>.rm(del:T) = remove(del)
 fun <E> MutableList<E>.removeFirst() = removeAt(0)

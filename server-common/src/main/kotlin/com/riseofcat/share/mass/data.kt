@@ -135,15 +135,18 @@ fun State.tick() = Common.measureNanoTime {
   while(handleCarsDestroy) {
     handleCarsDestroy = false
     val carItr = cars.iterator()
+    val copy = cars.copy()//copy() нужно чтобы не было concurrent modification
     while(carItr.hasNext()) {
       val del = carItr.next()
-      for(car in cars.copy()) {//todo copy() нужно чтобы не было concurrent modification
-        if(del != car && del.size < car.size && distance(car.pos, del.pos)<=car.radius) {
-          car.size += del.size
-          carItr.remove()//todo Illegal State Exception если очень много действий
+      for(c in copy) {
+        if(del != c && del.size < c.size && distance(c.pos, del.pos)<=c.radius) {
+          c.size += del.size
+          carItr.remove()
           handleCarsDestroy = true
+          break
         }
       }
+      if(handleCarsDestroy) copy rm del
     }
   }
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
