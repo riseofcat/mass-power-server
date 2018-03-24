@@ -38,7 +38,7 @@ class Model(conf:Conf) {
   val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
   fun calcDisplayState():State? = getState(realtimeTick)
   fun ready() = welcome!=null
-  val meAlive get() = getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false
+  val meAlive get() = lib.measure("meAlive"){getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false}
   fun move(direction:Angle) = synchronized(this) {
     if(!ready()) return
     val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
@@ -84,10 +84,12 @@ class Model(conf:Conf) {
     val _state = state.deepCopy()
     constructor(obj:StateWrapper):this(obj._state)
     fun tick(targetTick:Tick) {
-      while(_state.tick<targetTick) {
-        val filtered = (actions+myLocal).filter {it.tick==_state.tick}
-        _state act filtered.iterator()
-        _state.tick()
+      lib.measure("StateWrapper.tick") {
+        while(_state.tick<targetTick) {
+          val filtered = (actions+myLocal).filter {it.tick==_state.tick}
+          _state act filtered.iterator()
+          _state.tick()
+        }
       }
     }
   }

@@ -6,7 +6,6 @@ import kotlinx.serialization.*
 import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
-import kotlin.system.*
 
 interface Time {
   val ms:Long
@@ -46,10 +45,12 @@ val Time.sf get():Float = ms / 1000f
 val Time.sd get():Double = ms / 1000.0
 
 val createTime = lib.time
-inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = try {
-  CBOR.load<T>(CBOR.dump(this))
-} catch(t:Throwable) {
-  lib.log.fatalError("deepCopy",t)
+inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = lib.measure("deepCopy"){
+  try {
+    CBOR.load<T>(CBOR.dump(this))
+  } catch(t:Throwable) {
+    lib.log.fatalError("deepCopy",t)
+  }
 }
 
 object lib {
@@ -72,7 +73,7 @@ object lib {
   }
 
   object log {
-    enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, DEBUG, MEASURE, BREAKPOINT}
+    enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, MEASURE, DEBUG, BREAKPOINT}
 
     private inline fun handleThrowable(t:Throwable?) {
       if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
@@ -111,19 +112,49 @@ object lib {
 //    block()
   }
 
-  fun <T>measure(tag:String, block:()->T):T {
+  fun <T>measure(hashTag:String, block:()->T):T {
     var result:T? = null
-    if(false) log._log("measure $tag", log.LogMode.MEASURE, 2)
     Common.getCodeLineInfo(2)
-    measureNanoTime {
+    val value = Common.measureNanoTime {
       result = block()
+    }/1e9
+    measurements.getOrPut(hashTag) {Measure()}.add(value)
+
+    if(lib.time > previousMeasurePrint + Duration(10_000)) {
+      previousMeasurePrint = lib.time
+      lib.log._println("measure: ")
+      measurements.entries.forEach {
+        lib.log._println("#${it.key}: ${it.value}")
+      }
+
     }
     return result!!
   }
 
-//  .let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
-//  var averageTickNanos = 0f
-//  private val FRAMES = 20
+  var previousMeasurePrint = lib.time
+  val measurements:MutableMap<String, Measure> = mutableMapOf()
+
+  class Measure{
+    var average100s:Double? = null
+    var average20s:Double? = null
+    var sum:Double = 0.0
+
+    fun add(value:Double) {
+      fun averageN(prev:Double?,n:Int) = if(prev==null) value else (prev*n+value)/(n+1)
+      sum+=value
+      average20s = averageN(average20s,20)
+      average100s = averageN(average100s,100)
+    }
+
+    override fun toString():String {
+      var result = ""
+      result += "sum: ${sum.toInt()}.${(sum*1e6).toLong()%1_000_000}s\n"
+      average100s?.let{
+        result += "avrg100: ${(it*1_000).toInt()}.${(it*1e9).toLong()%1_000_000}ms"
+      }
+      return result
+    }
+  }
 
   object Fun {
     fun arg0toInf(y:Double,middle:Double) = y/middle/(1+y/middle)
