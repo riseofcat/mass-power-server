@@ -6,6 +6,7 @@ import kotlinx.serialization.*
 import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
+import kotlin.system.*
 
 interface Time {
   val ms:Long
@@ -71,7 +72,7 @@ object lib {
   }
 
   object log {
-    enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, DEBUG, BREAKPOINT }
+    enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, DEBUG, MEASURE, BREAKPOINT}
 
     private inline fun handleThrowable(t:Throwable?) {
       if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
@@ -91,9 +92,9 @@ object lib {
       handleThrowable(t)
     }
 
-    fun info(s:String) = _log(s,LogMode.INFO)
-    fun debug(s:String) = _log(s,LogMode.DEBUG)
-    fun breakpoint(s:String = "") = _log(s,LogMode.BREAKPOINT)
+    fun info(s:CharSequence) = _log(s,LogMode.INFO)
+    fun debug(s:CharSequence) = _log(s,LogMode.DEBUG)
+    fun breakpoint(s:CharSequence = "") = _log(s,LogMode.BREAKPOINT)
     inline fun _log(str:CharSequence,mode:LogMode, codeDepth:Int = 2) {
       if(mode.ordinal<LogMode.DEBUG.ordinal) {
         _println("$mode: $str | in ${Common.getCodeLineInfo(codeDepth)}")
@@ -101,6 +102,28 @@ object lib {
     }
     inline fun _println(str:CharSequence) = println(str)
   }
+
+  inline fun debug(block:()->Unit) {
+    block()
+  }
+
+  inline fun releae(block:()->Unit) {
+//    block()
+  }
+
+  fun <T>measure(tag:String, block:()->T):T {
+    var result:T? = null
+    if(false) log._log("measure $tag", log.LogMode.MEASURE, 2)
+    Common.getCodeLineInfo(2)
+    measureNanoTime {
+      result = block()
+    }
+    return result!!
+  }
+
+//  .let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
+//  var averageTickNanos = 0f
+//  private val FRAMES = 20
 
   object Fun {
     fun arg0toInf(y:Double,middle:Double) = y/middle/(1+y/middle)

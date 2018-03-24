@@ -92,7 +92,7 @@ infix fun State.act(actions:Iterator<ICommand>):State {
   return this
 }
 
-fun State.tick() = Common.measureNanoTime {
+fun State.tick() = lib.measure("tick") {
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
@@ -150,9 +150,7 @@ fun State.tick() = Common.measureNanoTime {
     }
   }
   if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
-}.let{averageTickNanos = (averageTickNanos*FRAMES + it) / (FRAMES+1)}
-var averageTickNanos = 0f
-private val FRAMES = 20
+}
 
 val State.width get() = GameConst.BASE_WIDTH+size
 val State.height get() = GameConst.BASE_HEIGHT+size
