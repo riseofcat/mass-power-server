@@ -138,9 +138,11 @@ object lib {
     var average100s:Double? = null
     var average20s:Double? = null
     var sum:Double = 0.0
+    var count:Int = 0
 
     fun add(value:Double) {
       fun averageN(prev:Double?,n:Int) = if(prev==null) value else (prev*n+value)/(n+1)
+      ++count
       sum+=value
       average20s = averageN(average20s,20)
       average100s = averageN(average100s,100)
@@ -148,9 +150,9 @@ object lib {
 
     override fun toString():String {
       var result = ""
-      result += "sum: ${sum.toInt()}.${(sum*1e6).toLong()%1_000_000}s\n"
+      result += "sum: ${sum.toInt()}.${(sum*1e6).toLong()%1_000_000}s  count:$count"
       average100s?.let{
-        result += "avrg100: ${(it*1_000).toInt()}.${(it*1e9).toLong()%1_000_000}ms"
+        result += "\navrg100: ${(it*1_000).toInt()}.${(it*1e9).toLong()%1_000_000}ms"
       }
       return result
     }

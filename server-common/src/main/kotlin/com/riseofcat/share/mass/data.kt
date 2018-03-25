@@ -1,6 +1,5 @@
 package com.riseofcat.share.mass
 
-import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
@@ -38,6 +37,8 @@ interface EatMe:SpeedObject { var size:Int }
     val size = car.size/15+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
     state.reactive.add(Reactive(id,size,(direction+degreesAngle(180)).xy(300.0),car.pos.copy(), state.tick.copy()))
+    repeat(100){
+      state.reactive.add(Reactive(id,size,(degreesAngle(state.rnd(360))).xy(300.0),car.pos.copy(), state.tick.copy()))}
   }
 }
 @Serializable data class Angle(var radians:Double) {
@@ -86,7 +87,7 @@ inline val Angle.cos get() = cos(radians)
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
 }
 val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
-fun degreesAngle(degrees:Int) = Angle(degrees/180*PI)
+fun degreesAngle(degrees:Int) = Angle(degrees/180.0*PI)
 infix fun State.act(actions:Iterator<ICommand>):State {
   actions.forEach {it.act(this)}
   return this
@@ -165,7 +166,7 @@ fun State.rnd(min:Int,max:Int):Int {
   random = random*1664525+1013904223 and 0x7fffffff
   return min+random%(max-min+1)
 }
-fun State.rnd(max:Int) = rnd(0,max)
+fun State.rnd(max:Int) = rnd(0,max)//todo рандом повторяется
 fun State.rnd(min:Double = 0.0,max:Double = 1.0) = min+rnd(999)/1000f*(max-min)//todo optimize
 fun State.rndPos() = XY(rnd(width),rnd(height))
 fun State.changeSize(delta:Int) {

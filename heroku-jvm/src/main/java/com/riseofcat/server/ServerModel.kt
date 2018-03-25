@@ -4,7 +4,7 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
+class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val STABLE_STATE_UPDATE:Duration? = Duration(10_000)
   private val state = State()
   private var commands:MutableList<CommandAndVersion> = Common.createConcurrentList()
@@ -23,7 +23,7 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   init {
     room.onPlayerAdded.add {player->
       updateGame()
-      redundantSynchronize(this@TickGame) {
+      redundantSynchronize(this@ServerModel) {
         if(false) commands.add(CommandAndVersion(AllCommand(realtimeTick+newCarDelay,player.id,newCarCmd = NewCarCommand(player.id))))
         val payload = createStablePayload(Welcome(player.id, room.createTime))
         player.session.send(payload)
@@ -32,7 +32,7 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     }
     room.onMessage.add {message->
       updateGame()
-      redundantSynchronize(this@TickGame) {
+      redundantSynchronize(this@ServerModel) {
         for(a in message.payload.actions) {
           if(a.tick<=state.tick-removeAfterDelay){
             continue//Команда игнорируется
@@ -61,7 +61,7 @@ class TickGame(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     if(!condition()) return
 
     val test = true//todo test performance
-    synchronized(this@TickGame) {
+    synchronized(this@ServerModel) {
       while(condition()) {
         state act commands.map {it.command}.filter {it.tick==state.tick}.iterator()
         if(!test)commands.removeAll {it.command.tick==state.tick}

@@ -4,7 +4,7 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-class Model(conf:Conf) {
+class ClientModel(conf:Conf) {
   val CACHE = true
   val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
   private val actions:MutableList<AllCommand> = Common.createConcurrentList()
@@ -95,7 +95,7 @@ class Model(conf:Conf) {
   }
 }
 
-fun Model.touch(pos:XY) {
+fun ClientModel.touch(pos:XY) {
   val displayState = calcDisplayState()
   if(displayState==null||welcome==null) return
   if(meAlive) {
