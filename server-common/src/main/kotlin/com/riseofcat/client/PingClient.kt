@@ -23,8 +23,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
     for(l in pingDelays) {
       var w:Double = 1E5//todo перенести логику точности в классы Time
-      w *= 1.0-lib.Fun.arg0toInf(lib.time-l.clientTime,Duration(10_000))
-      w *= 1.0-lib.Fun.arg0toInf(average diffAbs l.pingDelay,Duration(100))
+      w *= 1.0-libObj.Fun.arg0toInf(lib.time-l.clientTime,Duration(10_000))
+      w *= 1.0-libObj.Fun.arg0toInf(average diffAbs l.pingDelay,Duration(100))
       sum += l.pingDelay*w
       weights += w
     }

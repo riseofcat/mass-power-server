@@ -44,7 +44,8 @@ val Time.s get():Long = ms / 1000
 val Time.sf get():Float = ms / 1000f
 val Time.sd get():Double = ms / 1000.0
 
-val createTime = lib.time
+val createTime = libObj.time
+val lib = libObj
 inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = lib.measure("deepCopy"){
   try {
     CBOR.load<T>(CBOR.dump(this))
@@ -53,7 +54,7 @@ inline fun <reified /*@Serializable*/T:Any> T.deepCopy():T = lib.measure("deepCo
   }
 }
 
-object lib {
+object libObj {
   const val MILLIS_IN_SECOND = 1000.0
   val time get() = TimeStamp(Common.timeMs)
   val sinceStart get() = time-createTime
@@ -72,23 +73,25 @@ object lib {
     }
   }
 
-  object log {
+  val log = logObj
+
+  object logObj {
     enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, MEASURE, DEBUG, BREAKPOINT}
 
     private inline fun handleThrowable(t:Throwable?) {
       if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
     }
-    fun todo(str:String):Nothing {
+    fun todo(str:CharSequence):Nothing {
       _log(str,LogMode.TODO)
       throw Throwable("${LogMode.TODO}: $str")
     }
-    fun fatalError(message:String,t:Throwable? = null):Nothing {
+    fun fatalError(message:CharSequence,t:Throwable? = null):Nothing {
       _log(message,LogMode.FATAL_ERROR, 2)
       handleThrowable(t)
       throw Throwable("${LogMode.FATAL_ERROR}: $message")
     }
 
-    fun error(message:String,t:Throwable? = null) {
+    fun error(message:CharSequence,t:Throwable? = null) {
       _log(message,LogMode.ERROR)
       handleThrowable(t)
     }
@@ -120,18 +123,18 @@ object lib {
     }/1e9
     measurements.getOrPut(hashTag) {Measure()}.add(value)
 
-    if(lib.time > previousMeasurePrint + Duration(10_000)) {
-      previousMeasurePrint = lib.time
-      lib.log._println("measure: ")
+    if(time > previousMeasurePrint + Duration(10_000)) {
+      previousMeasurePrint = time
+      log._println("measure: ")
       measurements.entries.forEach {
-        lib.log._println("#${it.key}: ${it.value}")
+        log._println("#${it.key}: ${it.value}")
       }
 
     }
     return result!!
   }
 
-  var previousMeasurePrint = lib.time
+  var previousMeasurePrint = time
   val measurements:MutableMap<String, Measure> = mutableMapOf()
 
   class Measure{
@@ -158,7 +161,18 @@ object lib {
     }
   }
 
-  object Fun {
+  inline fun saveInvoke(lambda:()->Unit) {
+    saveInvoke<Unit>(lambda)
+  }
+  inline fun <T> saveInvoke(lambda:()->T):T? = try {
+    lambda()
+  } catch(e:Throwable) {
+    log.error("save invoke fail",e); null
+  }
+
+  val Fun = FunObj
+
+  object FunObj {
     fun arg0toInf(y:Double,middle:Double) = y/middle/(1+y/middle)
     fun arg0toInf(y:Long,middle:Long) = arg0toInf(y.toDouble(), middle.toDouble())
     fun arg0toInf(y:Int,middle:Int) = arg0toInf(y.toDouble(), middle.toDouble())

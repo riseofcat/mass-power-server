@@ -36,7 +36,16 @@ class ClientModel(conf:Conf) {
 
   val latency:Duration get() = recommendendLatency?: Duration(150)
   val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
-  fun calcDisplayState():State? = getState(realtimeTick)
+
+  val start = lib.time
+  var moves:Int = 0
+  fun calcDisplayState():State? {
+    if(false) if(Duration(300)*moves < lib.time - start) {//Временный код для тестирования производительности
+      move(degreesAngle(45))
+      moves++
+    }
+    return getState(realtimeTick)
+  }
   fun ready() = welcome!=null
   val meAlive get() = lib.measure("meAlive"){getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false}
   fun move(direction:Angle) = synchronized(this) {

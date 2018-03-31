@@ -37,7 +37,7 @@ interface EatMe:SpeedObject { var size:Int }
     val size = car.size/15+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
     state.reactive.add(Reactive(id,size,(direction+degreesAngle(180)).xy(300.0),car.pos.copy(), state.tick.copy()))
-    repeat(100){
+    if(false)repeat(50){//Для тетсирования производительности
       state.reactive.add(Reactive(id,size,(degreesAngle(state.rnd(360))).xy(300.0),car.pos.copy(), state.tick.copy()))}
   }
 }

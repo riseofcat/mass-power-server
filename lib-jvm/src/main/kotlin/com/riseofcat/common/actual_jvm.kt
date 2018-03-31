@@ -91,6 +91,9 @@ actual class Common {
     }
 
     actual fun measureNanoTime(block:()->Unit):Long = kotlin.system.measureNanoTime(block)
+    actual fun urlGet(url:String):String {
+      TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
   }
 }
 
