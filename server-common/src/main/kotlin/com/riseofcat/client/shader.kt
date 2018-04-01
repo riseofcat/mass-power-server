@@ -35,8 +35,8 @@ const val shader_background_stars_frag = """
     precision highp int;
 #endif
 uniform float time;
-vec2 resolution = vec2(400.0, 400.0);//todo uniform
-vec2 mouse = vec2(0.0,0.0);//todo uniform
+uniform vec2 resolution;// = vec2(400.0, 400.0);
+uniform vec2 mouse;// = vec2(0.0,0.0);
 #define VOLSTEPS 2//количество слоёв
 //От 0.2 до 1.0
 //Важный параметр

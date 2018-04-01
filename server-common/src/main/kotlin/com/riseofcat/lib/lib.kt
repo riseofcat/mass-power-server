@@ -78,7 +78,7 @@ object libObj {
   object logObj {
     enum class LogMode { TODO, FATAL_ERROR, ERROR, INFO, MEASURE, DEBUG, BREAKPOINT}
 
-    private inline fun handleThrowable(t:Throwable?) {
+    private fun handleThrowable(t:Throwable?) {
       if(t!=null) Common.getStackTraceString(t)?.let {_println(it)}
     }
     fun todo(str:CharSequence):Nothing {
@@ -86,13 +86,13 @@ object libObj {
       throw Throwable("${LogMode.TODO}: $str")
     }
     fun fatalError(message:CharSequence,t:Throwable? = null):Nothing {
-      _log(message,LogMode.FATAL_ERROR, 2)
+      _log(message,LogMode.FATAL_ERROR, 3)
       handleThrowable(t)
       throw Throwable("${LogMode.FATAL_ERROR}: $message")
     }
 
     fun error(message:CharSequence,t:Throwable? = null) {
-      _log(message,LogMode.ERROR)
+      _log(message,LogMode.ERROR, 3)
       handleThrowable(t)
     }
 

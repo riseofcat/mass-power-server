@@ -47,6 +47,7 @@ class ClientModel(conf:Conf) {
     return getState(realtimeTick)
   }
   fun ready() = welcome!=null
+  val myCar:Car? get() = getState(realtimeTick)?.cars?.firstOrNull {it.owner == welcome?.id}
   val meAlive get() = lib.measure("meAlive"){getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false}
   fun move(direction:Angle) = synchronized(this) {
     if(!ready()) return
@@ -101,6 +102,20 @@ class ClientModel(conf:Conf) {
         }
       }
     }
+  }
+
+  fun calcRenderXY(state:State,pos:XY, center:XY):XY {
+    var x = pos.x
+    val dx = center.x-x
+    if(dx>state.width/2)
+      x += state.width
+    else if(dx<-state.width/2) x -= state.width
+    var y = pos.y
+    val dy = center.y-y
+    if(dy>state.height/2)
+      y += state.height
+    else if(dy<-state.height/2) y -= state.height
+    return XY(x,y)
   }
 }
 
