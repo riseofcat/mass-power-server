@@ -10,9 +10,9 @@ object GameConst {
   val MIN_SIZE = 20
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 20
-  val BASE_WIDTH = 1000
-  val BASE_HEIGHT = 1000
+  val FOODS = 100
+  val BASE_WIDTH = 2000
+  val BASE_HEIGHT = 2000
   val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(60)
 }

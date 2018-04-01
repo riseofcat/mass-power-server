@@ -28,15 +28,19 @@ void main(){
     gl_Position =  u_projTrans * a_position;
 }
 """
+//В шейдерах писать только ASCII символы //todo сделать extension String.removeNonAscii() для удаления не ASCII символов
 //language=GLSL
 const val shader_background_stars_frag = """
+#version 100 //todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
 #ifdef GL_ES
-    precision highp float;
-    precision highp int;
+    precision highp float;//todo uniform mouse не дает выставить общую точность lowp
+    precision lowp int;
+#else
+#define highp;//todo test on non GL ES devices
 #endif
 uniform float time;
-uniform vec2 resolution;// = vec2(400.0, 400.0);
-uniform vec2 mouse;// = vec2(0.0,0.0);
+uniform vec2 resolution;// = vec2(400.0, 400.0);//todo int? lowp?? протестировать на больших экранах
+uniform /*highp*/ vec2 mouse;// = vec2(0.0,0.0);
 #define VOLSTEPS 2//количество слоёв
 //От 0.2 до 1.0
 //Важный параметр
@@ -151,16 +155,13 @@ void main (void)
   //vec3 rainbow = getrainbow(p.xy+offset*30.0,11.0)*0.1;
   //gl_FragColor = vec4(rainbow, 1.0);
 
-
   gl_FragColor = vec4(color, 1.0);//1
   //float r = 1.0 - (1.0 - color.r) * (1.0 - rainbow.r);//2
   //float g = 1.0 - (1.0 - color.g) * (1.0 - rainbow.g);//2
   //float b = 1.0 - (1.0 - color.b) * (1.0 - rainbow.b);//2
   //gl_FragColor = vec4(r, g, b, 1.0);//2
 
-
-  //todo test:
-  //gl_FragColor = vec4(BlendScreen(color.rgb, rainbow), 1.0);
+  //gl_FragColor = vec4(BlendScreen(color.rgb, rainbow), 1.0);//test?
 }
 """
 //language=GLSL
@@ -171,7 +172,6 @@ precision mediump int;
 #else
 #define highp;
 #endif
-
 
 varying vec4 v_color;
 varying vec2 v_texCoord;
