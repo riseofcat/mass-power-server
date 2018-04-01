@@ -22,7 +22,7 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
     if(say.pong) {
       val pingDelay = Duration(1)+(lib.time-s.lastPing)/2
       s.pingDelay = pingDelay
-      session send ServerSay(pingDelay = pingDelay)
+      session send ServerSay(pingDelay = pingDelay, serverTime = lib.time)
     }
     if(say.payload!=null) server.message(s,say.payload!!)
   }
@@ -45,7 +45,7 @@ class PingDecorator<C,S>(private val server:SesServ<C,S>,private val pingInterva
           lastPing = lib.time
           true
         } else false
-      sess.send(ServerSay(payload,null,ping))
+      sess.send(ServerSay(payload,ping = ping))
     }
   }
 

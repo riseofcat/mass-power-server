@@ -103,20 +103,6 @@ class ClientModel(conf:Conf) {
       }
     }
   }
-
-  fun calcRenderXY(state:State,pos:XY, center:XY):XY {
-    var x = pos.x
-    val dx = center.x-x
-    if(dx>state.width/2)
-      x += state.width
-    else if(dx<-state.width/2) x -= state.width
-    var y = pos.y
-    val dy = center.y-y
-    if(dy>state.height/2)
-      y += state.height
-    else if(dy<-state.height/2) y -= state.height
-    return XY(x,y)
-  }
 }
 
 fun ClientModel.touch(pos:XY) {
@@ -133,4 +119,18 @@ fun ClientModel.touch(pos:XY) {
   } else {
     newCar()
   }
+}
+
+fun calcRenderXY(state:State,pos:XY, center:XY):XY {
+  var x = pos.x
+  val dx = center.x-x
+  if(dx>state.width/2)
+    x += state.width
+  else if(dx<-state.width/2) x -= state.width
+  var y = pos.y
+  val dy = center.y-y
+  if(dy>state.height/2)
+    y += state.height
+  else if(dy<-state.height/2) y -= state.height
+  return XY(x,y)
 }

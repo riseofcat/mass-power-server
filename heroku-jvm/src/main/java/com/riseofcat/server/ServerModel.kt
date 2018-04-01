@@ -12,8 +12,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   private var previousStableUpdate:TimeStamp = lib.time
 
   val realtimeTick get() = Tick((lib.time - room.createTime)/GameConst.UPDATE)
-  //todo averageLatency считать умнее
-  val averageLatency get() = room.getPlayers().sumByDuration{it.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay?: Duration(150)}/room.getPlayers().size
+  val averageLatency get() = room.getPlayers().averageSqrt{it.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay?.sd}?.let {Duration((it*1000).toLong())}
   val recommendedLatency get() = averageLatency*2
   val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
   val maxDelay get() = recommendedDelay*2

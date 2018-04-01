@@ -11,10 +11,6 @@ import kotlinx.serialization.*
 @Serializable class ServerSay<T>(
   @Optional val payload:T? = null,
   @Optional val pingDelay:Duration? = null,
-  @Optional val ping:Boolean = false,
-  @Optional val welcome:Welcome? = null
-)
-
-@Serializable data class Welcome(
-  val serverTime:TimeStamp
+  @Optional val serverTime:TimeStamp? = null,
+  @Optional val ping:Boolean = false
 )

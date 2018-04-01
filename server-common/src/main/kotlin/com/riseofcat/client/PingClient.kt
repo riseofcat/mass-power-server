@@ -10,7 +10,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
   private val pingDelays:MutableList<PingDelay> = Common.createConcurrentList()//todo queue
-  private var welcome:ClientWelcome?=null
+  private val timeSync:MutableList<TimeSync> = Common.createConcurrentList()//todo queue
 
   val lastPingDelay get() = pingDelays.lastOrNull()?.pingDelay
   val smartPingDelay get():Duration {
@@ -33,8 +33,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   val serverTime:TimeStamp get() {//todo потестировать перевод времени
     var result = lib.time
-    welcome?.run {
-      result += server.serverTime - clientTime + smartPingDelay
+    timeSync.lastOrNull()?.run {
+      result += server - client + smartPingDelay
     }
     return result
   }
@@ -58,7 +58,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
           lib.log.fatalError("serverSay parse", t)
         }
 
-        if(serverSay.welcome != null) welcome = ClientWelcome(serverSay.welcome, lib.time)
+        if(serverSay.serverTime!=null) timeSync.add(TimeSync(serverSay.serverTime,lib.time))
         if(serverSay.pingDelay!=null) {
           pingDelays.add(PingDelay(serverSay.pingDelay,lib.time))
           while(pingDelays.size>20) pingDelays.removeFirst()//todo queue
@@ -100,5 +100,4 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private class PingDelay(val pingDelay:Duration, val clientTime:TimeStamp)
 }
-
-data class ClientWelcome(val server:Welcome, val clientTime:TimeStamp)
+data class TimeSync(val server:TimeStamp, val client:TimeStamp)

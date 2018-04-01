@@ -34,6 +34,17 @@ operator fun Tick.times(d:Duration):Duration = d * this
 operator fun Time.compareTo(time:Time):Int = ms.compareTo(time.ms)
 operator fun Time.div(t:Time) = ms/t.ms
 
+fun <E> Collection<E>.averageSqrt(selector:(E) -> Double?):Double {
+  var result = 0.0
+  forEach {
+    val v = selector(it)
+    if(v != null) {
+      result+=v*v
+    }
+  }
+  return kotlin.math.sqrt(result)/size
+}
+
 fun <E> Collection<E>.sumByDuration(selector:(E) -> Duration):Duration {
   var result = Duration(0)
   forEach {result+=selector(it)}
