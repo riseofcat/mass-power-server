@@ -31,7 +31,8 @@ void main(){
 //В шейдерах писать только ASCII символы //todo сделать extension String.removeNonAscii() для удаления не ASCII символов
 //language=GLSL
 const val shader_background_stars_frag = """
-#version 100 //todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
+#version 100
+//todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
 #ifdef GL_ES
     precision highp float;//todo uniform mouse не дает выставить общую точность lowp
     precision lowp int;
@@ -161,7 +162,7 @@ void main (void)
   //float b = 1.0 - (1.0 - color.b) * (1.0 - rainbow.b);//2
   //gl_FragColor = vec4(r, g, b, 1.0);//2
 
-  //gl_FragColor = vec4(BlendScreen(color.rgb, rainbow), 1.0);//test?
+  //gl_FragColor = vec4(BlendScreen(color.rgb, rainbow), 1.0);//test or not
 }
 """
 //language=GLSL
