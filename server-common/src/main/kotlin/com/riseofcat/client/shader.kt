@@ -34,12 +34,12 @@ const val shader_background_stars_frag = """
 #version 100
 //todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
 #ifdef GL_ES
-    precision highp float;//todo uniform mouse не дает выставить общую точность lowp
+    precision highp float;//todo uniform mouse не дает выставить общую точность lowp и даже mediump
     precision lowp int;
 #else
 #define highp;//todo test on non GL ES devices
 #endif
-uniform float time;
+uniform mediump float time;
 uniform vec2 resolution;// = vec2(400.0, 400.0);//todo int? lowp?? протестировать на больших экранах
 uniform /*highp*/ vec2 mouse;// = vec2(0.0,0.0);
 #define VOLSTEPS 2//количество слоёв
