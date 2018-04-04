@@ -28,6 +28,7 @@ operator fun Tick.times(scl:Double) = Tick((tick * scl).toInt())
 }
 
 @Serializable class ServerPayload(
+  val stableTick:Tick,
   @Optional val welcome:Welcome? = null,
   @Optional val stable:State? = null,
   @Optional var actions:List<AllCommand> = mutableListOf(),

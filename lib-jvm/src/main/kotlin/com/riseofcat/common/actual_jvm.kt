@@ -98,3 +98,4 @@ actual class Common {
 }
 
 val StackTraceElement.prettyString:CharSequence get() = "\t$className-$methodName ($fileName:$lineNumber)"
+fun rnd(min:Int,max:Int) = (min+Math.random()*(max-min+1)).toInt()

@@ -5,14 +5,16 @@ import kotlinx.serialization.*
 import kotlin.math.*
 
 object GameConst {
+  val CHANGE_SIZE=200
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 50
-  val BASE_WIDTH = 2000
-  val BASE_HEIGHT = 2000
+  val FOODS = 150
+  val FOOD_PER_CAR = 20
+  val BASE_WIDTH = 2000.0
+  val BASE_HEIGHT = 2000.0
   val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(60)
 }
@@ -24,8 +26,14 @@ interface EatMe:SpeedObject { var size:Int }
 
 @Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
-    state.changeSize(100)
-    state.cars.add(Car(id,GameConst.MIN_SIZE*6,XY(),XY()))
+    if(state.cars.none{it.owner == id}) {
+      state.cars.add(Car(
+        id,
+        GameConst.MIN_SIZE*6,
+        speed = XY(),
+        pos = XY(state.rnd(0, state.width.toInt()).toDouble(), state.rnd(0, state.height.toInt()).toDouble())//todo проверить чтобы равномерно добавлялись новые машины (чтобы не было фантомных появлений из за случайного random-а)
+      ))
+    }
   }
 }
 @Serializable class MoveCommand(
@@ -62,7 +70,7 @@ inline val Angle.cos get() = cos(radians)
 @Serializable data class Car(
   var owner:PlayerId,
   override var size:Int,
-  override var speed:XY,
+  override var speed:XY,//todo speed and pos change order
   override var pos:XY):EatMe
 @Serializable data class Food(
   override var size:Int,
@@ -79,9 +87,15 @@ inline val Angle.cos get() = cos(radians)
   @Optional val foods:MutableList<Food> = mutableListOf(),
   @Optional val reactive:MutableList<Reactive> = mutableListOf(),
   var random:Int = 0,
-  var size:Double = 0.0,
+  var size:Int = 0,
   var tick:Tick = Tick(0))
-
+fun State.deepCopy() = lib.measure("State.deepCopy") {
+  copy(
+    cars = cars.map {it.copy()}.toMutableList()
+    ,reactive = reactive.map {it.copy()}.toMutableList()
+    ,foods = foods.map {it.copy()}.toMutableList()//todo Если не делать такое копирование для food то странно применяются 2-3 действия подряд когда кушаем. Сначала уменьшается резко, потом увеличивается.
+  )
+}
 @Serializable data class PlayerId(var id:Int)
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
@@ -150,11 +164,22 @@ fun State.tick() = lib.measure("tick") {
       if(handleCarsDestroy) copy rm del
     }
   }
-  if(foods.size<GameConst.FOODS) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
-}
+  while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
 
-val State.width get() = GameConst.BASE_WIDTH+size
-val State.height get() = GameConst.BASE_HEIGHT+size
+  if(tick.tick%10 == 0 && targetSize != size) {//todo делать плавно в несколько тиков
+    //todo проверить чтобы координаты менялись равномерно
+    val oldW = width
+    val oldH = height
+    size = targetSize
+    (cars + reactive + foods).forEach {p -> p.pos mscale XY(width/oldW,height/oldH)}
+  }
+}
+val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
+val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE
+val widthCache:MutableMap<Int, Double> = mutableMapOf()
+val heightCache:MutableMap<Int, Double> = mutableMapOf()
+val State.width get() = widthCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_WIDTH*GameConst.BASE_WIDTH + size*size)}
+val State.height get() = heightCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_HEIGHT*GameConst.BASE_HEIGHT + size*size)}
 fun State.distance(a:XY,b:XY):Double {
   var dx = min(abs(b.x-a.x),b.x+width-a.x)
   dx = min(dx,a.x+width-b.x)
@@ -166,15 +191,9 @@ fun State.rnd(min:Int,max:Int):Int {
   random = random*1664525+1013904223 and 0x7fffffff
   return min+random%(max-min+1)
 }
-fun State.rnd(max:Int) = rnd(0,max)//todo рандом повторяется
+fun State.rnd(max:Int) = rnd(0,max)
 fun State.rnd(min:Double = 0.0,max:Double = 1.0) = min+rnd(999)/1000f*(max-min)//todo optimize
 fun State.rndPos() = XY(rnd(width),rnd(height))
-fun State.changeSize(delta:Int) {
-  val oldW = width
-  val oldH = height
-  size += delta
-  (cars + reactive + foods).forEach {p -> p.pos mscale XY(width/oldW,height/oldH)}
-}
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}

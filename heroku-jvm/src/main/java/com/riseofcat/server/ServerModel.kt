@@ -5,7 +5,7 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
 class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
-  val STABLE_STATE_UPDATE:Duration? = Duration(10_000)
+  val STABLE_STATE_UPDATE:Duration? = null//Duration(10_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
   private val state = State()
   private var commands:MutableList<CommandAndVersion> = Common.createConcurrentList()
   private val mapPlayerVersion = Common.createConcurrentHashMap<PlayerId,Int>()
@@ -31,52 +31,58 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     }
     room.onMessage.add {message->
       updateGame()
-      redundantSynchronize(this@ServerModel) {
-        for(a in message.payload.actions) {
-          if(a.tick<=state.tick-removeAfterDelay){
-            continue//Команда игнорируется
+      lib.measure("room.onMessage") {
+        redundantSynchronize(this@ServerModel) {
+          for(a in message.payload.actions) {
+            if(a.tick<=state.tick-removeAfterDelay){
+              continue//Команда игнорируется
+            }
+            val t = if(a.tick>=state.tick) a.tick else state.tick
+            val allCmd = AllCommand(t,message.player.id)
+            if(a.newCar) {//todo валидировать клиента (но уже наверное на тиках в стейте)
+              allCmd.newCarCmd = NewCarCommand(message.player.id)
+            }
+            val moveDirection = a.moveDirection
+            if(moveDirection!= null) {
+              allCmd.moveCmd = MoveCommand(message.player.id,moveDirection)
+            }
+            commands.add(CommandAndVersion(allCmd))
           }
-          val t = if(a.tick>=state.tick) a.tick else state.tick
-          val allCmd = AllCommand(t,message.player.id)
-          if(a.newCar) {//todo валидировать клиента (но уже наверное на тиках в стейте)
-            allCmd.newCarCmd = NewCarCommand(message.player.id)
-          }
-          val moveDirection = a.moveDirection
-          if(moveDirection!= null) {
-            allCmd.moveCmd = MoveCommand(message.player.id,moveDirection)
-          }
-          commands.add(CommandAndVersion(allCmd))
+          val payload = ServerPayload(state.tick, recommendedLatency = recommendedLatency)
+          updatePlayerInPayload(payload,message.player)
+          message.player.session.send(payload)
         }
-        val payload = ServerPayload(recommendedLatency = recommendedLatency)
-        updatePlayerInPayload(payload,message.player)
-        message.player.session.send(payload)
       }
-      for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
+      lib.measure("updatePlayers") {
+        for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
+      }
     }
   }
 
   private fun updateGame() {
-    fun condition() = state.tick<realtimeTick-maxDelay
-    if(!condition()) return
+    lib.measure("updateGame") {
+      fun condition() = state.tick<realtimeTick-maxDelay
+      if(!condition()) return@measure
 
-    val test = true//todo test performance
-    synchronized(this@ServerModel) {
-      while(condition()) {
-        state act commands.map {it.command}.filter {it.tick==state.tick}.iterator()
-        if(!test)commands.removeAll {it.command.tick==state.tick}
-        state.tick()
-      }
-      if(test)commands.removeAll {it.command.tick<state.tick}
+      val test = true//todo test performance
+      synchronized(this@ServerModel) {
+        while(condition()) {
+          state act commands.map {it.command}.filter {it.tick==state.tick}.iterator()
+          if(!test)commands.removeAll {it.command.tick==state.tick}
+          state.tick()
+        }
+        if(test)commands.removeAll {it.command.tick<state.tick}
 
-      if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
-        previousStableUpdate = lib.time
-        for(player in room.getPlayers()) player.session.send(createStablePayload())
+        if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
+          previousStableUpdate = lib.time
+          for(player in room.getPlayers()) player.session.send(createStablePayload())
+        }
       }
     }
   }
 
   private fun updatePlayer(p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-    val payload = ServerPayload()
+    val payload = ServerPayload(state.tick)
     updatePlayerInPayload(payload,p)
     p.session.send(payload)
   }
@@ -96,6 +102,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   @Volatile private var previousActionsVersion = 0//todo почитать про volatile в Kotlin
 
   internal fun createStablePayload(welcome:Welcome?=null):ServerPayload = ServerPayload(
+    stableTick = state.tick,
     welcome =  welcome,
     stable = state,
     recommendedLatency = recommendedLatency

@@ -5,13 +5,14 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
 class ClientModel(conf:Conf) {
+  val FREEZE_TICKS = Tick(Duration(1000)/GameConst.UPDATE+1)//todo сделать плавное ускорение времени после фриза?
   val CACHE = true
   val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
   private val actions:MutableList<AllCommand> = Common.createConcurrentList()
   private val myLocal:MutableList<AllCommand> = mutableListOf()//todo избавиться от myLocal
   private var stable:StateWrapper = StateWrapper(State())
   val playerName get() = welcome?.id?.let {"Player $it"} ?: "Wait connection..."
-  var welcome:Welcome?=null//todo lateinit? //todo Может сделать что если приходит новый Welcome, то игрока перевели в другую комнату
+  var welcome:Welcome?=null//todo lateinit?
   var recommendendLatency:Duration?=null
 
   init {
@@ -23,13 +24,18 @@ class ClientModel(conf:Conf) {
           stable = StateWrapper(s.stable)
           clearCache()
         }
+        actions.removeAll {it.tick<stable._state.tick}//todo оптимизировать
         actions.addAll(s.actions)
-        actions.sortBy {it.tick}
+        actions.sortBy {it.tick}//todo оптимизировать
 
         val myMaxApplyTick:Tick = s.actions.filter {it.pid==welcome?.id}.map {it.tick}.max()?:Tick(0)//Последний tick который принял сервер от этого игрока
         myLocal.removeAll {it.tick <= myMaxApplyTick}
-        val serverMinApplyTick:Tick = s.actions.map{it.tick}.min()?:Tick(0)
-        clearCache(serverMinApplyTick)
+        val serverMinApplyTick:Tick? = s.actions.map{it.tick}.min()
+        stable.tick(s.stableTick)
+        if(serverMinApplyTick != null) {
+          clearCache(serverMinApplyTick)
+        }
+        actions.removeAll {it.tick<stable._state.tick}//todo оптимизировать
       }
     }
   }
@@ -40,11 +46,11 @@ class ClientModel(conf:Conf) {
   val start = lib.time
   var moves:Int = 0
   fun calcDisplayState():State? {
-    if(false) if(Duration(300)*moves < lib.time - start) {//Временный код для тестирования производительности
-      move(degreesAngle(45))
-      moves++
-    }
-    return getState(realtimeTick)
+//    if(false) if(Duration(300)*moves < lib.time - start) {//Временный код для тестирования производительности
+//      move(degreesAngle(45))
+//      moves++
+//    }
+    return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
   fun ready() = welcome!=null
   val myCar:Car? get() = getState(realtimeTick)?.cars?.firstOrNull {it.owner == welcome?.id}
@@ -72,12 +78,13 @@ class ClientModel(conf:Conf) {
     client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
   }
   fun dispose() { client.close() }
-
-  private var cache:StateWrapper? = null
-  private fun clearCache(tick:Tick = Tick(0)) = cache?.let {if(tick<=it._state.tick) cache = null}
+  private var cache:StateWrapper? = null//todo рендерить немного прошлое для лагающих клиентов тогда кэш реже надо будет сбрасывать
+  private fun clearCache(tick:Tick = Tick(0)) {
+    cache?.let {if(tick<=it._state.tick) cache = null}
+  }
   private fun saveCache(value:StateWrapper) { cache = value }
   private fun getNearestCache(tick:Tick):StateWrapper? = if(CACHE) _getNearestCache(tick) else null
-  private fun _getNearestCache(tick:Tick) = cache?.let {if(tick>=it._state.tick) it else null}
+  private fun _getNearestCache(tick:Tick) = cache?.let {if(tick+FREEZE_TICKS>=it._state.tick) it else null}
   private fun getState(tick:Tick):State? {
     var result = getNearestCache(tick)
     if(result==null) {

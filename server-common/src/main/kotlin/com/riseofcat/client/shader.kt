@@ -30,9 +30,10 @@ void main(){
 """
 //В шейдерах писать только ASCII символы //todo сделать extension String.removeNonAscii() для удаления не ASCII символов
 //language=GLSL
+// todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
+// todo попробовать поставить verison 101 и посмотреть на телефоне
 const val shader_background_stars_frag = """
 #version 100
-//todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
 #ifdef GL_ES
     precision highp float;//todo uniform mouse не дает выставить общую точность lowp и даже mediump
     precision lowp int;
@@ -178,9 +179,9 @@ varying vec4 v_color;
 varying vec2 v_texCoord;
 
 uniform sampler2D u_texture;
-/*uniform*/ float resolution = 800.0;//width
-/*uniform*/ float radius = 5.0;
-/*uniform*/ vec2 dir = vec2(1.0, 0.0);//Этот шейдер расчитан на то чтобы сначала рендерить в один frame buffer с блюром по горизонтально например (dir = vec2(1.0,0.0)), а потом этот frame buffer рендерить вертикально dir=vec2(0.0,1.0)
+uniform float resolution = 800.0;//width
+uniform float radius = 5.0;
+uniform vec2 dir = vec2(1.0, 0.0);//Этот шейдер расчитан на то чтобы сначала рендерить в один frame buffer с блюром по горизонтально например (dir = vec2(1.0,0.0)), а потом этот frame buffer рендерить вертикально dir=vec2(0.0,1.0)
 
 void main() {
 	vec4 sum = vec4(0.0);
