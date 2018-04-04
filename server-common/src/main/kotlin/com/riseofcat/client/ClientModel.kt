@@ -4,14 +4,14 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-class ClientModel(conf:Conf) {
+class ClientModel(conf:Conf):IClientModel {
   val FREEZE_TICKS = Tick(Duration(1000)/GameConst.UPDATE+1)//todo сделать плавное ускорение времени после фриза?
   val CACHE = true
   val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
   private val actions:MutableList<AllCommand> = Common.createConcurrentList()
   private val myLocal:MutableList<AllCommand> = mutableListOf()//todo избавиться от myLocal
   private var stable:StateWrapper = StateWrapper(State())
-  val playerName get() = welcome?.id?.let {"Player $it"} ?: "Wait connection..."
+  override val playerName get() = welcome?.id?.let {"Player $it"} ?: "Wait connection..."
   var welcome:Welcome?=null//todo lateinit?
   var recommendendLatency:Duration?=null
 
@@ -52,10 +52,10 @@ class ClientModel(conf:Conf) {
 //    }
     return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
-  fun ready() = welcome!=null
+  override fun ready() = welcome!=null
   val myCar:Car? get() = getState(realtimeTick)?.cars?.firstOrNull {it.owner == welcome?.id}
   val meAlive get() = lib.measure("meAlive"){getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false}
-  fun move(direction:Angle) = synchronized(this) {
+  override fun move(direction:Angle) = synchronized(this) {
     if(!ready()) return
     val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
     val a = ClientPayload.ClientAction(tick = t)
@@ -66,7 +66,7 @@ class ClientModel(conf:Conf) {
     }
     client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
   }
-  fun newCar() = synchronized(this) {//todo дублирование кода
+  override fun newCar() = synchronized(this) {//todo дублирование кода
     if(!ready()) return
     val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
     val a = ClientPayload.ClientAction(tick = t)
@@ -77,7 +77,7 @@ class ClientModel(conf:Conf) {
     }
     client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
   }
-  fun dispose() { client.close() }
+  override fun dispose() { client.close() }
   private var cache:StateWrapper? = null//todo рендерить немного прошлое для лагающих клиентов тогда кэш реже надо будет сбрасывать
   private fun clearCache(tick:Tick = Tick(0)) {
     cache?.let {if(tick<=it._state.tick) cache = null}
