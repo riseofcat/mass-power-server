@@ -29,20 +29,20 @@ void main(){
 }
 """
 //В шейдерах писать только ASCII символы //todo сделать extension String.removeNonAscii() для удаления не ASCII символов
-//language=GLSL
-// todo на linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
+// todo на Desktop не работает #version 100
+// todo на браузер linux yoga нельзя выставить 101. Узнать разницу API между 100 и 101
 // todo попробовать поставить verison 101 и посмотреть на телефоне
+//language=GLSL
 const val shader_background_stars_frag = """
-#version 100
 #ifdef GL_ES
-    precision highp float;//todo uniform mouse не дает выставить общую точность lowp и даже mediump
+    precision highp float;//todo lowp
     precision lowp int;
 #else
 #define highp;//todo test on non GL ES devices
 #endif
-uniform mediump float time;
+uniform float time;//todo mediump
 uniform vec2 resolution;// = vec2(400.0, 400.0);//todo int? lowp?? протестировать на больших экранах
-uniform /*highp*/ vec2 mouse;// = vec2(0.0,0.0);
+uniform vec2 mouse;//todo highp, потомучто uniform mediump mouse не дает выставить нормальную точность
 #define VOLSTEPS 2//количество слоёв
 //От 0.2 до 1.0
 //Важный параметр
