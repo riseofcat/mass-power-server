@@ -53,7 +53,7 @@ class ClientModel(conf:Conf):IClientModel {
     return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
   override fun ready() = welcome!=null
-  val myCar:Car? get() = getState(realtimeTick)?.cars?.firstOrNull {it.owner == welcome?.id}
+  val myCar:Car? get() = calcDisplayState()?.cars?.firstOrNull {it.owner == welcome?.id}
   val meAlive get() = lib.measure("meAlive"){getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false}
   override fun move(direction:Angle) = synchronized(this) {
     if(!ready()) return
@@ -113,16 +113,10 @@ class ClientModel(conf:Conf):IClientModel {
 }
 
 fun ClientModel.touch(pos:XY) {
-  val displayState = calcDisplayState()
-  if(displayState==null||welcome==null) return
-  if(meAlive) {
-    for((owner,_,_,pos1) in displayState.cars) {
-      if(welcome?.id==owner) {
-        val direction = (pos - pos1).calcAngle() + degreesAngle(0*180)
-        move(direction)
-        break
-      }
-    }
+  val car = myCar
+  if(car != null) {
+    val direction = (pos - car.pos).calcAngle() + degreesAngle(0*180)
+    move(direction)
   } else {
     newCar()
   }

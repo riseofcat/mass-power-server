@@ -10,6 +10,7 @@ object GameConst {
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
+  val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
   val FOODS = 150
@@ -30,9 +31,9 @@ interface EatMe:SpeedObject { var size:Int }
     if(state.cars.none{it.owner == id}) {
       state.cars.add(Car(
         id,
-        GameConst.MIN_SIZE*6,
+        GameConst.DEFAULT_CAR_SIZE,
         speed = XY(),
-        pos = XY(state.rnd(0, state.width.toInt()).toDouble(), state.rnd(0, state.height.toInt()).toDouble())//todo проверить чтобы равномерно добавлялись новые машины (чтобы не было фантомных появлений из за случайного random-а)
+        pos = XY(state.rnd(0, state.width.toInt()).toDouble(), state.rnd(0, state.height.toInt()).toDouble())//todo проверить чтобы равномерно добавлялись новые машины (чтобы не было фантомных появлений из за случайного random-а), можно завести второй счётчик рандома под появление новых машин
       ))
     }
   }
@@ -101,7 +102,8 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
 }
-val EatMe.radius get() = (sqrt(size.toDouble())*5f).toFloat()+GameConst.MIN_RADIUS
+val EatMe.radius get() = size.radius
+val Int.radius get():Float = GameConst.MIN_RADIUS + 5*sqrt(this.toDouble()).toFloat()
 fun degreesAngle(degrees:Int) = Angle(degrees/180.0*PI)
 infix fun State.act(actions:Iterator<ICommand>):State {
   actions.forEach {it.act(this)}

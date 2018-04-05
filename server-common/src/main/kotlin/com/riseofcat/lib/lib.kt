@@ -185,6 +185,7 @@ object libObj {
 
   object FunObj {
     fun arg0toInf(y:Double,middle:Double) = y/middle/(1+y/middle)
+    fun arg0toInf(y:Float,middle:Float) = y/middle/(1+y/middle)
     fun arg0toInf(y:Long,middle:Long) = arg0toInf(y.toDouble(), middle.toDouble())
     fun arg0toInf(y:Int,middle:Int) = arg0toInf(y.toDouble(), middle.toDouble())
     fun arg0toInf(y:Time,middle:Time) = arg0toInf(y.ms, middle.ms)
