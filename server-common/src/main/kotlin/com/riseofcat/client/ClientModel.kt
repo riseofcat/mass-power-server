@@ -4,10 +4,19 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-class ClientModel(conf:Conf):IClientModel {
+class ClientModel(conf:Conf, fake:Boolean=false):IClientModel {
   val FREEZE_TICKS = Tick(Duration(1000)/GameConst.UPDATE+1)//todo сделать плавное ускорение времени после фриза?
   val CACHE = true
-  val client:PingClient<ServerPayload,ClientPayload> = PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
+  val client:IPingClient<ServerPayload,ClientPayload> =
+    if(fake) {
+      FakePingClient(ServerPayload(
+        stableTick = Tick(0),
+        welcome = Welcome(PlayerId(1), lib.time),
+        stable = State(mutableListOf(Car(PlayerId(1),20,XY(),XY()))),
+        recommendedLatency = Duration(10)
+      ))
+    } else
+    PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
   private val actions:MutableList<AllCommand> = Common.createConcurrentList()
   private val myLocal:MutableList<AllCommand> = mutableListOf()//todo избавиться от myLocal
   private var stable:StateWrapper = StateWrapper(State())

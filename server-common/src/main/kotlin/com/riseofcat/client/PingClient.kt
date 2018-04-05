@@ -5,7 +5,28 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.ping.*
 import kotlinx.serialization.*
 
-class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>) {
+interface IPingClient<S:Any,C> {
+  val serverTime:TimeStamp
+  val smartPingDelay:Duration
+  fun connect(incomeListener:SignalListener<S>)
+  fun close()
+  fun say(payload:C)
+}
+
+class FakePingClient<S:Any,C>(val connectData:S):IPingClient<S,C> {
+  override val serverTime:TimeStamp get() = lib.time
+  override val smartPingDelay:Duration = Duration(100)
+
+  override fun connect(incomeListener:SignalListener<S>) {
+    incomeListener(connectData)
+  }
+
+  override fun close() {}
+
+  override fun say(payload:C) {}
+}
+
+class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>):IPingClient<S,C> {
   private val incoming = Signal<S>()
   private val socket:LibWebSocket
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
@@ -13,7 +34,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val timeSync:MutableList<TimeSync> = Common.createConcurrentList()//todo queue
 
   val lastPingDelay get() = pingDelays.lastOrNull()?.pingDelay
-  val smartPingDelay get():Duration {
+  override val smartPingDelay get():Duration {
     if(pingDelays.size == 0) return Duration(0)
 
     var sum = Duration(0)
@@ -31,7 +52,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     return sum/weights
   }
 
-  val serverTime:TimeStamp get() {//todo потестировать перевод времени
+  override val serverTime:TimeStamp get() {//todo потестировать перевод времени
     var result = lib.time
     timeSync.lastOrNull()?.run {
       result += server - client + smartPingDelay
@@ -70,7 +91,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     })
   }
 
-  fun connect(incomeListener:SignalListener<S>) {
+  override fun connect(incomeListener:SignalListener<S>) {
     incoming.add(incomeListener)
     try {
       socket.connect()
@@ -79,8 +100,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     }
   }
 
-  fun close() = socket.close()
-  fun say(payload:C) = say(ClientSay<C>(payload = payload))
+  override fun close() = socket.close()
+  override fun say(payload:C) = say(ClientSay<C>(payload = payload))
 
   private fun say(say:ClientSay<C>) {
     if(socket.state == LibWebSocket.State.OPEN)
