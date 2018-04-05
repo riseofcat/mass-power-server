@@ -6,6 +6,7 @@ import kotlinx.serialization.*
 import kotlinx.serialization.cbor.*
 import kotlinx.serialization.internal.*
 import kotlinx.serialization.json.*
+import kotlin.reflect.*
 
 interface Time {
   val ms:Long
@@ -191,8 +192,15 @@ object libObj {
     fun arg0toInf(y:Time,middle:Time) = arg0toInf(y.ms, middle.ms)
     fun pillar(value:Long, max:Long) = if((value/max)%2==0L) { value%max } else { max-value%max }//Имеет график /\/\/\/\
   }
+  fun <T>smoothByTime(lambda:()->Double) = SmoothByTime<T>(lambda)
 }
 
 fun <T> MutableList<T>.copy() = toMutableList()
 inline infix fun <T> MutableList<T>.rm(del:T) = remove(del)
 fun <E> MutableList<E>.removeFirst() = removeAt(0)
+
+class SmoothByTime<T>(val lambda:()->Double) {
+  operator fun getValue(t:T,property:KProperty<*>):Double {
+    return lambda()//todo time
+  }
+}
