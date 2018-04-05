@@ -220,3 +220,83 @@ void main(void) {
 }
 """
 
+//language=GLSL
+const val MASS_POWER_TEXTURE_VERTEX=
+"""
+//Если атрибут в шейдере не используется, то при компиляции он будет вырезан, и могут возникнуть ошибки "enableVertexAttribArray: index out of range"
+attribute float a_center_x;//игровые координаты центра круга
+attribute float a_center_y;
+attribute float a_angle;
+attribute float a_game_radius;//Радиус точки от центра в игровых координатах.
+
+attribute float a_relative_radius;//относительный радиус от [0 до 1] внутри круга и от (1 до inf) вне круга
+
+uniform float u_game_width;
+uniform float u_game_height;
+uniform float u_game_camera_x;
+uniform float u_game_camera_y;
+
+varying lowp vec2 v_textCoord;
+varying lowp float v_distance;//расстояние до круга относительно a_relative_radius. Если 0 то - в круге , если > 0 то точка на растоянии a_relative_radius * v_distance от края круга
+
+void main(void) {
+  v_distance = max(a_relative_radius - 1.0, 0.0);
+  //сейчас из png вырезается элипс, а ещё можно попробовать натягивать прямоугольник, чтобы попадали уголки png
+  v_textCoord = vec2(0.5, 0.5) + vec2(cos(a_angle), sin(a_angle)) * 0.5 * min(a_relative_radius, 1.0);
+  mat2 screenScale = mat2(2.0/u_game_width,       0.0,
+                                0.0,       2.0/u_game_height);
+  vec2 gamePos = /*a_center_pos*/vec2(a_center_x, a_center_y) + vec2(cos(a_angle)*a_game_radius, sin(a_angle)*a_game_radius);
+  gl_Position = vec4(screenScale*(gamePos - vec2(u_game_camera_x, u_game_camera_y)), 1.0, 1.0);
+  }
+"""
+//language=GLSL
+const val MASS_POWER_TEXTURE_FRAG=
+"""
+precision mediump float;//todo lowp
+uniform sampler2D u_sampler;
+varying lowp vec2 v_textCoord;
+varying lowp float v_distance;//todo разобраться с invariant
+void main(void) {
+  gl_FragColor = texture2D(u_sampler, v_textCoord);
+  gl_FragColor.a = gl_FragColor.a / pow(1.0 + v_distance, 6.0);//todo потестировать performance pow() vs деление много раз
+}
+"""
+//language=GLSL
+const val MASS_POWER_FOOD_VERTEX=
+"""
+//Если атрибут в шейдере не используется, то при компиляции он будет вырезан, и могут возникнуть ошибки "enableVertexAttribArray: index out of range"
+attribute float a_center_x;//игровые координаты центра круга
+attribute float a_center_y;
+attribute float a_angle;
+attribute float a_game_radius;//Радиус точки от центра в игровых координатах.
+
+attribute lowp vec4 a_color;
+
+uniform mediump float time;
+uniform float u_game_width;
+uniform float u_game_height;
+uniform float u_game_camera_x;
+uniform float u_game_camera_y;
+
+varying lowp vec4 v_color;
+
+void main(void) {
+  float posDiff = a_center_x + a_center_y;
+  v_color = a_color + vec4(cos(1.0*posDiff + a_angle + time*1.5), cos(1.5*posDiff + a_angle + time*2.0 + radians(120.0)), cos(2.0*posDiff + a_angle + time*2.5 + radians(240.0)), 0.0)*(sign(2.0*posDiff + a_game_radius)+0.3);
+  v_color = v_color - (1.0 - sign(a_game_radius))*cos(time)*vec4(1.0,1.0,1.0,0.4);
+  //сейчас из png вырезается элипс, а ещё можно попробовать натягивать прямоугольник, чтобы попадали уголки png
+  mat2 screenScale = mat2(2.0/u_game_width,       0.0,
+                                0.0,       2.0/u_game_height);
+  vec2 gamePos = /*a_center_pos*/vec2(a_center_x, a_center_y) + vec2(cos(a_angle)*a_game_radius, sin(a_angle)*a_game_radius);
+  gl_Position = vec4(screenScale*(gamePos - vec2(u_game_camera_x, u_game_camera_y)), 1.0, 1.0);
+  }
+"""
+//language=GLSL
+const val MASS_POWER_FOOD_FRAG=
+"""
+precision mediump float;
+varying lowp vec4 v_color;
+void main(void) {
+  gl_FragColor = v_color;
+}
+"""
