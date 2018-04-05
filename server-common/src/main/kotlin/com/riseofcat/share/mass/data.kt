@@ -5,7 +5,8 @@ import kotlinx.serialization.*
 import kotlin.math.*
 
 object GameConst {
-  val CHANGE_SIZE=200
+  val CHANGE_SIZE_PER_CAR=200
+  val MIN_CHANGE_SIZE_QUANT = 20
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
@@ -166,16 +167,19 @@ fun State.tick() = lib.measure("tick") {
   }
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
 
-  if(tick.tick%10 == 0 && targetSize != size) {//todo делать плавно в несколько тиков
-    //todo проверить чтобы координаты менялись равномерно
+  if(tick.tick%5 == 0 && targetSize != size) lib.measure("resize"){
+    //todo потестить проивзодительность если x, y будет в относительных координатах и каждый раз высчиываться рендеринг renderX = x*width
     val oldW = width
     val oldH = height
-    size = targetSize
-    (cars + reactive + foods).forEach {p -> p.pos mscale XY(width/oldW,height/oldH)}
+    val delta = targetSize-size
+    size = size + delta.sign*min(abs(delta), GameConst.MIN_CHANGE_SIZE_QUANT)
+    (cars + reactive + foods).forEach {p -> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
   }
 }
+
+val Int.sign get() = this/abs(this)
 val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
-val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE
+val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR
 val widthCache:MutableMap<Int, Double> = mutableMapOf()
 val heightCache:MutableMap<Int, Double> = mutableMapOf()
 val State.width get() = widthCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_WIDTH*GameConst.BASE_WIDTH + size*size)}

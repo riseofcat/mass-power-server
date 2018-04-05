@@ -111,7 +111,7 @@ object libObj {
     fun debug(s:CharSequence) = _log(s,LogMode.DEBUG)
     fun breakpoint(s:CharSequence = "") = _log(s,LogMode.BREAKPOINT)
     inline fun _log(str:CharSequence,mode:LogMode, codeDepth:Int = 2) {
-      if(mode.ordinal<LogMode.DEBUG.ordinal) {
+      if(mode.ordinal<LogMode.DEBUG.ordinal) {//todo сделать конфигурацию
         _println("$mode: $str | in ${Common.getCodeLineInfo(codeDepth)}")
       }
     }
