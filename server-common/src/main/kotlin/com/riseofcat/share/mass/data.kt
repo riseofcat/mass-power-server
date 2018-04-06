@@ -23,7 +23,8 @@ object GameConst {
 interface ICommand { fun act(state:State) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
-interface EatMe:SpeedObject { var size:Int }
+interface EatMe:PosObject { var size:Int }
+interface EatMeWithSpeed:EatMe, SpeedObject
 
 @Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
@@ -70,17 +71,16 @@ inline val Angle.cos get() = cos(radians)
   var owner:PlayerId,
   override var size:Int,
   override var speed:XY,//todo speed and pos change order
-  override var pos:XY):EatMe
+  override var pos:XY):EatMeWithSpeed
 @Serializable data class Food(
   override var size:Int,
-  override var speed:XY,
   override var pos:XY):EatMe
 @Serializable data class Reactive(
   var owner:PlayerId,
   override var size:Int,
   override var speed:XY,
   override var pos:XY,
-  val born:Tick):EatMe
+  val born:Tick):EatMeWithSpeed
 @Serializable data class State(
   @Optional val cars:MutableList<Car> = mutableListOf(),
   @Optional val foods:MutableList<Food> = mutableListOf(),
@@ -108,6 +108,7 @@ infix fun State.act(actions:Iterator<ICommand>):State {
 }
 
 fun State.tick() = lib.measure("tick") {
+  infix fun EatMe.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
@@ -126,8 +127,8 @@ fun State.tick() = lib.measure("tick") {
     for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
       val foodItr = foods.iterator()
       while(foodItr.hasNext()) {
-        val (size1,_,pos) = foodItr.next()
-        if(distance(car.pos,pos)<=car.radius) {
+        val (size1,p) = foodItr.next()
+        if(car overlap p) {
           car.size += size1
           foodItr.remove()
           changedSizeCars.add(car)
@@ -136,7 +137,7 @@ fun State.tick() = lib.measure("tick") {
       reactItr = reactive.iterator()
       while(reactItr.hasNext()) {
         val r = reactItr.next()
-        if(r.owner!=car.owner&&distance(car.pos,r.pos)<=car.radius) {
+        if(r.owner!=car.owner&&car overlap r.pos) {
           car.size += r.size
           reactItr.remove()
           changedSizeCars.add(car)
@@ -164,7 +165,7 @@ fun State.tick() = lib.measure("tick") {
       if(handleCarsDestroy) copy rm del
     }
   }
-  while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),XY(),rndPos()))
+  while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
   if(tick.tick%1 == 0 && targetSize != size) lib.measure("resize"){
     val oldW = width
