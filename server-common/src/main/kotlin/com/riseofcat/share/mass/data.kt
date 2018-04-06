@@ -206,7 +206,12 @@ fun State.tick() = lib.measure("tick") {
   }
 }
 
-val Int.sign get() = this/abs(this)
+val Int.sign
+  get() = when {
+    this>0->1
+    this<0->-1
+    else->0
+  }
 val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
 val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR
 val widthCache:MutableMap<Int, Double> = mutableMapOf()
