@@ -23,8 +23,8 @@ object GameConst {
 interface ICommand { fun act(state:State) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
-interface EatMe:PosObject { var size:Int }
-interface EatMeWithSpeed:EatMe, SpeedObject
+interface SizeObject:PosObject { var size:Int }
+interface EatMeWithSpeed:SizeObject, SpeedObject
 
 @Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
@@ -74,7 +74,7 @@ inline val Angle.cos get() = cos(radians)
   override var pos:XY):EatMeWithSpeed
 @Serializable data class Food(
   override var size:Int,
-  override var pos:XY):EatMe
+  override var pos:XY):SizeObject,PosObject
 @Serializable data class Reactive(
   var owner:PlayerId,
   override var size:Int,
@@ -99,16 +99,41 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
 }
-val EatMe.radius get() = size.radius
+val SizeObject.radius get() = size.radius
 val Int.radius get():Float = GameConst.MIN_RADIUS + 5*sqrt(this.toDouble()).toFloat()
 fun degreesAngle(degrees:Int) = Angle(degrees/180.0*PI)
 infix fun State.act(actions:Iterator<ICommand>):State {
   actions.forEach {it.act(this)}
   return this
 }
-
+data class Rect(val pos:XY, val size:XY)
+val Rect.topLeft get() = pos.copy()
+val Rect.topRignt get() = pos + size scale XY(1.0,0.0)
+val Rect.bottomLeft get() = pos + size scale XY(0.0,1.0)
+val Rect.bottomRight get() = pos + size scale XY(1.0,1.0)
+val Rect.points get() = arrayOf(topLeft, topRignt, bottomLeft, bottomRight)
+fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
+fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
+class Bucket(val rect:Rect) { val foods:MutableList<Food> = mutableListOf() }
 fun State.tick() = lib.measure("tick") {
-  infix fun EatMe.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
+  infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
+  val MAX_W = 5
+  val MAX_H = 5
+  val w = width.toFloat()/MAX_W
+  val h = height.toFloat()/MAX_H
+  val buckets = mutableMapOf<Int,Bucket>().apply {
+    for(i in 0 until MAX_W) {
+      for(j in 0 until MAX_H) {
+        this[i*MAX_H+j] = Bucket(Rect(XY(i*w,j*h),XY(w,h)))
+      }
+    }
+  }
+  fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
+  fun SizeObject.isOverlapRect(rect:Rect) = toRect().isOverlap(rect)
+  fun SizeObject.overlapIndexes() = buckets.entries.filter {this.isOverlapRect(it.value.rect)}.map {it.key}
+  fun PosObject.storeIndex() = (pos.x/w).toInt()*MAX_H+(pos.y/h).toInt()
+  foods.forEach {buckets[it.storeIndex()]?.foods?.add(it)}
+
   tick+=1
   (cars+reactive).forEach {o->
     o.pos = o.pos msum o.speed*GameConst.UPDATE_S
@@ -122,18 +147,22 @@ fun State.tick() = lib.measure("tick") {
   while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
   cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   var handleFoodCars = cars
-  while(handleFoodCars.size > 0) {//todo тут лагает
+  while(handleFoodCars.size > 0) {
     val changedSizeCars:MutableSet<Car> = mutableSetOf()
     for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
-      val foodItr = foods.iterator()
-      while(foodItr.hasNext()) {
-        val (size1,p) = foodItr.next()
-        if(car overlap p) {
-          car.size += size1
-          foodItr.remove()
-          changedSizeCars.add(car)
+      car.overlapIndexes().forEach {
+        val foodItr = buckets[it]!!.foods.iterator()
+        while(foodItr.hasNext()) {
+          val f = foodItr.next()
+          if(car overlap f.pos) {
+            car.size += f.size
+            foodItr.remove()
+            foods.remove(f)
+            changedSizeCars.add(car)
+          }
         }
       }
+
       reactItr = reactive.iterator()
       while(reactItr.hasNext()) {
         val r = reactItr.next()
