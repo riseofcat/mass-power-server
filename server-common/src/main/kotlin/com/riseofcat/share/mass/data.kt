@@ -6,17 +6,16 @@ import kotlin.math.*
 
 object GameConst {
   val CHANGE_SIZE_PER_CAR=200
-  val MIN_CHANGE_SIZE_QUANT = 1000
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
   val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 12_000
+  val FOODS = 500
   val FOOD_PER_CAR = 20
-  val BASE_WIDTH = 12_000.0
-  val BASE_HEIGHT = 12_000.0
+  val BASE_WIDTH = 4_000.0
+  val BASE_HEIGHT = 4_000.0
   val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(60)
 }
@@ -122,7 +121,7 @@ fun State.tick() = lib.measure("tick") {
   while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
   cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   var handleFoodCars = cars
-  while(handleFoodCars.size > 0) {
+  while(handleFoodCars.size > 0) {//todo тут лагает
     val changedSizeCars:MutableSet<Car> = mutableSetOf()
     for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
       val foodItr = foods.iterator()
@@ -165,21 +164,21 @@ fun State.tick() = lib.measure("tick") {
       if(handleCarsDestroy) copy rm del
     }
   }
-  while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE,XY(),rndPos()))
+  while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),XY(),rndPos()))
 
   if(tick.tick%1 == 0 && targetSize != size) lib.measure("resize"){
-    //todo потестить проивзодительность если x, y будет в относительных координатах и каждый раз высчиываться рендеринг renderX = x*width
     val oldW = width
     val oldH = height
     val delta = targetSize-size
-    size = size + delta.sign*min(abs(delta), GameConst.MIN_CHANGE_SIZE_QUANT)
+    val delta2 = (delta*lib.Fun.arg0toInf(abs(delta), 50)).toInt()
+    size = size + delta2.sign*min(abs(delta2), 10)
     (cars + reactive + foods).forEach {p -> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
   }
 }
 
 val Int.sign get() = this/abs(this)
 val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
-val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR + ((tick.tick)%100)*100
+val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR
 val widthCache:MutableMap<Int, Double> = mutableMapOf()
 val heightCache:MutableMap<Int, Double> = mutableMapOf()
 val State.width get() = widthCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_WIDTH*GameConst.BASE_WIDTH + size*size)}

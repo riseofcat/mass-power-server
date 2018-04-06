@@ -13,7 +13,13 @@ class ClientModel(conf:Conf, fake:Boolean=false):IClientModel {
         stableTick = Tick(0),
         welcome = Welcome(PlayerId(1), lib.time),
         stable = State(mutableListOf(Car(PlayerId(1),20,XY(),XY()))),
-        recommendedLatency = Duration(10)
+        recommendedLatency = Duration(10),
+        actions = mutableListOf<AllCommand>().apply {
+          for(i in 1..50) {
+            val pid = PlayerId(i+4)
+            add(AllCommand(Tick(i*10),pid, NewCarCommand(pid)))
+          }
+      }
       ))
     } else
     PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
@@ -55,10 +61,6 @@ class ClientModel(conf:Conf, fake:Boolean=false):IClientModel {
   val start = lib.time
   var moves:Int = 0
   fun calcDisplayState():State? {
-//    if(false) if(Duration(300)*moves < lib.time - start) {//Временный код для тестирования производительности
-//      move(degreesAngle(45))
-//      moves++
-//    }
     return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
   override fun ready() = welcome!=null
