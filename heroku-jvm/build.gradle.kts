@@ -59,8 +59,7 @@ dependencies {
 
   val old=false
   val oldKtorVersion = "0.3.1"
-  val ktorVersion = "0.9.1"
-//  val ktorVersion = "0.9.2-alpha-5"
+  val ktorVersion = if(true)"0.9.1" else "0.9.2-alpha-5"
 
   if(old) {
     compile("org.jetbrains.ktor:ktor-websockets:$oldKtorVersion")
