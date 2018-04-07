@@ -1,21 +1,21 @@
 package com.riseofcat.server
 
-import com.riseofcat.lib_gwt.IConverter
+//import io.ktor.host.*
+//import io.ktor.jetty.*
+import com.riseofcat.lib.*
+import com.riseofcat.lib_gwt.*
 import com.riseofcat.share.mass.*
 import com.riseofcat.share.ping.*
 import io.ktor.application.*
 import io.ktor.features.*
-import io.ktor.http.*
-//import io.ktor.host.*
-//import io.ktor.jetty.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.engine.*
-import io.ktor.server.jetty.*
 import io.ktor.server.netty.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
-import java.time.*
+import java.time.Duration
 
 //import io.ktor.websocket.*
 
@@ -50,13 +50,12 @@ fun main(args:Array<String>) {
 
 }
 
+var mal:MutableMap<Session,Ses<String>> = mutableMapOf()
+var lastId = 0
+
 fun Application.main() {
   install(DefaultHeaders)
   install(CallLogging)
-//  install(ConditionalHeaders)
-//  install(PartialContentSupport)
-
-//  install(WebSocket)
   install(WebSockets) {
     pingPeriod = Duration.ofSeconds(60) // Disabled (null) by default
     timeout = Duration.ofSeconds(15)
@@ -64,34 +63,27 @@ fun Application.main() {
     masking = false
   }
   install(Routing) {
-    get("/") {
-      call.respondText("Hello, ktor!")
-    }
+    get("/") {call.respondText("ktor: " + LibJvm.info().toString())}
     webSocket("/socket") {
-      incoming.mapNotNull { it as? Frame.Text }.consumeEach { frame ->
-        val text = frame.readText()
-        serverModel.message()
-        outgoing.send(Frame.Text("YOU SAID $text"))
-        if (text.equals("bye", ignoreCase = true)) {
-          close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+      val s = object:Ses<String>() {
+        override val typeMap:TypeMap = TypeMap()
+        override val id = ++lastId
+        override fun stop() {
+          async {close(CloseReason(CloseReason.Codes.NORMAL,"Good bye"))}
+        }
+        override fun send(message:String) {
+          async {outgoing.send(Frame.Text(message))}
         }
       }
+      serverModel.start(s)
 
-//      //https://github.com/Kotlin/ktor/blob/master/ktor-samples/ktor-samples-websocket/src/org/jetbrains/ktor/samples/chat/ChatApplication.kt
-//      this.send(Frame.Text("hello from ktor websocket"))
-//      this.handle {
-//        if(it is Frame.Text) {
-//          val readText = it.readText()
-//          System.out.println(readText)
-//        }
-//        if(it is Frame.Binary) {
-//
-//        }
-//      }
-//
+      //todo Frame.Binary
+      incoming.mapNotNull { it as? Frame.Text }.consumeEach { frame ->
+        serverModel.message(s, frame.readText())
+      }
+
     }
   }
-//  install(WebSockets)
 }
 
 class Session(val chanel:SendChannel<Frame>) {
