@@ -24,7 +24,7 @@ object ServerMain {
           PingDecorator(
             RoomsDecorator<ClientPayload,ServerPayload>().apply {onRoomCreated.add({ room -> ServerModel(room) })},Duration(1000)),
           IConverter {obj ->
-            Util.fromJsonClientSay(obj)
+            Util.fromJsonClientSay(obj.readText())
           },
           IConverter {ss->
             Util.toServerSayJson(ss)

@@ -57,9 +57,10 @@ dependencies {
   compile("com.sparkjava:spark-core:2.7.1")//http://sparkjava.com/documentation
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
 
-  val old=true
+  val old=false
   val oldKtorVersion = "0.3.1"
   val ktorVersion = "0.9.1"
+//  val ktorVersion = "0.9.2-alpha-5"
 
   if(old) {
     compile("org.jetbrains.ktor:ktor-websockets:$oldKtorVersion")
@@ -68,6 +69,7 @@ dependencies {
     compile("org.jetbrains.ktor:ktor-freemarker:$oldKtorVersion")
   } else {
     compile("io.ktor:ktor-server-core:$ktorVersion")
+    compile("io.ktor:ktor-websockets:$ktorVersion")
     compile("io.ktor:ktor-server-netty:$ktorVersion")
     compile("io.ktor:ktor-server-jetty:$ktorVersion")
   }

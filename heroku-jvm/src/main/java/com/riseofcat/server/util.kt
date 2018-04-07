@@ -10,8 +10,8 @@ import java.io.*
 
 class Util{
   companion object {
-    fun fromJsonClientSay(reader:Reader):ClientSay<ClientPayload> {
-      return lib.objStrSer.parse(SerializeHelp.clientSayClientPayloadSerializer, reader.readText())
+    fun fromJsonClientSay(str:String):ClientSay<ClientPayload> {
+      return lib.objStrSer.parse(SerializeHelp.clientSayClientPayloadSerializer, str)
     }
 
     fun toServerSayJson(ss:ServerSay<ServerPayload>):String {
