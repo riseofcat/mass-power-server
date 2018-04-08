@@ -65,6 +65,7 @@ fun Application.main() {
   install(Routing) {
     get("/") {call.respondText("ktor: " + LibJvm.info().toString())}
     webSocket("/socket") {
+      val ktorSes:DefaultWebSocketSession = this
       val s = object:Ses<String>() {
         override val typeMap:TypeMap = TypeMap()
         override val id = ++lastId

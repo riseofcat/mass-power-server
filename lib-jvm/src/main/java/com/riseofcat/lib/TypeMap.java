@@ -3,6 +3,7 @@ package com.riseofcat.lib;
 import java.util.HashMap;
 import java.util.Map;
 
+//todo зачем?
 public class TypeMap {
 private Map<Class<?>, Object> map = new HashMap<>();
 

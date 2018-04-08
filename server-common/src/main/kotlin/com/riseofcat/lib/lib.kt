@@ -123,17 +123,17 @@ object libObj {
     block()
   }
 
-  inline fun releae(block:()->Unit) {
+  inline fun releae(block:()->Unit) {//todo rename to release
 //    block()
   }
 
   fun <T>measure(hashTag:String, block:()->T):T {
     var result:T? = null
     Common.getCodeLineInfo(2)
-    val value = Common.measureNanoTime {
+    val t = Common.measureNanoTime {
       result = block()
     }/1e9
-    measurements.getOrPut(hashTag) {Measure()}.add(value)
+    measurements.getOrPut(hashTag) {Measure()}.add(t)
 
     if(time > previousMeasurePrint + Duration(10_000)) {
       previousMeasurePrint = time
@@ -143,7 +143,7 @@ object libObj {
       }
 
     }
-    return result!!
+    return result as T
   }
 
   var previousMeasurePrint = time

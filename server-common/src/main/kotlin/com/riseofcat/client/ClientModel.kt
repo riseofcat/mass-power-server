@@ -4,7 +4,7 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-class ClientModel(conf:Conf, fake:Boolean=false):IClientModel {
+class ClientModel(conf:Conf, fake:Boolean=false, val slowpoke:Boolean=false):IClientModel {
   val FREEZE_TICKS = Tick(Duration(1000)/GameConst.UPDATE+1)//todo сделать плавное ускорение времени после фриза?
   val CACHE = true
   val client:IPingClient<ServerPayload,ClientPayload> =
@@ -61,11 +61,11 @@ class ClientModel(conf:Conf, fake:Boolean=false):IClientModel {
   val start = lib.time
   var moves:Int = 0
   fun calcDisplayState():State? {
+    if(slowpoke) return stable._state
     return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
   override fun ready() = welcome!=null
-  val myCar:Car? get() = calcDisplayState()?.cars?.firstOrNull {it.owner == welcome?.id}
-  val meAlive get() = lib.measure("meAlive"){getState(realtimeTick)?.cars?.any {it.owner == welcome?.id}?:false}
+  val myCar:Car? get() = lib.measure("myCar"){calcDisplayState()?.cars?.firstOrNull {it.owner == welcome?.id}}
   override fun move(direction:Angle) = synchronized(this) {
     if(!ready()) return
     val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
