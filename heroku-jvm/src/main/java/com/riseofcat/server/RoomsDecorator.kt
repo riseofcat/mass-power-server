@@ -6,7 +6,7 @@ import java.util.HashSet
 import java.util.concurrent.ConcurrentHashMap
 
 open class RoomsDecorator<TClientPayload,TServerPayload>:SesServ<TClientPayload,TServerPayload>() {
-  val MAXIMUM_ROOM_PLAYERS = 1000
+  val MAXIMUM_ROOM_PLAYERS = 30
 
   val onRoomCreated = Signal<RoomsDecorator<TClientPayload,TServerPayload>.Room>()
   //todo onRoomDestroyed
