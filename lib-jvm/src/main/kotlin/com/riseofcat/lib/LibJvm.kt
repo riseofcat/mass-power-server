@@ -6,8 +6,10 @@ import java.lang.management.*
 class LibJvm {
   companion object {
     @JvmStatic val log = lib.log
-    @JvmStatic fun test() = "LibJvm ${System.getProperties()["java.runtime.version"]}"
-    @JvmStatic fun info() = JvmInfo()
+    @JvmStatic fun test() = "jvm version: " + info().version
+    @JvmStatic fun info():JvmInfo{
+      return JvmInfo()
+    }
   }
 }
 
@@ -20,7 +22,8 @@ data class JvmInfo internal constructor(
   val cpuLoad:Float = ManagementFactory.getOperatingSystemMXBean().systemLoadAverage.toFloat(),
   val totalSpace:Float = File(".").totalSpace/MEGA,
   val freeSpace:Float = File(".").freeSpace/MEGA,
-  val stackSizeMB:Float = 0f
+  val stackSizeMB:Float = 0f,
+  val version:String = System.getProperties()["java.runtime.version"].toString()
 )
 //-Xss set java thread stack size//todo test
 /*-Xss allows to configure Java thread stack size according to application needs:
