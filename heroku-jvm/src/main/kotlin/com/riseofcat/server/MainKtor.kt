@@ -18,7 +18,7 @@ import kotlinx.coroutines.experimental.channels.*
 import java.time.Duration
 import java.util.concurrent.atomic.*
 
-var incomeMessages = AtomicInteger()
+val incomeMessages = AtomicInteger()
 val serverModel = UsageMonitorDecorator<String,String>(
 ConvertDecorator<ClientSay<ClientPayload>,ServerSay<ServerPayload>,String,String>(
 PingDecorator(
@@ -74,9 +74,10 @@ fun Application.main() {
       serverModel.start(s)
       //todo Frame.Binary
       incoming.mapNotNull { it as? Frame.Text }.consumeEach { frame ->
+        incomeMessages.incrementAndGet()
         if(false) {
           lib.log.info("thread: " + Thread.currentThread().name)
-          lib.log.info("incomeMessages: "+incomeMessages.incrementAndGet())
+          lib.log.info("incomeMessages: "+ incomeMessages)
         }
         serverModel.message(s, frame.readText())
       }
