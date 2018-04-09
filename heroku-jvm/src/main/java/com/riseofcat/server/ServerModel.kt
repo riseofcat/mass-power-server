@@ -25,7 +25,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       redundantSynchronize(this@ServerModel) {
         if(false) commands.add(CommandAndVersion(AllCommand(realtimeTick+newCarDelay,player.id,newCarCmd = NewCarCommand(player.id))))
         val payload = createStablePayload(Welcome(player.id, room.createTime))
-        player.session.send(payload)
+        player.session.send(payload)//todo тут произошёл ConcurrentModificationException
       }
       for(p in room.getPlayers()) updatePlayer(p)//Говорим другим, что пришёл новый игрок
     }
@@ -109,5 +109,5 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   )
 }
 
-inline fun <R> redundantSynchronize(lock:Any,block:()->R) = if(true) block() else synchronized(lock,block) //todo test performance
+inline fun <R> redundantSynchronize(lock:Any,block:()->R) = if(false) block() else synchronized(lock,block) //todo test performance
 

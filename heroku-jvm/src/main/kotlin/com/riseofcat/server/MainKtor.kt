@@ -1,7 +1,5 @@
 package com.riseofcat.server
 
-//import io.ktor.host.*
-//import io.ktor.jetty.*
 import com.riseofcat.lib.*
 import com.riseofcat.lib_gwt.*
 import com.riseofcat.share.mass.*
@@ -38,7 +36,6 @@ fun main(args:Array<String>) {
   embeddedServer(Netty, port, module = Application::main).start(wait = true)
 }
 
-var mal:MutableMap<Session,Ses<String>> = mutableMapOf()
 var lastId = 0
 
 fun Application.main() {
@@ -84,15 +81,4 @@ fun Application.main() {
 
     }
   }
-}
-
-class Session(val chanel:SendChannel<Frame>) {
-
-}
-
-fun oldSparkMain(args:Array<String>) {
-  System.getenv("PORT")?.let {
-    spark.Spark.port(it.toInt())
-  }
-  spark.Spark.get("/") {req,res-> "Hello from Kotlin"}
 }
