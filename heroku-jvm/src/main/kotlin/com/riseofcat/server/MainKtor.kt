@@ -16,9 +16,9 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
 import java.time.Duration
+import java.util.concurrent.atomic.*
 
-//import io.ktor.websocket.*
-
+var incomeMessages = AtomicInteger()
 val serverModel = UsageMonitorDecorator<String,String>(
 ConvertDecorator<ClientSay<ClientPayload>,ServerSay<ServerPayload>,String,String>(
 PingDecorator(
@@ -33,21 +33,9 @@ IConverter {ss->
 
 fun main(args:Array<String>) {
   var port = 5000
-  try {
-    port = Integer.valueOf(System.getenv("PORT"))
-  } catch(e:Exception) {
-
-  }
-
-  val server = embeddedServer(Netty, port, module = Application::main).start(wait = true)
-//  {
-//    routing {
-//      get("/") {
-//        call.respondText("hi, ktor!", ContentType.Text.Html)
-//      }
-//    }
-//  }.start(wait = true)
-
+  try { port = Integer.valueOf(System.getenv("PORT")) }
+  catch(e:Exception) { }
+  embeddedServer(Netty, port, module = Application::main).start(wait = true)
 }
 
 var mal:MutableMap<Session,Ses<String>> = mutableMapOf()
@@ -63,7 +51,14 @@ fun Application.main() {
     masking = false
   }
   install(Routing) {
-    get("/") {call.respondText("ktor: " + LibJvm.info().toString())}
+    get("/") {
+      call.respondText(
+        """
+        ktor: ${LibJvm.info()}
+        incomeMessages: ${incomeMessages}
+        """.trimIndent()
+      )
+    }
     webSocket("/socket") {
       val ktorSes:DefaultWebSocketSession = this
       val s = object:Ses<String>() {
@@ -77,9 +72,12 @@ fun Application.main() {
         }
       }
       serverModel.start(s)
-
       //todo Frame.Binary
       incoming.mapNotNull { it as? Frame.Text }.consumeEach { frame ->
+        if(false) {
+          lib.log.info("thread: " + Thread.currentThread().name)
+          lib.log.info("incomeMessages: "+incomeMessages.incrementAndGet())
+        }
         serverModel.message(s, frame.readText())
       }
 

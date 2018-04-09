@@ -11,19 +11,18 @@ interface IPingClient<S:Any,C> {
   fun connect(incomeListener:SignalListener<S>)
   fun close()
   fun say(payload:C)
+  val clientMessages:Int
 }
 
 class FakePingClient<S:Any,C>(val connectData:S):IPingClient<S,C> {
   override val serverTime:TimeStamp get() = lib.time
   override val smartPingDelay:Duration = Duration(100)
-
   override fun connect(incomeListener:SignalListener<S>) {
     incomeListener(connectData)
   }
-
   override fun close() {}
-
   override fun say(payload:C) {}
+  override val clientMessages:Int=0
 }
 
 class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<ServerSay<S>>, val typeC:KSerializer<ClientSay<C>>):IPingClient<S,C> {
@@ -32,7 +31,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
   private val pingDelays:MutableList<PingDelay> = Common.createConcurrentList()//todo queue
   private val timeSync:MutableList<TimeSync> = Common.createConcurrentList()//todo queue
-
+  override var clientMessages:Int = 0
   val lastPingDelay get() = pingDelays.lastOrNull()?.pingDelay
   override val smartPingDelay get():Duration {
     if(pingDelays.size == 0) return Duration(0)
@@ -112,6 +111,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
   private fun sayNow(say:ClientSay<C>) {
     try {
+      clientMessages++
       socket.send(lib.objStrSer.stringify(typeC, say))
       return
     } catch(t:Throwable) {
