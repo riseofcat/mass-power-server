@@ -35,7 +35,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       lib.measure("room.onMessage") {
         redundantSynchronize(this@ServerModel) {
           for(a in message.payload.actions) {
-            if(a.tick<=state.tick-removeAfterDelay){
+            if(false && a.tick<=state.tick-removeAfterDelay){//todo для тестов выпилил игнорироваие команд
               continue//Команда игнорируется
             }
             val t = if(a.tick>=state.tick) a.tick else state.tick
