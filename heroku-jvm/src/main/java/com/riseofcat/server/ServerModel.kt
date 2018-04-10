@@ -3,6 +3,7 @@ package com.riseofcat.server
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
+import java.util.concurrent.atomic.*
 
 class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val STABLE_STATE_UPDATE:Duration? = null//Duration(10_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
@@ -97,9 +98,9 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   }
 
   inner class CommandAndVersion(val command:AllCommand) {
-    val actionVersion:Int = ++previousActionsVersion
+    val actionVersion:Int = previousActionsVersion.incrementAndGet()
   }
-  @Volatile private var previousActionsVersion = 0//todo почитать про volatile в Kotlin
+  private val previousActionsVersion = AtomicInteger(0)
 
   internal fun createStablePayload(welcome:Welcome?=null):ServerPayload = ServerPayload(
     stableTick = state.tick,

@@ -5,7 +5,8 @@ import kotlinx.serialization.*
 
 @Serializable class ClientSay<T>(
   @Optional val pong:Boolean = false,
-  @Optional val payload:T? = null
+  @Optional val payload:T? = null,
+  @Optional var index:Int? = 0//todo написать проверку последовательности принятия сообщений в PingDecorator
 )
 
 @Serializable class ServerSay<T>(

@@ -31,7 +31,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
   private val queue:MutableList<ClientSay<C>> = mutableListOf()//todo test
   private val pingDelays:MutableList<PingDelay> = Common.createConcurrentList()//todo queue
   private val timeSync:MutableList<TimeSync> = Common.createConcurrentList()//todo queue
-  override var clientMessages:Int = 0
+  override var clientMessages:Int = 0//todo выпилить в будующем
   val lastPingDelay get() = pingDelays.lastOrNull()?.pingDelay
   override val smartPingDelay get():Duration {
     if(pingDelays.size == 0) return Duration(0)
@@ -108,10 +108,10 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     else
       queue.add(say)
   }
-
   private fun sayNow(say:ClientSay<C>) {
     try {
       clientMessages++
+      say.index = clientMessages
       socket.send(lib.objStrSer.stringify(typeC, say))
       return
     } catch(t:Throwable) {
