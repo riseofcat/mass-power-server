@@ -121,30 +121,41 @@ object libObj {
   }
 
   inline fun debug(block:()->Unit) {
-    block()
-  }
-
-  inline fun releae(block:()->Unit) {//todo rename to release
 //    block()
   }
-
-  fun <T>measure(hashTag:String, block:()->T):T {
-    var result:T? = null
-    Common.getCodeLineInfo(2)
-    val t = Common.measureNanoTime {
-      result = block()
-    }/1e9
-    measurements.getOrPut(hashTag) {Measure()}.add(t)
-
-    if(time > previousMeasurePrint + Duration(10_000)) {
-      previousMeasurePrint = time
-      log._println("measure: ")
-      measurements.entries.forEach {
-        log._println("#${it.key}: ${it.value}")
-      }
-
+  inline fun release(block:()->Unit) {
+    block()
+  }
+  inline fun <T>releaseOrDebug(rel:()->T, deb:()->T):T {
+    release {
+      return@releaseOrDebug rel()
     }
-    return result as T
+    debug {
+      return@releaseOrDebug deb()
+    }
+    lib.log.fatalError("specify release or debug")
+  }
+  fun <T>measure(hashTag:String, block:()->T):T {
+    return releaseOrDebug({
+      block()
+    }) {
+      var result:T? = null
+      Common.getCodeLineInfo(2)
+      val t = Common.measureNanoTime {
+        result = block()
+      }/1e9
+      measurements.getOrPut(hashTag) {Measure()}.add(t)
+
+      if(time > previousMeasurePrint + Duration(10_000)) {
+        previousMeasurePrint = time
+        log._println("measure: ")
+        measurements.entries.forEach {
+          log._println("#${it.key}: ${it.value}")
+        }
+
+      }
+      result as T
+    }
   }
 
   var previousMeasurePrint = time
