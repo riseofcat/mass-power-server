@@ -54,7 +54,7 @@ repositories {
 dependencies {
   compile(kotlin("stdlib"))
   if(false) compile("org.jetbrains.kotlin:kotlin-stdlib:SPECIFY_KOTLIN_VERSION")
-  compile("com.sparkjava:spark-core:2.7.1")//http://sparkjava.com/documentation
+  compile("com.sparkjava:spark-core:2.7.1")//http://sparkjava.com/documentation//todo delete
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
 
   val old=false
@@ -69,8 +69,9 @@ dependencies {
   } else {
     compile("io.ktor:ktor-server-core:$ktorVersion")
     compile("io.ktor:ktor-websockets:$ktorVersion")
-    compile("io.ktor:ktor-server-netty:$ktorVersion")
-    compile("io.ktor:ktor-server-jetty:$ktorVersion")
+    compile("io.ktor:ktor-server-cio:$ktorVersion")
+//    compile("io.ktor:ktor-server-netty:$ktorVersion")
+//    compile("io.ktor:ktor-server-jetty:$ktorVersion")
   }
 
   compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.3")

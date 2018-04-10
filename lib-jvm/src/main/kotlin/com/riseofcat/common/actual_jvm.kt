@@ -17,7 +17,7 @@ actual class Common {
     var firstCreateWebSocket = true
     actual fun createWebSocket(host:String,port:Int,path:String):LibWebSocket {
       if(firstCreateWebSocket) {
-        CommonWebSockets.initiate()
+        CommonWebSockets.initiate()//todo заменить на https://github.com/ktorio/ktor/tree/master/ktor-client
         firstCreateWebSocket = false
       }
       val socket = WebSockets.newSocket(WebSockets.toWebSocketUrl(host,port,path))

@@ -18,7 +18,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
   val maxDelay get() = recommendedDelay*2
   val newCarDelay get() = recommendedDelay*2
-  val removeAfterDelay get() = recommendedDelay*3//Если 0 - значит всё что позже stable - удаляется
+  val removeAfterDelay get() = recommendedDelay*3*100//todo remove 100 //Если 0 - значит всё что позже stable - удаляется
 
   init {
     room.onPlayerAdded.add {player->
@@ -110,5 +110,6 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   )
 }
 
+//todo synchronized заменить на coorotines и Mutex
 inline fun <R> redundantSynchronize(lock:Any,block:()->R) = if(false) block() else synchronized(lock,block) //todo test performance
 
