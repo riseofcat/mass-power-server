@@ -14,6 +14,7 @@ expect class Common {
     fun getCodeLineInfo(depth:Int):CharSequence
     fun measureNanoTime(block:()->Unit):Long
     fun urlGet(url:String):String
+    fun random():Double
   }
 }
 

@@ -75,6 +75,7 @@ object libObj {
   val json = JSON(unquoted = true, nonstrict = true)
   val objStrSer = json
   inline fun <reified T:Any>getKClass() = T::class
+  fun rnd(min:Int,max:Int) = (min+Common.random()*(max-min+1)).toInt()
 
   object cbor {
     fun <T:Any> stringify(saver:KSerialSaver<T>, obj: T): String {

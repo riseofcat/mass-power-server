@@ -94,8 +94,10 @@ actual class Common {
     actual fun urlGet(url:String):String {
       TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
+    actual fun random() = Math.random()
   }
 }
 
 val StackTraceElement.prettyString:CharSequence get() = "\t$className-$methodName ($fileName:$lineNumber)"
+@Deprecated("use lib.rnd() instead")
 fun rnd(min:Int,max:Int) = (min+Math.random()*(max-min+1)).toInt()
