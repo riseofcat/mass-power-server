@@ -3,9 +3,12 @@ package com.riseofcat.server
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
+import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.experimental.sync.*
 import java.util.concurrent.atomic.*
 
 class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
+  val mutex:Mutex = Mutex()
   val STABLE_STATE_UPDATE:Duration? = null//Duration(10_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
   private val state = State()
   private var commands:MutableList<CommandAndVersion> = Common.createConcurrentList()
@@ -54,7 +57,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
           message.player.session.send(payload)
         }
       }
-      lib.measure("updatePlayers") {
+      lib.measure("for(p in room.getPlayers())") {
         for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
       }
     }
@@ -66,17 +69,19 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       if(!condition()) return@measure
 
       val test = true//todo test performance
-      synchronized(this@ServerModel) {
-        while(condition()) {
-          state act commands.map {it.command}.filter {it.tick==state.tick}.iterator()
-          if(!test)commands.removeAll {it.command.tick==state.tick}
-          state.tick()
-        }
-        if(test)commands.removeAll {it.command.tick<state.tick}
+      needSynchronized(this@ServerModel) {
+        lib.measure("updateGame inside synchronized") {
+          while(condition()) {
+            state act commands.map {it.command}.filter {it.tick==state.tick}.iterator()
+            if(!test)commands.removeAll {it.command.tick==state.tick}
+            state.tick()
+          }
+          if(test)commands.removeAll {it.command.tick<state.tick}
 
-        if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
-          previousStableUpdate = lib.time
-          for(player in room.getPlayers()) player.session.send(createStablePayload())
+          if(STABLE_STATE_UPDATE!=null&&lib.time>previousStableUpdate+STABLE_STATE_UPDATE) {
+            previousStableUpdate = lib.time
+            for(player in room.getPlayers()) player.session.send(createStablePayload())
+          }
         }
       }
     }
@@ -88,12 +93,14 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     p.session.send(payload)
   }
 
-  private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-    redundantSynchronize(this) {
-      val filtered = commands.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
-      payload.actions = filtered.map {it.command}
-      val maxActionVer = filtered.map {it.actionVersion}.max()
-      if(maxActionVer != null) mapPlayerVersion.put(p.id,maxActionVer)
+  private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) = lib.measure("updatePlayerInPayload") {
+    redundantSynchronize(this@ServerModel) {//todo эта синхронизация отъедае мнго времени
+      lib.measure("updatePlayerInPayload inside synchronized") {
+        val filtered = commands.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
+        payload.actions = filtered.map {it.command}
+        val maxActionVer = filtered.map {it.actionVersion}.max()
+        if(maxActionVer != null) mapPlayerVersion.put(p.id,maxActionVer)
+      }
     }
   }
 
@@ -110,6 +117,18 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   )
 }
 
-//todo synchronized заменить на coorotines и Mutex
-inline fun <R> redundantSynchronize(lock:Any,block:()->R) = if(false) block() else synchronized(lock,block) //todo test performance
+
+inline fun <R> redundantSynchronize(lock:ServerModel,crossinline block:()->R):R = if(true) block() else needSynchronized(lock, block)
+inline fun <R> needSynchronized(lock:ServerModel,crossinline block:()->R):R{
+  if(false) {
+    return runBlocking {//todo зависает
+      lock.mutex.withLock {
+        block()
+      }
+    }
+  }
+  else {
+    return synchronized(lock,block)
+  }
+} //todo test performance
 

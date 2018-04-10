@@ -70,7 +70,7 @@ dependencies {
     compile("io.ktor:ktor-server-core:$ktorVersion")
     compile("io.ktor:ktor-websockets:$ktorVersion")
     compile("io.ktor:ktor-server-cio:$ktorVersion")
-//    compile("io.ktor:ktor-server-netty:$ktorVersion")
+    compile("io.ktor:ktor-server-netty:$ktorVersion")
 //    compile("io.ktor:ktor-server-jetty:$ktorVersion")
   }
 

@@ -9,6 +9,7 @@ import io.ktor.features.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.cio.*
+import io.ktor.server.netty.*
 import io.ktor.server.engine.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.experimental.*
@@ -33,8 +34,11 @@ fun main(args:Array<String>) {
   var port = 5000
   try { port = Integer.valueOf(System.getenv("PORT")) }
   catch(e:Exception) { }
-//  embeddedServer(Netty, port, module = Application::main).start(wait = true)
-  embeddedServer(CIO, port, module = Application::main).start(wait = true)
+  if(true) {//todo CIO кидает много ошибок когда сессия обрывается на стороне клиента
+    embeddedServer(CIO, port, module = Application::main).start(wait = true)
+  } else {
+    embeddedServer(Netty, port, module = Application::main).start(wait = true)
+  }
 }
 
 var lastId = 0
