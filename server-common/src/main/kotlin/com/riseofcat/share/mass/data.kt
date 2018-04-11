@@ -116,15 +116,17 @@ fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.
 fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
 class Bucket(val rect:Rect) { val foods:MutableList<Food> = mutableListOf() }
 fun State.tick() = lib.measure("tick") {
-  infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
   val MAX_W = 5
   val MAX_H = 5
   val w = width.toFloat()/MAX_W
   val h = height.toFloat()/MAX_H
+  infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
   val buckets = mutableMapOf<Int,Bucket>().apply {
-    for(i in 0 until MAX_W) {
-      for(j in 0 until MAX_H) {
-        this[i*MAX_H+j] = Bucket(Rect(XY(i*w,j*h),XY(w,h)))
+    lib.measure("tick.createBuckets") {
+      for(i in 0 until MAX_W) {
+        for(j in 0 until MAX_H) {
+          this[i*MAX_H+j] = Bucket(Rect(XY(i*w,j*h),XY(w,h)))
+        }
       }
     }
   }
@@ -132,71 +134,88 @@ fun State.tick() = lib.measure("tick") {
   fun SizeObject.isOverlapRect(rect:Rect) = toRect().isOverlap(rect)
   fun SizeObject.overlapIndexes() = buckets.entries.filter {this.isOverlapRect(it.value.rect)}.map {it.key}
   fun PosObject.storeIndex() = (pos.x/w).toInt()*MAX_H+(pos.y/h).toInt()
-  foods.forEach {buckets[it.storeIndex()]?.foods?.add(it)}
+
+  lib.measure("tick.sortBuckets") { // 1/15
+    foods.forEach {buckets[it.storeIndex()]?.foods?.add(it)}
+  }
 
   tick+=1
-  (cars+reactive).forEach {o->
-    o.pos = o.pos msum o.speed*GameConst.UPDATE_S
-    o.speed = o.speed mscale 0.98
-    if(o.pos.x>=width) o.pos.x = o.pos.x-width
-    else if(o.pos.x<0) o.pos.x = o.pos.x+width
-    if(o.pos.y>=height) o.pos.y = o.pos.y-height
-    else if(o.pos.y<0) o.pos.y = o.pos.y+height
+  lib.measure("tick.move") { // 1/40
+    (cars+reactive).forEach {o->
+      o.pos = o.pos msum o.speed*GameConst.UPDATE_S
+      o.speed = o.speed mscale 0.98
+      if(o.pos.x>=width) o.pos.x = o.pos.x-width
+      else if(o.pos.x<0) o.pos.x = o.pos.x+width
+      if(o.pos.y>=height) o.pos.y = o.pos.y-height
+      else if(o.pos.y<0) o.pos.y = o.pos.y+height
+    }
   }
+
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
-  cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
-  var handleFoodCars = cars
-  while(handleFoodCars.size > 0) {
-    val changedSizeCars:MutableSet<Car> = mutableSetOf()
-    for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
-      car.overlapIndexes().forEach {
-        val foodItr = buckets[it]!!.foods.iterator()
-        while(foodItr.hasNext()) {
-          val f = foodItr.next()
-          if(car overlap f.pos) {
-            car.size += f.size
-            foodItr.remove()
-            foods.remove(f)
+  lib.measure("tick.reactiveLife") {
+    while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
+  }
+
+  lib.measure("tick.sortCars") {
+    cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
+  }
+
+  lib.measure("tick.eatFoods") {//todo лагает 2/3
+    var handleFoodCars = cars
+    while(handleFoodCars.size > 0) {
+      val changedSizeCars:MutableSet<Car> = mutableSetOf()
+      for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
+        car.overlapIndexes().forEach {
+          val foodItr = buckets[it]!!.foods.iterator()
+          while(foodItr.hasNext()) {
+            val f = foodItr.next()
+            if(car overlap f.pos) {
+              car.size += f.size
+              foodItr.remove()
+              foods.remove(f)
+              changedSizeCars.add(car)
+            }
+          }
+        }
+
+        reactItr = reactive.iterator()
+        while(reactItr.hasNext()) {
+          val r = reactItr.next()
+          if(r.owner!=car.owner&&car overlap r.pos) {
+            car.size += r.size
+            reactItr.remove()
             changedSizeCars.add(car)
           }
         }
       }
-
-      reactItr = reactive.iterator()
-      while(reactItr.hasNext()) {
-        val r = reactItr.next()
-        if(r.owner!=car.owner&&car overlap r.pos) {
-          car.size += r.size
-          reactItr.remove()
-          changedSizeCars.add(car)
-        }
-      }
-    }
-    handleFoodCars = changedSizeCars.toMutableList()
-  }
-
-  var handleCarsDestroy = true
-  while(handleCarsDestroy) {
-    handleCarsDestroy = false
-    val carItr = cars.iterator()
-    val copy = cars.copy()//copy() нужно чтобы не было concurrent modification
-    while(carItr.hasNext()) {
-      val del = carItr.next()
-      for(c in copy) {
-        if(del != c && del.size < c.size && distance(c.pos, del.pos)<=c.radius) {
-          c.size += del.size
-          carItr.remove()
-          handleCarsDestroy = true
-          break
-        }
-      }
-      if(handleCarsDestroy) copy rm del
+      handleFoodCars = changedSizeCars.toMutableList()
     }
   }
+
+  lib.measure("tick.eatCars"){// 1/30
+    var handleCarsDestroy = true
+    while(handleCarsDestroy) {
+      handleCarsDestroy = false
+      val carItr = cars.iterator()
+      val copy = cars.copy()//copy() нужно чтобы не было concurrent modification
+      while(carItr.hasNext()) {
+        val del = carItr.next()
+        for(c in copy) {
+          if(del != c && del.size < c.size && distance(c.pos, del.pos)<=c.radius) {
+            c.size += del.size
+            carItr.remove()
+            handleCarsDestroy = true
+            break
+          }
+        }
+        if(handleCarsDestroy) copy rm del
+      }
+    }
+  }
+
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
-  if(tick.tick%1 == 0 && targetSize != size) lib.measure("resize"){
+  if(tick.tick%1 == 0 && targetSize != size) lib.measure("tick.resize"){
     val oldW = width
     val oldH = height
     val delta = targetSize-size

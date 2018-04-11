@@ -176,6 +176,7 @@ object libObj {
     }
 
     override fun toString():String {
+      //todo процентное соотношение наверное даже от пройденного времени целиком со старта игры
       var result = ""
       result += "sum: ${sum.toInt()}.${(sum*1e6).toLong()%1_000_000}s  count:$count"
       average100s?.let{
