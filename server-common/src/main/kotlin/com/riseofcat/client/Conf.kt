@@ -1,10 +1,14 @@
 package com.riseofcat.client
 
+import com.riseofcat.share.mass.*
 import kotlinx.serialization.Serializable
 
 @Serializable class Conf(
   var port:Int,
-  var host:String)
+  var host:String) {
+  val path = "socket"
+  fun pingClient() = PingClient(host,port,path,SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
+}
 
 object confs {
   val local = Conf(5000, "localhost")

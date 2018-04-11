@@ -4,25 +4,9 @@ import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 
-class ClientModel(conf:Conf, fake:Boolean=false, val slowpoke:Boolean=false):IClientModel {
+class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpoke:Boolean=false):IClientModel {
   val FREEZE_TICKS = Tick(Duration(1000)/GameConst.UPDATE+1)//todo сделать плавное ускорение времени после фриза?
   val CACHE = true
-  val client:IPingClient<ServerPayload,ClientPayload> =
-    if(fake) {
-      FakePingClient(ServerPayload(
-        stableTick = Tick(0),
-        welcome = Welcome(PlayerId(1), lib.time),
-        stable = State(mutableListOf(Car(PlayerId(1),20,XY(),XY()))),
-        recommendedLatency = Duration(10),
-        actions = mutableListOf<AllCommand>().apply {
-          for(i in 1..50) {
-            val pid = PlayerId(i+4)
-            add(AllCommand(Tick(i*10),pid, NewCarCommand(pid)))
-          }
-      }
-      ))
-    } else
-    PingClient(conf.host,conf.port,"socket",SerializeHelp.serverSayServerPayloadSerializer,SerializeHelp.clientSayClientPayloadSerializer)
   private val actions:MutableList<AllCommand> = Common.createConcurrentList()
   private val myLocal:MutableList<AllCommand> = mutableListOf()//todo избавиться от myLocal
   private var stable:StateWrapper = StateWrapper(State())
@@ -31,7 +15,7 @@ class ClientModel(conf:Conf, fake:Boolean=false, val slowpoke:Boolean=false):ICl
   var recommendendLatency:Duration?=null
 
   init {
-    client.connect {s:ServerPayload->
+    ping.connect {s:ServerPayload->
       synchronized(this) {
         if(s.welcome!=null) welcome = s.welcome
         if(s.recommendedLatency != null) recommendendLatency = s.recommendedLatency
@@ -56,7 +40,7 @@ class ClientModel(conf:Conf, fake:Boolean=false, val slowpoke:Boolean=false):ICl
   }
 
   val latency:Duration get() = recommendendLatency?: Duration(150)
-  val realtimeTick get():Tick = welcome?.run{Tick((client.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
+  val realtimeTick get():Tick = welcome?.run{Tick((ping.serverTime-roomCreate)/GameConst.UPDATE)}?:Tick(0)
 
   val start = lib.time
   var moves:Int = 0
@@ -75,7 +59,7 @@ class ClientModel(conf:Conf, fake:Boolean=false, val slowpoke:Boolean=false):ICl
       welcome?.run {myLocal.add(AllCommand(t, id, moveCmd = MoveCommand(id, direction)))}
       //actions.sortBy{it.tick}
     }
-    client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
+    ping.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
   }
   override fun newCar() = synchronized(this) {//todo дублирование кода
     if(!ready()) return
@@ -86,9 +70,9 @@ class ClientModel(conf:Conf, fake:Boolean=false, val slowpoke:Boolean=false):ICl
       welcome?.run {myLocal.add(AllCommand(t, id, newCarCmd = NewCarCommand(id)))}
       //actions.sortBy{it.tick}
     }
-    client.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
+    ping.say(ClientPayload(mutableListOf(a))) //todo если предудыщее отправление было в этом же тике, то задержать текущий набор действий на следующий tick
   }
-  override fun dispose() { client.close() }
+  override fun dispose() { ping.close() }
   private var cache:StateWrapper? = null//todo рендерить немного прошлое для лагающих клиентов тогда кэш реже надо будет сбрасывать
   private fun clearCache(tick:Tick = Tick(0)) {
     cache?.let {if(tick<=it._state.tick) cache = null}
