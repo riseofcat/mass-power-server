@@ -96,12 +96,10 @@ class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpo
     val _state = state.deepCopy()
     constructor(obj:StateWrapper):this(obj._state)
     fun tick(targetTick:Tick) {
-      lib.measure("StateWrapper.tick") {
-        while(_state.tick<targetTick) {
-          val filtered = (actions+myLocal).filter {it.tick==_state.tick}
-          _state act filtered.iterator()
-          _state.tick()
-        }
+      while(_state.tick<targetTick) {
+        val filtered = (actions+myLocal).filter {it.tick==_state.tick}
+        _state act filtered.iterator()
+        _state.tick()
       }
     }
   }

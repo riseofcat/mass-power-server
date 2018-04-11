@@ -38,7 +38,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       lib.measure("room.onMessage") {
         redundantSynchronize(this@ServerModel) {
           for(a in message.payload.actions) {
-            if(false && a.tick<=state.tick-removeAfterDelay){//todo для тестов выпилил игнорироваие команд
+            if(a.tick<=state.tick-removeAfterDelay){
               continue//Команда игнорируется
             }
             val t = if(a.tick>=state.tick) a.tick else state.tick
@@ -64,10 +64,9 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   }
 
   private fun updateGame() {
+    fun condition() = state.tick<realtimeTick-maxDelay
+    if(!condition()) return
     lib.measure("updateGame") {
-      fun condition() = state.tick<realtimeTick-maxDelay
-      if(!condition()) return@measure
-
       val test = true//todo test performance
       needSynchronized(this@ServerModel) {
         lib.measure("updateGame inside synchronized") {
@@ -93,15 +92,11 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     p.session.send(payload)
   }
 
-  private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) = lib.measure("updatePlayerInPayload") {
-    redundantSynchronize(this@ServerModel) {//todo эта синхронизация отъедае мнго времени
-      lib.measure("updatePlayerInPayload inside synchronized") {
-        val filtered = commands.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
-        payload.actions = filtered.map {it.command}
-        val maxActionVer = filtered.map {it.actionVersion}.max()
-        if(maxActionVer != null) mapPlayerVersion.put(p.id,maxActionVer)
-      }
-    }
+  private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) = redundantSynchronize(this@ServerModel) {
+    val filtered = commands.filter {it.actionVersion>mapPlayerVersion[p.id] ?: 0}
+    payload.actions = filtered.map {it.command}
+    val maxActionVer = filtered.map {it.actionVersion}.max()
+    if(maxActionVer!=null) mapPlayerVersion.put(p.id,maxActionVer)
   }
 
   inner class CommandAndVersion(val command:AllCommand) {
@@ -117,7 +112,6 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   )
 }
 
-
 inline fun <R> redundantSynchronize(lock:ServerModel,crossinline block:()->R):R = if(true) block() else needSynchronized(lock, block)
 inline fun <R> needSynchronized(lock:ServerModel,crossinline block:()->R):R{
   if(false) {
@@ -130,5 +124,5 @@ inline fun <R> needSynchronized(lock:ServerModel,crossinline block:()->R):R{
   else {
     return synchronized(lock,block)
   }
-} //todo test performance
+}
 

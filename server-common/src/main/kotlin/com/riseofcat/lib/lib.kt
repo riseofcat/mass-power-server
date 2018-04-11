@@ -121,10 +121,10 @@ object libObj {
   }
 
   inline fun debug(block:()->Unit) {
-//    block()
+    block()
   }
   inline fun release(block:()->Unit) {
-    block()
+//    block()
   }
   inline fun <T>releaseOrDebug(rel:()->T, deb:()->T):T {
     release {
