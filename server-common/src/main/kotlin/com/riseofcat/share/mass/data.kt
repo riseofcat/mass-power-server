@@ -114,33 +114,33 @@ val Rect.bottomRight get() = pos + size scale XY(1.0,1.0)
 val Rect.points get() = arrayOf(topLeft, topRignt, bottomLeft, bottomRight)
 fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
 fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
-class Bucket(val rect:Rect) { val foods:MutableList<Food> = mutableListOf() }
-fun State.tick() = lib.measure("tick") {
-  val MAX_W = 5
-  val MAX_H = 5
+class Bucket(val rect:Rect) {
+  val foods:MutableList<Food> = mutableListOf()//todo попробовать сделать Array
+}
+fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg100: 9.383111351 ms
+  val MAX_W = 4//todo подбирать динамически от количества еды
+  val MAX_H = 4
   val w = width.toFloat()/MAX_W
   val h = height.toFloat()/MAX_H
   infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
-  val buckets = mutableMapOf<Int,Bucket>().apply {
-    lib.measure("tick.createBuckets") {
-      for(i in 0 until MAX_W) {
-        for(j in 0 until MAX_H) {
-          this[i*MAX_H+j] = Bucket(Rect(XY(i*w,j*h),XY(w,h)))
-        }
-      }
+  val buckets = lib.measure("tick.createBuckets") {
+    Array<Bucket>(MAX_W*MAX_H) {
+      val i = it/MAX_H
+      val j = it%MAX_H
+      Bucket(Rect(XY(i*w,j*h),XY(w,h)))
     }
   }
   fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
   fun SizeObject.isOverlapRect(rect:Rect) = toRect().isOverlap(rect)
-  fun SizeObject.overlapIndexes() = buckets.entries.filter {this.isOverlapRect(it.value.rect)}.map {it.key}
+  fun SizeObject.overlapBuckets() = buckets.filter {this.isOverlapRect(it.rect)}
   fun PosObject.storeIndex() = (pos.x/w).toInt()*MAX_H+(pos.y/h).toInt()
 
-  lib.measure("tick.sortBuckets") { // 1/15
+  lib.measure("tick.sortBuckets") {
     foods.forEach {buckets[it.storeIndex()]?.foods?.add(it)}
   }
 
   tick+=1
-  lib.measure("tick.move") { // 1/40
+  lib.measure("tick.move") {
     (cars+reactive).forEach {o->
       o.pos = o.pos msum o.speed*GameConst.UPDATE_S
       o.speed = o.speed mscale 0.98
@@ -160,18 +160,19 @@ fun State.tick() = lib.measure("tick") {
     cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   }
 
-  lib.measure("tick.eatFoods") {//todo лагает 2/3
+  lib.measure("tick.eatFoods") { // 16.459389961 %    count:4251  avrg100: 6.499193569 ms
     var handleFoodCars = cars
     while(handleFoodCars.size > 0) {
       val changedSizeCars:MutableSet<Car> = mutableSetOf()
       for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
-        car.overlapIndexes().forEach {
-          val foodItr = buckets[it]!!.foods.iterator()
+        car.overlapBuckets().forEach {bucket->
+          val foodItr = bucket.foods.iterator()
           while(foodItr.hasNext()) {
             val f = foodItr.next()
             if(car overlap f.pos) {
               car.size += f.size
               foodItr.remove()
+              foods.contains(f)//todo
               foods.remove(f)
               changedSizeCars.add(car)
             }
@@ -192,7 +193,7 @@ fun State.tick() = lib.measure("tick") {
     }
   }
 
-  lib.measure("tick.eatCars"){// 1/30
+  lib.measure("tick.eatCars"){
     var handleCarsDestroy = true
     while(handleCarsDestroy) {
       handleCarsDestroy = false
