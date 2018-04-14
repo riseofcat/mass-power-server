@@ -76,6 +76,7 @@ object libObj {
   val objStrSer = json
   inline fun <reified T:Any>getKClass() = T::class
   fun rnd(min:Int,max:Int) = (min+Common.random()*(max-min+1)).toInt()
+  fun inLimits(value:Int, min:Int, max:Int) = kotlin.math.max(min, kotlin.math.min(max, value))
 
   object cbor {
     fun <T:Any> stringify(saver:KSerialSaver<T>, obj: T): String {
@@ -135,10 +136,15 @@ object libObj {
     }
     lib.log.fatalError("specify release or debug")
   }
+
+  var measurementsBegin:Time? = null
   fun <T>measure(hashTag:String, block:()->T):T {
     return releaseOrDebug({
       block()
     }) {
+      if(measurementsBegin == null) {
+        measurementsBegin = lib.time
+      }
       var result:T? = null
       Common.getCodeLineInfo(2)
       val t = Common.measureNanoTime {
@@ -176,14 +182,24 @@ object libObj {
     }
 
     override fun toString():String {
-      //todo процентное соотношение наверное даже от пройденного времени целиком со старта игры
       var result = ""
-      result += "sum: ${sum.toInt()}.${(sum*1e6).toLong()%1_000_000}s  count:$count"
-      average100s?.let{
-        result += "\navrg100: ${(it*1_000).toInt()}.${(it*1e9).toLong()%1_000_000}ms"
+      val beginTime = measurementsBegin
+      if(beginTime != null) {
+        result += "sum%: ${lib.formatDouble(sum*100/(lib.time.s - beginTime.s), 9)} %    count:$count"
+        average100s?.let{
+          result += "\navrg100: ${lib.formatDouble(it*1000, 9)} ms"
+        }
       }
       return result
     }
+  }
+
+  private fun formatDouble(value:Double,afterComa:Int):String {
+    var digits = 1
+    repeat(afterComa) {
+      digits = digits*10
+    }
+    return "${value.toInt()}.${(value*digits).toLong()%digits}"
   }
 
   inline fun saveInvoke(lambda:()->Unit) {

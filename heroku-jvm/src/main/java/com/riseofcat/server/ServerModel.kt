@@ -26,7 +26,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   init {
     room.onPlayerAdded.add {player->
       updateGame()
-      redundantSynchronize(this@ServerModel) {
+      needSynchronized(this@ServerModel) {
         if(false) commands.add(CommandAndVersion(AllCommand(realtimeTick+newCarDelay,player.id,newCarCmd = NewCarCommand(player.id))))
         val payload = createStablePayload(Welcome(player.id, room.createTime))
         player.session.send(payload)//todo тут произошёл ConcurrentModificationException
