@@ -12,7 +12,7 @@ object GameConst {
   val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 500*5
+  val FOODS = 500
   val FOOD_PER_CAR = 20
   val BASE_WIDTH = 4_000.0
   val BASE_HEIGHT = 4_000.0
@@ -45,7 +45,7 @@ interface EatMeWithSpeed:SizeObject, SpeedObject
     val car = state.cars.find{ it.owner == id}?:return
     car.speed = car.speed+direction.xy(100.0)
     val size = car.size/15+1
-    if(false)if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size//todo revert
+    if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
     state.reactive.add(Reactive(id,size,car.speed + (direction+degreesAngle(180)).xy(400.0),car.pos.copy(),state.tick.copy()))
   }
 }
@@ -108,10 +108,10 @@ infix fun State.act(actions:Iterator<ICommand>):State {
 }
 data class Rect(val pos:XY, val size:XY)
 val Rect.topLeft get() = pos.copy()
-val Rect.topRignt get() = pos + size scale XY(1.0,0.0)
-val Rect.bottomLeft get() = pos + size scale XY(0.0,1.0)
-val Rect.bottomRight get() = pos + size scale XY(1.0,1.0)
-val Rect.points get() = arrayOf(topLeft, topRignt, bottomLeft, bottomRight)
+val Rect.topRight get() = pos + size.scale(XY(1.0,0.0))
+val Rect.bottomLeft get() = pos + size.scale(XY(0.0,1.0))
+val Rect.bottomRight get() = pos + size.scale(XY(1.0,1.0))
+val Rect.points get() = arrayOf(topLeft, topRight, bottomLeft, bottomRight)
 
 class Bucket(val rect:Rect) {
   val foods:MutableList<Food> = mutableListOf()
@@ -158,24 +158,21 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     val all:List<T> get()= map.values.flatMap {it.values}
   }
 
-  if(tick.tick%2==0) {//Еду кушаем не каждый tick
+  if(tick.tick%3==0) {//Еду кушаем не каждый tick
     fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
     fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
     fun Rect.alternative():List<Rect> {
       val result:MutableList<Rect> = mutableListOf()
       result.add(this)
-      if(points.any {it.x>width}) {
-        result.add(this.copy(pos.copy(x = pos.x-width)))
-      } else if(points.any {it.x<0}) {
-        result.add(this.copy(pos.copy(x = pos.x+width)))
-      }
-      if(points.any {it.y>height}) {
+      if(points.any {it.x>=width}) result.add(this.copy(pos = pos.copy(x = pos.x-width)))
+      else if(points.any {it.x<0}) result.add(this.copy(pos = pos.copy(x = pos.x+width)))
+      if(points.any {it.y>=height}) {
         result.copy().forEach {
-          result.add(it.copy(pos.copy(y = pos.y-height)))
+          result.add(it.copy(pos = it.pos.copy(y = it.pos.y-height)))
         }
       } else if(points.any {it.y<0}) {
         result.copy().forEach {
-          result.add(it.copy(pos.copy(y = pos.y+height)))
+          result.add(it.copy(pos = it.pos.copy(y = it.pos.y+height)))
         }
       }
       return result
@@ -208,26 +205,18 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
           val overlapBuckets = car.overlapBuckets()
-
-          lib.log.info("car.storeBucket() = ${car.storeBucket()}")
-          lib.log.info("overlapBuckets.size ${overlapBuckets.size}")
-          lib.log.info("overlapBuckets: ${overlapBuckets.map{it.toString()}}")
-
           overlapBuckets.forEach {bucket->
             val foodItr = bucket.foods.iterator()
             while(foodItr.hasNext()) {
               val f = foodItr.next()
               if(car overlap f.pos) {
-                if(car.size < 900) {
-                  car.size += f.size
-                }
+                car.size += f.size
                 foodItr.remove()
                 foods.remove(f)
                 changedSizeCars.add(car)
               }
             }
           }
-
           reactItr = reactive.iterator()
           while(reactItr.hasNext()) {
             val r = reactItr.next()
