@@ -12,7 +12,7 @@ object GameConst {
   val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 1500
+  val FOODS = 500*5
   val FOOD_PER_CAR = 20
   val BASE_WIDTH = 4_000.0
   val BASE_HEIGHT = 4_000.0
@@ -115,6 +115,9 @@ val Rect.points get() = arrayOf(topLeft, topRignt, bottomLeft, bottomRight)
 
 class Bucket(val rect:Rect) {
   val foods:MutableList<Food> = mutableListOf()
+  var col:Int=-9
+  var row:Int=-9
+  override fun toString() = "[$col, $row]"
 }
 fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg100: 9.383111351 ms
 
@@ -158,41 +161,36 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   if(tick.tick%2==0) {//Еду кушаем не каждый tick
     fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
     fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
-    fun Rect.toAlternativeRect():Rect? {
-      var result:Rect? = null
+    fun Rect.alternative():List<Rect> {
+      val result:MutableList<Rect> = mutableListOf()
+      result.add(this)
       if(points.any {it.x>width}) {
-        result = (result?:this).copy(pos.copy(x = pos.x-width))
+        result.add(this.copy(pos.copy(x = pos.x-width)))
       } else if(points.any {it.x<0}) {
-        result = (result?:this).copy(pos.copy(x = pos.x+width))
+        result.add(this.copy(pos.copy(x = pos.x+width)))
       }
       if(points.any {it.y>height}) {
-        result = (result?:this).copy(pos.copy(y = pos.y-height))
+        result.copy().forEach {
+          result.add(it.copy(pos.copy(y = pos.y-height)))
+        }
       } else if(points.any {it.y<0}) {
-        result = (result?:this).copy(pos.copy(y = pos.y+height))
-      }
-      if(result != null) {
-        lib.log.breakpoint()
+        result.copy().forEach {
+          result.add(it.copy(pos.copy(y = pos.y+height)))
+        }
       }
       return result
     }
 
-    fun Rect.toAlternativeRects() = listOf(
-      copy(pos.copy(x = pos.x-width)),
-      copy(pos.copy(x = pos.x+width)),
-      copy(pos.copy(y = pos.y-height)),
-      copy(pos.copy(y = pos.y+height))
-    )
-
     fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
-    fun SizeObject.isOverlapRect(rect:Rect) = toRect().isOverlap(rect) || toRect().toAlternativeRects().any{it.isOverlap(rect)}
-    val MAX_W = 4//todo подбирать динамически от количества еды
+    fun SizeObject.isOverlapRect(rect:Rect) = toRect().alternative().any{it.isOverlap(rect)}
+    val MAX_W = 4
     val MAX_H = 4
     val w = width.toFloat()/MAX_W
     val h = height.toFloat()/MAX_H
 
     infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
     val buckets = lib.measure("tick.createBuckets") {
-      Mattr2D(MAX_W,MAX_H,{col,row-> Bucket(Rect(XY(col*w,row*h),XY(w,h)))})
+      Mattr2D(MAX_W,MAX_H,{col,row-> Bucket(Rect(XY(col*w,row*h),XY(w,h))).apply {this.col=col;this.row=row }})
     }
     fun SizeObject.overlapBuckets() = buckets.all.filter {this.isOverlapRect(it.rect)}
     fun mod(value:Int,module:Int) = when {
@@ -209,7 +207,13 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
-          car.overlapBuckets().forEach {bucket->
+          val overlapBuckets = car.overlapBuckets()
+
+          lib.log.info("car.storeBucket() = ${car.storeBucket()}")
+          lib.log.info("overlapBuckets.size ${overlapBuckets.size}")
+          lib.log.info("overlapBuckets: ${overlapBuckets.map{it.toString()}}")
+
+          overlapBuckets.forEach {bucket->
             val foodItr = bucket.foods.iterator()
             while(foodItr.hasNext()) {
               val f = foodItr.next()
