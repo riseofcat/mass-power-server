@@ -12,10 +12,10 @@ object GameConst {
   val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 500
+  val FOODS = 500*4
   val FOOD_PER_CAR = 20
-  val BASE_WIDTH = 4_000.0
-  val BASE_HEIGHT = 4_000.0
+  val BASE_WIDTH = 4_000.0*2
+  val BASE_HEIGHT = 4_000.0*2
   val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(60)
 }
@@ -115,6 +115,8 @@ val Rect.points get() = arrayOf(topLeft, topRight, bottomLeft, bottomRight)
 
 class Bucket(val rect:Rect) {
   val foods:MutableList<Food> = mutableListOf()
+  val cars:MutableList<Car> = mutableListOf()
+  val reactive:MutableList<Food> = mutableListOf()
   var col:Int=-9
   var row:Int=-9
   override fun toString() = "[$col, $row]"
@@ -143,22 +145,22 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   }
 
   class Mattr2D<T>(val cols:Int, val rows:Int, init:(Int, Int)->T){
-    val map = mutableMapOf<Int,MutableMap<Int,T>>()
+    val all = (0 until cols*rows).map{init(it/rows,it%rows)}.toTypedArray()
+    val map:Map<Int,Map<Int,T>>
     init{
+      map = mutableMapOf()
       for(col in 0 until cols) {
-        map[col] = mutableMapOf()
+        val m2 = mutableMapOf<Int,T>()
+        map[col] = m2
         for(row in 0 until rows) {
-          map[col]!![row] = init(col, row)
+          m2[row] = all[col*rows+row]//init(col, row)
         }
       }
     }
-    operator fun get(col:Int, row:Int):T {
-      return map[col]!![row]!!
-    }
-    val all:List<T> get()= map.values.flatMap {it.values}
+    inline operator fun get(col:Int,row:Int):T = if(false) all[col*rows+row] else map[col]!![row]!!
   }
 
-  if(tick.tick%3==0) {//Еду кушаем не каждый tick
+  if(tick.tick%5==0) {//Еду кушаем не каждый tick
     fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
     fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
     fun Rect.alternative():List<Rect> {
@@ -180,14 +182,14 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
 
     fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
     fun SizeObject.isOverlapRect(rect:Rect) = toRect().alternative().any{it.isOverlap(rect)}
-    val MAX_W = 4
-    val MAX_H = 4
+    val MAX_W = 5
+    val MAX_H = 5
     val w = width.toFloat()/MAX_W
     val h = height.toFloat()/MAX_H
 
     infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
     val buckets = lib.measure("tick.createBuckets") {
-      Mattr2D(MAX_W,MAX_H,{col,row-> Bucket(Rect(XY(col*w,row*h),XY(w,h))).apply {this.col=col;this.row=row }})
+      Mattr2D(MAX_W,MAX_H){col,row-> Bucket(Rect(XY(col*w,row*h),XY(w,h))).apply {this.col=col;this.row=row }}
     }
     fun SizeObject.overlapBuckets() = buckets.all.filter {this.isOverlapRect(it.rect)}
     fun mod(value:Int,module:Int) = when {
@@ -232,7 +234,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     }
   }
 
-  lib.measure("tick.eatCars"){
+  if(tick.tick%3==0) lib.measure("tick.eatCars") {
     var handleCarsDestroy = true
     while(handleCarsDestroy) {
       handleCarsDestroy = false
