@@ -4,8 +4,8 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
-val MAX_W = 5
-val MAX_H = 5
+@Deprecated("") val MAX_W = 5
+@Deprecated("") val MAX_H = 5
 class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
   val all = (0 until COLS*ROWS).map{Cell(it/ROWS,it%ROWS,init(it/ROWS,it%ROWS))}/*.toTypedArray()*/
   val map:Map<Int,Map<Int,Cell>>
@@ -27,9 +27,14 @@ class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
     TODO()
   }
 }
-fun repeatTick(ticks:Int, lambda:()->Unit) {
-  //todo
-  lambda()
+fun <T>Mattr2D<MutableList<T>>.clearCache() {
+  all.forEach {it.value.clear()}
+}
+fun State.repeatTick(ticks:Int, lambda:()->Unit) {
+  repeatTickCalls++
+  if((tick.tick-repeatTickCalls)%ticks == 0) {
+    lambda()
+  }
 }
 
 object GameConst {
@@ -116,6 +121,7 @@ inline val Angle.cos get() = cos(radians)
   var random:Int = 0,
   var size:Int = 0,
   var tick:Tick = Tick(0),
+  @Transient var repeatTickCalls:Int = 0,
   @Transient val cacheFood:Mattr2D<MutableList<Food>> = Mattr2D(MAX_W,MAX_H) {col,row-> mutableListOf<Food>()}
 )
 fun State.deepCopy() = lib.measure("State.deepCopy") {
@@ -151,7 +157,7 @@ class Bucket(val col:Int,val row:Int) {
   override fun toString() = "[$col, $row]"
 }
 fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg100: 9.383111351 ms
-
+  repeatTickCalls = 0
   tick+=1
   lib.measure("tick.move") {
     (cars+reactive).forEach {o->
@@ -173,47 +179,50 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   }
 
-  if(tick.tick%5==0) {//Еду кушаем не каждый tick
-    fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
-    fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
-    fun Rect.alternative():List<Rect> {
-      val result:MutableList<Rect> = mutableListOf()
-      result.add(this)
-      if(points.any {it.x>=width}) result.add(this.copy(pos = pos.copy(x = pos.x-width)))
-      else if(points.any {it.x<0}) result.add(this.copy(pos = pos.copy(x = pos.x+width)))
-      if(points.any {it.y>=height}) {
-        result.copy().forEach {
-          result.add(it.copy(pos = it.pos.copy(y = it.pos.y-height)))
-        }
-      } else if(points.any {it.y<0}) {
-        result.copy().forEach {
-          result.add(it.copy(pos = it.pos.copy(y = it.pos.y+height)))
-        }
+  fun Rect.containsPoint(p:XY) = p.x>=topLeft.x&&p.y>=topLeft.y&&p.x<=bottomRight.x&&p.y<=bottomRight.y
+  fun Rect.isOverlap(other:Rect) = this.points.any{other.containsPoint(it)} || other.points.any{this.containsPoint(it)}
+  fun Rect.alternative():List<Rect> {
+    val result:MutableList<Rect> = mutableListOf()
+    result.add(this)
+    if(points.any {it.x>=width}) result.add(this.copy(pos = pos.copy(x = pos.x-width)))
+    else if(points.any {it.x<0}) result.add(this.copy(pos = pos.copy(x = pos.x+width)))
+    if(points.any {it.y>=height}) {
+      result.copy().forEach {
+        result.add(it.copy(pos = it.pos.copy(y = it.pos.y-height)))
       }
-      return result
+    } else if(points.any {it.y<0}) {
+      result.copy().forEach {
+        result.add(it.copy(pos = it.pos.copy(y = it.pos.y+height)))
+      }
     }
+    return result
+  }
 
-    fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
-    fun SizeObject.isOverlapRect(rect:Rect) = toRect().alternative().any{it.isOverlap(rect)}
-    fun <T>Mattr2D<T>.Cell.rect() = Rect(XY(col*width/matrix.COLS,row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS))//todo проверить производительность
-    val w = width.toFloat()/MAX_W
-    val h = height.toFloat()/MAX_H
+  fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
+  fun SizeObject.isOverlapRect(rect:Rect) = toRect().alternative().any{it.isOverlap(rect)}
+  fun <T>Mattr2D<T>.Cell.rect() = Rect(XY(col*width/matrix.COLS,row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS))//todo проверить производительность
+  val w = width.toFloat()/MAX_W
+  val h = height.toFloat()/MAX_H
 
-    infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
-    fun <T>SizeObject.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
-      this.isOverlapRect(it.rect())
-    }
-    fun mod(value:Int,module:Int) = when {
-      value<0->value+module
-      value>=module->value-module
-      else->value
-    }
-    fun PosObject.storeCol() = mod((pos.x/w).toInt(),MAX_W)
-    fun PosObject.storeRow() = mod((pos.y/h).toInt(),MAX_H)
+  infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
+  fun <T>SizeObject.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
+    this.isOverlapRect(it.rect())
+  }
+  fun mod(value:Int,module:Int) = when {
+    value<0->value+module
+    value>=module->value-module
+    else->value
+  }
+  fun PosObject.storeCol() = mod((pos.x/w).toInt(),MAX_W)
+  fun PosObject.storeRow() = mod((pos.y/h).toInt(),MAX_H)
+
+  repeatTick(10) {//todo выполнять сразу если кэш пустой
     lib.measure("tick.sortBuckets") {
-      cacheFood.all.forEach {it.value.clear()}//todo clear cache
+      cacheFood.clearCache()
       foods.forEach {cacheFood.get(it.storeCol(), it.storeRow()).value.add(it)}
     }
+  }
+  repeatTick(5) {
     lib.measure("tick.eatFoods") { // 16.459389961 %    count:4251  avrg100: 7.000193569 ms
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
@@ -247,36 +256,40 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     }
   }
 
-  if(tick.tick%3==0) lib.measure("tick.eatCars") {
-    var handleCarsDestroy = true
-    while(handleCarsDestroy) {
-      handleCarsDestroy = false
-      val carItr = cars.iterator()
-      val copy = cars.copy()//copy() нужно чтобы не было concurrent modification
-      while(carItr.hasNext()) {
-        val del = carItr.next()
-        for(c in copy) {
-          if(del != c && del.size < c.size && distance(c.pos, del.pos)<=c.radius) {
-            c.size += del.size
-            carItr.remove()
-            handleCarsDestroy = true
-            break
+  repeatTick(3) {
+    lib.measure("tick.eatCars") {
+      var handleCarsDestroy = true
+      while(handleCarsDestroy) {
+        handleCarsDestroy = false
+        val carItr = cars.iterator()
+        val copy = cars.copy()//copy() нужно чтобы не было concurrent modification
+        while(carItr.hasNext()) {
+          val del = carItr.next()
+          for(c in copy) {
+            if(del != c && del.size < c.size && distance(c.pos, del.pos)<=c.radius) {
+              c.size += del.size
+              carItr.remove()
+              handleCarsDestroy = true
+              break
+            }
           }
+          if(handleCarsDestroy) copy rm del
         }
-        if(handleCarsDestroy) copy rm del
       }
     }
   }
 
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
-  if(tick.tick%1 == 0 && targetSize != size) lib.measure("tick.resize"){
-    val oldW = width
-    val oldH = height
-    val delta = targetSize-size
-    val delta2 = (delta*lib.Fun.arg0toInf(abs(delta), 50)).toInt()
-    size = size + delta2.sign*min(abs(delta2), 10)
-    (cars + reactive + foods).forEach {p -> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
+  repeatTick(2) {
+    if(targetSize!=size) lib.measure("tick.resize") {
+      val oldW = width
+      val oldH = height
+      val delta = targetSize-size
+      val delta2 = (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
+      size = size+delta2.sign*min(abs(delta2),30)
+      (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
+    }
   }
 }
 
