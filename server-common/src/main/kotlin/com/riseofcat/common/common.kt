@@ -31,8 +31,12 @@ abstract class LibWebSocket {
     fun onMessage(packet:String)
   }
 
-  enum class State {
-    OPEN,
-    CLOSE
+  enum class State(val message:String) {
+    OPEN("Успешное соединение с сервером"),
+    CLOSE("Закрываю соединение"),
+    CONNECTING("Соединение..."),
+    CLOSING("Закрытие соединения"),
+    CLOSED("Соединение закрыто");
+    override fun toString() = message
   }
 }

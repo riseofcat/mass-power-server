@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.*
 
 class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val mutex:Mutex = Mutex()
-  val STABLE_STATE_UPDATE:Duration? = null//Duration(10_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
+  val STABLE_STATE_UPDATE:Duration? = Duration(10_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
   private val state = State()
   private var commands:MutableList<CommandAndVersion> = Common.createConcurrentList()
   private val mapPlayerVersion = Common.createConcurrentHashMap<PlayerId,Int>()

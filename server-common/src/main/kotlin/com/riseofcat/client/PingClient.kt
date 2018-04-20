@@ -12,9 +12,11 @@ interface IPingClient<S:Any,C> {
   fun close()
   fun say(payload:C)
   val clientMessages:Int
+  val state:LibWebSocket.State
 }
 
 class FakePingClient<S:Any,C>(val connectData:S):IPingClient<S,C> {
+  override val state:LibWebSocket.State get() = LibWebSocket.State.OPEN
   override val serverTime:TimeStamp get() = lib.time
   override val smartPingDelay:Duration = Duration(100)
   override fun connect(incomeListener:SignalListener<S>) {
@@ -89,6 +91,8 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
 
     })
   }
+
+  override val state get()= socket.state
 
   override fun connect(incomeListener:SignalListener<S>) {
     incoming.add(incomeListener)
