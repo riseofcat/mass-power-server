@@ -38,17 +38,17 @@ fun State.repeatTick(ticks:Int, lambda:()->Unit) {
 }
 
 object GameConst {
-  val CHANGE_SIZE_PER_CAR=200
+  val CHANGE_SIZE_PER_CAR=400
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
   val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 500
-  val FOOD_PER_CAR = 20
-  val BASE_WIDTH = 4_000.0
-  val BASE_HEIGHT = 4_000.0
+  val FOODS = 200
+  val FOOD_PER_CAR = 10
+  val BASE_WIDTH = 2300.0
+  val BASE_HEIGHT = 2300.0
   val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(60)
 }
@@ -77,7 +77,7 @@ interface EatMeWithSpeed:SizeObject, SpeedObject
   override fun act(state:State) {
     val car = state.cars.find{ it.owner == id}?:return
     car.speed = car.speed+direction.xy(100.0)
-    val size = car.size/15+1
+    val size = car.size/20+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
     state.reactive.add(Reactive(id,size,car.speed + (direction+degreesAngle(180)).xy(400.0),car.pos.copy(),state.tick.copy()))
   }

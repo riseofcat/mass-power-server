@@ -31,12 +31,14 @@ abstract class LibWebSocket {
     fun onMessage(packet:String)
   }
 
-  enum class State(val message:String) {
-    OPEN("Успешное соединение с сервером"),
-    CLOSE("Закрываю соединение"),
-    CONNECTING("Соединение..."),
-    CLOSING("Закрытие соединения"),
-    CLOSED("Соединение закрыто");
+  enum class State(val message:String, val good:Boolean) {
+    OPEN("Успешное соединение с сервером", true),
+    CLOSE("Закрываю соединение", false),
+    CONNECTING("Соединение...", true),
+    CLOSING("Закрытие соединения", false),
+    CLOSED("Соединение закрыто", false),
+    TIMEOUT("Время ожидания истекло", false);
+
     override fun toString() = message
   }
 }
