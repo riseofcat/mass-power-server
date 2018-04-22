@@ -194,7 +194,7 @@ object libObj {
     }
   }
 
-  private fun formatDouble(value:Double,afterComa:Int):String {
+  fun formatDouble(value:Double,afterComa:Int):String {
     var digits = 1
     repeat(afterComa) {
       digits = digits*10
