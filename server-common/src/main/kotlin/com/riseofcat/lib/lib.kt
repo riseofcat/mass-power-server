@@ -222,6 +222,33 @@ object libObj {
     fun pillar(value:Long, max:Long) = if((value/max)%2==0L) { value%max } else { max-value%max }//Имеет график /\/\/\/\
   }
   fun <T>smoothByTime(lambda:()->Double) = SmoothByTime<T>(lambda)
+
+  class CacheResult<T:Any>{
+    val depends:MutableMap<Int, Any?> = mutableMapOf()
+    lateinit var result:T
+  }
+  class CacheContext<T:Any>(val previous:CacheResult<T>?) {
+    var previousId:Int = 0
+    val cacheResult:CacheResult<T> = CacheResult()
+    inline fun <D>depend(lambda:()->D):D {
+      val value = lambda()
+      cacheResult.depends[previousId++] = value
+      return value
+    }
+    inline fun cache(lambda:()->T):T {
+      cacheResult.result = if(cacheResult.depends == previous?.depends) {
+        previous.result
+      } else {
+        lambda()
+      }
+      return cacheResult.result
+    }
+  }
+  class CacheDelegate<V:Any>(val lambda:CacheContext<V>.()->V) {
+    var previous:CacheResult<V>?=null
+    operator fun getValue(t:Any,property:KProperty<*>) = CacheContext(previous).also {previous = it.cacheResult}.lambda()
+  }
+  fun <V:Any> cacheDelegate(lambda:CacheContext<V>.()->V) = CacheDelegate(lambda)
 }
 
 fun <T> MutableList<T>.copy() = toMutableList()
