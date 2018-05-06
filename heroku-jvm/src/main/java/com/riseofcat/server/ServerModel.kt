@@ -5,6 +5,7 @@ import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.sync.*
+import java.util.concurrent.*
 import java.util.concurrent.atomic.*
 
 class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
@@ -86,10 +87,20 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     }
   }
 
+  private val waitPlayers:MutableSet<RoomsDecorator<ClientPayload,ServerPayload>.Room.Player> = CopyOnWriteArraySet()
+
   private fun updatePlayer(p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) {
-    val payload = ServerPayload(state.tick)
-    updatePlayerInPayload(payload,p)
-    p.session.send(payload)
+    val wait = waitPlayers.contains(p)
+    if(!wait) {
+      waitPlayers.add(p)
+      launch {
+        delay(30)
+        val payload = ServerPayload(state.tick)
+        updatePlayerInPayload(payload,p)
+        p.session.send(payload)
+        waitPlayers.remove(p)
+      }
+    }
   }
 
   private fun updatePlayerInPayload(payload:ServerPayload,p:RoomsDecorator<ClientPayload,ServerPayload>.Room.Player) = redundantSynchronize(this@ServerModel) {

@@ -23,14 +23,11 @@ class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
     val matrix = this@Mattr2D
   }
   inline operator fun get(col:Int,row:Int) = if(false) all[col*ROWS+row] else map[col]!![row]!!
-  fun loop(lambda:(col:Int, row:Int)->T) {
-    TODO()
-  }
 }
 fun <T>Mattr2D<MutableList<T>>.clearCache() {
   all.forEach {it.value.clear()}
 }
-fun State.repeatTick(ticks:Int, lambda:()->Unit) {
+inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
   repeatTickCalls++
   if((tick.tick-repeatTickCalls)%ticks == 0) {
     lambda()
@@ -163,7 +160,7 @@ class Bucket(val col:Int,val row:Int) {
 fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg100: 9.383111351 ms
   repeatTickCalls = 0
   tick+=1
-  lib.measure("tick.move") {
+  lib.skip_measure("tick.move") {
     (cars+reactive).forEach {o->
       o.pos = o.pos msum o.speed*GameConst.UPDATE_S
       o.speed = o.speed mscale 0.98
@@ -175,11 +172,11 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   }
 
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  lib.measure("tick.reactiveLife") {
+  lib.skip_measure("tick.reactiveLife") {
     while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
   }
 
-  lib.measure("tick.sortCars") {
+  lib.skip_measure("tick.sortCars") {
     cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   }
 
@@ -221,7 +218,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   fun PosObject.storeRow() = mod((pos.y/h).toInt(),MAX_H)
 
   repeatTick(20) {//todo выполнять сразу если кэш пустой
-    lib.measure("tick.sortBuckets") {
+    lib.skip_measure("tick.sortBuckets") {
       cacheFood.clearCache()
       foods.forEach {cacheFood.get(it.storeCol(), it.storeRow()).value.add(it)}
     }
@@ -231,7 +228,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     reactive.forEach {cacheReactive.get(it.storeCol(), it.storeRow()).value.add(it)}
   }
   repeatTick(5) {
-    lib.measure("tick.eatFoods") { // 16.459389961 %    count:4251  avrg100: 7.000193569 ms
+    lib.skip_measure("tick.eatFoods") { // 16.459389961 %    count:4251  avrg100: 7.000193569 ms
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
@@ -274,7 +271,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     cars.forEach {cacheCars.get(it.storeCol(), it.storeRow()).value.add(it)}
   }
   repeatTick(3) {
-    lib.measure("tick.eatCars") {
+    lib.skip_measure("tick.eatCars") {
       var handleCarsDestroy = true
       while(handleCarsDestroy) {
         handleCarsDestroy = false
@@ -302,7 +299,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
   repeatTick(3) {
-    if(targetSize!=size) lib.measure("tick.resize") {
+    if(targetSize!=size) lib.skip_measure("tick.resize") {
       val oldW = width
       val oldH = height
       val delta = targetSize-size

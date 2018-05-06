@@ -75,7 +75,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
       override fun onMessage(packet:String) {
         val serverSay:ServerSay<S> = try {
           lib.log.debug(packet)
-          lib.objStrSer.parse(typeS, packet)
+          lib.measure("parse"){lib.objStrSer.parse(typeS, packet)}
         } catch(t:Throwable) {
           lib.log.fatalError("serverSay parse", t)
         }
