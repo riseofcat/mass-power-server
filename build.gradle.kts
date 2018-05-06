@@ -1,6 +1,6 @@
 plugins {
   base
-  kotlin("jvm") version "1.2.30" apply false
+  kotlin("jvm") version "1.2.41" apply false
   if(false)java
 }
 

@@ -5,7 +5,7 @@ buildscript {
   repositories {
     maven {url = uri("https://kotlin.bintray.com/kotlinx")}
   }
-  val kotlin_version = "1.2.30"
+  val kotlin_version = "1.2.41"
   val serialization_version = "0.4.2"
   dependencies {
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
