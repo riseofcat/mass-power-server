@@ -6,7 +6,7 @@ plugins {
   id("kotlin-platform-jvm")
   application //needs only for local launch ./gradlew heroku-jvm:run
   id("com.github.johnrengelman.shadow").version("2.0.2")
-  id("kotlinx-serialization") version "0.4.2" apply true
+  id("kotlinx-serialization") version "0.5.0" apply true
 }
 application { //needs only for local launch
   mainClassName = "com.riseofcat.server.MainKtorKt"
@@ -57,22 +57,14 @@ dependencies {
   compile("com.sparkjava:spark-core:2.7.1")//http://sparkjava.com/documentation//todo delete
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
 
-  val old=false
-  val oldKtorVersion = "0.3.1"
-  val ktorVersion = if(true)"0.9.1" else "0.9.2-alpha-5"
+  val ktorVersion = "0.9.2"
 
-  if(old) {
-    compile("org.jetbrains.ktor:ktor-websockets:$oldKtorVersion")
-    compile("org.jetbrains.ktor:ktor-netty:$oldKtorVersion")
-    compile("org.jetbrains.ktor:ktor-jetty:$oldKtorVersion")
-    compile("org.jetbrains.ktor:ktor-freemarker:$oldKtorVersion")
-  } else {
-    compile("io.ktor:ktor-server-core:$ktorVersion")
-    compile("io.ktor:ktor-websockets:$ktorVersion")
-    compile("io.ktor:ktor-server-cio:$ktorVersion")
-    compile("io.ktor:ktor-server-netty:$ktorVersion")
+  compile("io.ktor:ktor-server-core:$ktorVersion")
+  compile("io.ktor:ktor-websockets:$ktorVersion")
+  compile("io.ktor:ktor-server-cio:$ktorVersion")
+  compile("io.ktor:ktor-server-netty:$ktorVersion")
+
 //    compile("io.ktor:ktor-server-jetty:$ktorVersion")
-  }
 
   compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.3")
   compile(project(":lib-jvm"))

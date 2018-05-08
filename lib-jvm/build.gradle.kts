@@ -1,12 +1,12 @@
 properties["userServerCommon"]
-val serialization_version = "0.4.2"
+val serialization_version = "0.5.0"
 buildscript {
   println("hello buildscript")
   repositories {
     maven {url = uri("https://kotlin.bintray.com/kotlinx")}
   }
   val kotlin_version = "1.2.41"
-  val serialization_version = "0.4.2"
+  val serialization_version = "0.5.0"
   dependencies {
     classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
     classpath("org.jetbrains.kotlinx:kotlinx-gradle-serialization-plugin:$serialization_version")
@@ -16,7 +16,7 @@ buildscript {
 plugins {
   if(false) kotlin("jvm")
   id("kotlin-platform-jvm")
-  id("kotlinx-serialization") version "0.4.2" apply true
+  id("kotlinx-serialization") version "0.5.0" apply true
 }
 
 java {

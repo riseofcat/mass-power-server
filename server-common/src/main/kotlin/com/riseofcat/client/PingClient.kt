@@ -89,6 +89,23 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
         if(serverSay.payload!=null) incoming.dispatch(serverSay.payload)
       }
 
+      override fun onByteMessage(packet:ByteArray) {
+        lib.log.info("packet: ${packet}")
+        val serverSay:ServerSay<S> = try {
+          lib.measure("parse"){lib.binnarySer.parse(typeS, packet)}
+        } catch(t:Throwable) {
+          lib.log.fatalError("serverSay parse", t)
+        }
+
+        if(serverSay.serverTime!=null) timeSync.add(TimeSync(serverSay.serverTime,lib.time))
+        if(serverSay.pingDelay!=null) {
+          pingDelays.add(PingDelay(serverSay.pingDelay,lib.time))
+          while(pingDelays.size>20) pingDelays.removeFirst()//todo queue
+        }
+        if(serverSay.ping) say(ClientSay<C>(pong=true))
+        if(serverSay.payload!=null) incoming.dispatch(serverSay.payload)
+      }
+
     })
   }
 
@@ -116,7 +133,11 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
     try {
       clientMessages++
       say.index = clientMessages
-      socket.send(lib.objStrSer.stringify(typeC, say))
+      if(confs.clientSayBinary) {
+        socket.sendByte(lib.binnarySer.stringify(typeC, say))
+      } else {
+        socket.send(lib.objStrSer.stringify(typeC, say))
+      }
       return
     } catch(t:Throwable) {
       lib.log.error("socket.send error", t)

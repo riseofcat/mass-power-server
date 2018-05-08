@@ -24,10 +24,11 @@ object ServerMain {
           PingDecorator(
             RoomsDecorator<ClientPayload,ServerPayload>().apply {onRoomCreated.add({ room -> ServerModel(room) })},Duration(1000)),
           IConverter {obj ->
-            Util.fromJsonClientSay(obj.readText())
+            Util.fromJsonClientSay(TODO()/*obj.readText()*/)
           },
           IConverter {ss->
             Util.toServerSayJson(ss)
+            null!!
           }
           ))))
     spark.Spark.get("/") {request,response-> LibJvm.info()}

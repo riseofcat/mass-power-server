@@ -94,7 +94,7 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     if(!wait) {
       waitPlayers.add(p)
       launch {
-        delay(30)
+        delay(80)
         val payload = ServerPayload(state.tick)
         updatePlayerInPayload(payload,p)
         p.session.send(payload)

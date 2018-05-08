@@ -74,6 +74,7 @@ object libObj {
   fun pillarTimeS(max:Float) = pillarTimeMs((max*1000).toLong())/MILLIS_IN_SECOND
   val json = JSON(unquoted = true, nonstrict = true)
   val objStrSer = json
+  val binnarySer = cbor2
   inline fun <reified T:Any>getKClass() = T::class
   fun rnd(min:Int,max:Int) = (min+Common.random()*(max-min+1)).toInt()
   fun inLimits(value:Int, min:Int, max:Int) = kotlin.math.max(min, kotlin.math.min(max, value))
@@ -85,6 +86,11 @@ object libObj {
     fun <T:Any> parse(loader: KSerialLoader<T>, str: String): T {
       return CBOR.load(loader, HexConverter.parseHexBinary(str))
     }
+  }
+
+  object cbor2 {
+    fun <T:Any> stringify(saver:KSerialSaver<T>, obj: T) = CBOR.dump(saver, obj)
+    fun <T:Any> parse(loader: KSerialLoader<T>, data: ByteArray) = CBOR.load(loader, data)
   }
 
   val log = logObj

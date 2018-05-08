@@ -24,6 +24,9 @@ actual class Common {
 //      import com.github.czyzby.websocket.net.Extended
 //      ExtendedNet.getNet().newWebSocket(host,port,path)
       return object:LibWebSocket() {
+        override fun sendByte(message:ByteArray) {
+          socket.send(message)
+        }
 
         override fun send(message:String) {
           socket.send(message)
@@ -59,7 +62,8 @@ actual class Common {
             }
 
             override fun onMessage(webSocket:WebSocket?,packet:ByteArray?):Boolean {
-              return super.onMessage(webSocket,packet)
+              listener.onByteMessage(packet!!)
+              return WebSocketListener.FULLY_HANDLED
             }
 
             override fun onError(webSocket:WebSocket?,error:Throwable?):Boolean {

@@ -23,12 +23,14 @@ abstract class LibWebSocket {
   abstract fun connect()
   abstract fun close()
   abstract fun send(message:String)
+  abstract fun sendByte(message:ByteArray)
   abstract val state:State
 
   interface Listener {
     fun onOpen()
     fun onClose()
     fun onMessage(packet:String)
+    fun onByteMessage(packet:ByteArray)
   }
 
   enum class State(val message:String, val good:Boolean) {

@@ -18,5 +18,13 @@ class Util{
       return lib.objStrSer.stringify(SerializeHelp.serverSayServerPayloadSerializer, ss)
     }
 
+    fun fromBinClientSay(str:ByteArray):ClientSay<ClientPayload> {
+      return lib.binnarySer.parse(SerializeHelp.clientSayClientPayloadSerializer, str)
+    }
+
+    fun toServerSayBin(ss:ServerSay<ServerPayload>):ByteArray {
+      return lib.binnarySer.stringify(SerializeHelp.serverSayServerPayloadSerializer, ss)
+    }
+
   }
 }
