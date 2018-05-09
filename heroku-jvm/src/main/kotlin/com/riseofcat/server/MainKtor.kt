@@ -70,17 +70,19 @@ fun Application.main() {
     }
     webSocket("/socket") {
       val ktorSes:DefaultWebSocketSession = this
+//      val s = object:Ses<ByteArray>() {
       val s = object:Ses<String>() {
         override val typeMap:TypeMap = TypeMap()
         override val id = ++lastId
         override fun stop() {
           async {close(CloseReason(CloseReason.Codes.NORMAL,"Good bye"))}
         }
+//        override fun send(message:ByteArray) {
         override fun send(message:String) {
           if(confs.serverSayBinary) {
             async {outgoing.send(Frame.Binary(true, java.nio.ByteBuffer.wrap(message as ByteArray)))}
           } else {
-            async {outgoing.send(Frame.Text(message))}
+            async {outgoing.send(Frame.Text(message as String))}
           }
         }
       }
@@ -92,7 +94,7 @@ fun Application.main() {
           lib.log.info("thread: " + Thread.currentThread().name)
           lib.log.info("incomeMessages: "+ incomeMessages)
         }
-        serverModel.message(s, frame.readText())
+        serverModel.message(s, frame.readText() as String)
       }
 
       incoming.mapNotNull { it as? Frame.Binary }.consumeEach { frame ->
