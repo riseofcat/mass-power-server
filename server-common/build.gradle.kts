@@ -4,7 +4,7 @@ val serialization_version by project
 
 plugins {
     id("kotlin-platform-common")
-    id("kotlinx-serialization") version "0.5.0" apply true
+    id("kotlinx-serialization") version "0.4.2" apply true
 }
 
 repositories {

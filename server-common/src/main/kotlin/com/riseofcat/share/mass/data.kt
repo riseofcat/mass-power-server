@@ -4,6 +4,8 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
+const val SIMPLIFY_TEST_PERFORMANCE = false
+
 @Deprecated("") val MAX_W = 5
 @Deprecated("") val MAX_H = 5
 class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
@@ -28,9 +30,11 @@ fun <T>Mattr2D<MutableList<T>>.clearCache() {
   all.forEach {it.value.clear()}
 }
 inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
-  repeatTickCalls++
-  if((tick.tick-repeatTickCalls)%ticks == 0) {
-    lambda()
+  if(!SIMPLIFY_TEST_PERFORMANCE) {
+    repeatTickCalls++
+    if((tick.tick-repeatTickCalls)%ticks==0) {
+      lambda()
+    }
   }
 }
 

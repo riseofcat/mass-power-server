@@ -6,16 +6,19 @@ import com.riseofcat.share.ping.ServerSay
 import com.riseofcat.share.mass.ClientPayload
 import com.riseofcat.share.mass.ServerPayload
 import com.riseofcat.share.mass.SerializeHelp
-import java.io.*
 
 class Util{
   companion object {
     fun fromJsonClientSay(str:String):ClientSay<ClientPayload> {
-      return lib.objStrSer.parse(SerializeHelp.clientSayClientPayloadSerializer, str)
+      try{
+        return lib.strSer.parse(SerializeHelp.clientSayClientPayloadSerializer, str)
+      } catch(e:Exception) {
+        lib.log.fatalError("json parse,\njson:\n $str", e)
+      }
     }
 
     fun toServerSayJson(ss:ServerSay<ServerPayload>):String {
-      return lib.objStrSer.stringify(SerializeHelp.serverSayServerPayloadSerializer, ss)
+      return lib.strSer.stringify(SerializeHelp.serverSayServerPayloadSerializer, ss)
     }
 
     fun fromBinClientSay(str:ByteArray):ClientSay<ClientPayload> {

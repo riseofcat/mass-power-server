@@ -10,6 +10,11 @@ class LibJvm {
     @JvmStatic fun info():JvmInfo{
       return JvmInfo()
     }
+
+    fun exit():Nothing {
+      System.exit(0)
+      TODO()
+    }
   }
 }
 

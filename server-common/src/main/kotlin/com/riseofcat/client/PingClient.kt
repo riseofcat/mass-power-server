@@ -75,7 +75,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
       override fun onMessage(packet:String) {
         val serverSay:ServerSay<S> = try {
           lib.log.debug(packet)
-          lib.measure("parse"){lib.objStrSer.parse(typeS, packet)}
+          lib.measure("parse"){lib.strSer.parse(typeS, packet)}
         } catch(t:Throwable) {
           lib.log.fatalError("serverSay parse", t)
         }
@@ -136,7 +136,7 @@ class PingClient<S:Any,C>(host:String,port:Int,path:String,typeS:KSerializer<Ser
       if(confs.clientSayBinary) {
         socket.sendByte(lib.binnarySer.stringify(typeC, say))
       } else {
-        socket.send(lib.objStrSer.stringify(typeC, say))
+        socket.send(lib.strSer.stringify(typeC, say))
       }
       return
     } catch(t:Throwable) {
