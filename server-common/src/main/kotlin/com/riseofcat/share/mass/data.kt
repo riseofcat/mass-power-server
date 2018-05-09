@@ -4,7 +4,7 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
-const val SIMPLIFY_TEST_PERFORMANCE = false
+const val SIMPLIFY_TEST_PERFORMANCE = true
 
 @Deprecated("") val MAX_W = 5
 @Deprecated("") val MAX_H = 5

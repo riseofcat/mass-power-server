@@ -44,7 +44,7 @@ class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpo
 
   val start = lib.time
   var moves:Int = 0
-  fun calcDisplayState():State? {
+  fun calcDisplayState():State {
     if(slowpoke) return stable._state
     return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
@@ -80,7 +80,7 @@ class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpo
   private fun saveCache(value:StateWrapper) { cache = value }
   private fun getNearestCache(tick:Tick):StateWrapper? = if(CACHE) _getNearestCache(tick) else null
   private fun _getNearestCache(tick:Tick) = cache?.let {if(tick+FREEZE_TICKS>=it._state.tick) it else null}
-  private fun getState(tick:Tick):State? {
+  private fun getState(tick:Tick):State {
     var result = getNearestCache(tick)
     if(result==null) {
       synchronized(this) {
