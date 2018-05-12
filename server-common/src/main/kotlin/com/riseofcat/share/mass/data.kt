@@ -4,7 +4,7 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
-const val SIMPLIFY_TEST_PERFORMANCE = true
+const val SIMPLIFY_TEST_PERFORMANCE = false
 
 @Deprecated("") val MAX_W = 5
 @Deprecated("") val MAX_H = 5
@@ -39,17 +39,17 @@ inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
 }
 
 object GameConst {
-  val CHANGE_SIZE_PER_CAR=400
+  val CHANGE_SIZE_PER_CAR=140
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
   val DEFAULT_CAR_SIZE = MIN_SIZE*6
   val FOOD_SIZE = 20
   val MIN_RADIUS = 1f
-  val FOODS = 200
-  val FOOD_PER_CAR = 10
-  val BASE_WIDTH = 2300.0
-  val BASE_HEIGHT = 2300.0
+  val FOODS = 130
+  val FOOD_PER_CAR = 12
+  val BASE_WIDTH = 2500.0
+  val BASE_HEIGHT = 2500.0
   val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(60)
 }
@@ -127,6 +127,7 @@ inline val Angle.cos get() = cos(radians)
   ,@Transient val cacheReactive:Mattr2D<MutableList<Reactive>> = Mattr2D(MAX_W,MAX_H) {col,row-> mutableListOf<Reactive>()}
   ,@Transient val cacheCars:Mattr2D<MutableList<Car>> = Mattr2D(MAX_W,MAX_H) {col,row-> mutableListOf<Car>()}
 )
+fun State.getCar(id:PlayerId) = cars.firstOrNull {it.owner==id}
 fun State.deepCopy() = lib.measure("State.deepCopy") {
   copy(
     cars = cars.map {it.copy()}.toMutableList()
@@ -274,7 +275,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     cacheCars.clearCache()
     cars.forEach {cacheCars.get(it.storeCol(), it.storeRow()).value.add(it)}
   }
-  repeatTick(3) {
+  repeatTick(2) {
     lib.skip_measure("tick.eatCars") {
       var handleCarsDestroy = true
       while(handleCarsDestroy) {
@@ -302,13 +303,13 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
 
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
-  repeatTick(3) {
+  repeatTick(10) {
     if(targetSize!=size) lib.skip_measure("tick.resize") {
       val oldW = width
       val oldH = height
       val delta = targetSize-size
       val delta2 = (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
-      size = size+delta2.sign*min(abs(delta2),30)
+      size = size+delta2.sign*min(abs(delta2),50)
       (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
     }
   }
@@ -321,7 +322,8 @@ val Int.sign
     else->0
   }
 val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
-val State.targetSize get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR
+val State.targetSize get() = cars.sumBy {it.size} * 3
+val State.targetSize2 get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR//todo считать target size по суммарной массе
 val widthCache:MutableMap<Int, Double> = mutableMapOf()
 val heightCache:MutableMap<Int, Double> = mutableMapOf()
 val State.width get() = widthCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_WIDTH*GameConst.BASE_WIDTH + size*size)}

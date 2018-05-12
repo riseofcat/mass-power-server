@@ -49,7 +49,7 @@ class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpo
     return getState(realtimeTick)//todo можно рендерить с задержкой для слабых клиентов, чтобы кэш дольше жил
   }
   override fun ready() = welcome!=null
-  val myCar:Car? get() = lib.measure("myCar"){calcDisplayState()?.cars?.firstOrNull {it.owner == welcome?.id}}
+  val myCar:Car? get() = lib.measure("myCar"){welcome?.id?.let{calcDisplayState().getCar(it)}}
   override fun move(direction:Angle) = synchronized(this) {
     if(!ready()) return
     val t = realtimeTick + Tick(latency/GameConst.UPDATE+1)
@@ -122,13 +122,11 @@ fun ClientModel._touch(myCarPos:XY?, pos:XY) {
 fun calcRenderXY(state:State,pos:XY, center:XY):XY {
   var x = pos.x
   val dx = center.x-x
-  if(dx>state.width/2)
-    x += state.width
+  if(dx>state.width/2) x += state.width
   else if(dx<-state.width/2) x -= state.width
   var y = pos.y
   val dy = center.y-y
-  if(dy>state.height/2)
-    y += state.height
+  if(dy>state.height/2) y += state.height
   else if(dy<-state.height/2) y -= state.height
   return XY(x,y)
 }
