@@ -4,8 +4,6 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.math.*
 
-const val SIMPLIFY_TEST_PERFORMANCE = false
-
 @Deprecated("") val MAX_W = 5
 @Deprecated("") val MAX_H = 5
 class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
@@ -30,11 +28,9 @@ fun <T>Mattr2D<MutableList<T>>.clearCache() {
   all.forEach {it.value.clear()}
 }
 inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
-  if(!SIMPLIFY_TEST_PERFORMANCE) {
-    repeatTickCalls++
-    if((tick.tick-repeatTickCalls)%ticks==0) {
-      lambda()
-    }
+  repeatTickCalls++
+  if((tick.tick-repeatTickCalls)%ticks==0) {
+    lambda()
   }
 }
 
@@ -67,7 +63,7 @@ interface EatMeWithSpeed:SizeObject, SpeedObject
         id,
         GameConst.DEFAULT_CAR_SIZE,
         speed = XY(),
-        pos = XY(state.rnd(0, state.width.toInt()).toDouble(), state.rnd(0, state.height.toInt()).toDouble())//todo проверить чтобы равномерно добавлялись новые машины (чтобы не было фантомных появлений из за случайного random-а), можно завести второй счётчик рандома под появление новых машин
+         pos = state.rndPos2()
       ))
     }
   }
@@ -120,6 +116,7 @@ inline val Angle.cos get() = cos(radians)
   ,@Optional val foods:MutableList<Food> = mutableListOf()
   ,@Optional val reactive:MutableList<Reactive> = mutableListOf()
   ,var random:Int = 0
+  ,var random2:Int = 0
   ,var size:Int = 0
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
@@ -340,8 +337,15 @@ fun State.rnd(min:Int,max:Int):Int {
   return min+random%(max-min+1)
 }
 fun State.rnd(max:Int) = rnd(0,max)
-fun State.rnd(min:Double = 0.0,max:Double = 1.0) = min+rnd(999)/1000f*(max-min)//todo optimize
-fun State.rndPos() = XY(rnd(width),rnd(height))
+fun State.rnd(min:Double,max:Double) = min+rnd(999)/1000f*(max-min)//todo optimize
+fun State.rndPos() = XY(rnd(0.0,width),rnd(0.0,height))
+fun State.rnd2(min:Int,max:Int):Int {
+  random2 = random2*1664525+1013904223 and 0x7fffffff
+  return min+random2%(max-min+1)
+}
+fun State.rnd2(max:Int) = rnd2(0,max)
+fun State.rnd2(min:Double,max:Double) = min+rnd2(999)/1000f*(max-min)//todo optimize
+fun State.rndPos2() = XY(rnd2(0.0,width),rnd2(0.0,height))
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}

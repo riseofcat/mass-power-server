@@ -301,3 +301,33 @@ void main(void) {
   gl_FragColor = v_color;
 }
 """
+//language=GLSL
+const val MASS_POWER_REACTIVE_VERTEX=
+  """
+//Если атрибут в шейдере не используется, то при компиляции он будет вырезан, и могут возникнуть ошибки "enableVertexAttribArray: index out of range"
+attribute float a_center_x;//игровые координаты центра круга
+attribute float a_center_y;
+attribute float a_angle;
+attribute float a_game_radius;//Радиус точки от центра в игровых координатах.
+
+attribute lowp vec4 a_color;
+
+uniform mediump float time;
+uniform float u_game_width;
+uniform float u_game_height;
+uniform float u_game_camera_x;
+uniform float u_game_camera_y;
+
+varying lowp vec4 v_color;
+
+void main(void) {
+  float posDiff = a_game_radius + (a_center_x + a_center_y)/100.0;
+  v_color = a_color + vec4(cos(1.0*posDiff + a_angle + time*1.5), cos(1.5*posDiff + a_angle + time*2.0 + radians(120.0)), cos(2.0*posDiff + a_angle + time*2.5 + radians(240.0)), 0.0)*(sign(2.0*posDiff + a_game_radius)+0.3);
+  v_color = v_color - 0.4*(1.0 - sign(a_game_radius))*cos(time)*vec4(1.0,1.0,1.0,0.4);
+  //сейчас из png вырезается элипс, а ещё можно попробовать натягивать прямоугольник, чтобы попадали уголки png
+  mat2 screenScale = mat2(2.0/u_game_width,       0.0,
+                                0.0,       2.0/u_game_height);
+  vec2 gamePos = /*a_center_pos*/vec2(a_center_x, a_center_y) + vec2(cos(a_angle)*a_game_radius, sin(a_angle)*a_game_radius);
+  gl_Position = vec4(screenScale*(gamePos - vec2(u_game_camera_x, u_game_camera_y)), 1.0, 1.0);
+  }
+"""
