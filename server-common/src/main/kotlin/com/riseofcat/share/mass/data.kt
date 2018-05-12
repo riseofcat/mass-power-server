@@ -230,7 +230,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     reactive.forEach {cacheReactive.get(it.storeCol(), it.storeRow()).value.add(it)}
   }
   repeatTick(5) {
-    lib.skip_measure("tick.eatFoods") { // 16.459389961 %    count:4251  avrg100: 7.000193569 ms
+    lib.skip_measure("tick.eatFoods") {
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
@@ -301,13 +301,15 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
   repeatTick(10) {
-    if(targetSize!=size) lib.skip_measure("tick.resize") {
-      val oldW = width
-      val oldH = height
+    lib.skip_measure("tick.change size") {
       val delta = targetSize-size
-      val delta2 = (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
-      size = size+delta2.sign*min(abs(delta2),50)
-      (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
+      if(delta > 0) {
+        val oldW = width
+        val oldH = height
+        val delta2 = (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
+        size += delta2.sign*min(abs(delta2),40)
+        (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
+      }
     }
   }
 }

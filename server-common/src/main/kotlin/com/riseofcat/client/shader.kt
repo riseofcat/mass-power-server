@@ -303,7 +303,7 @@ void main(void) {
 """
 //language=GLSL
 const val MASS_POWER_REACTIVE_VERTEX=
-  """
+"""
 //Если атрибут в шейдере не используется, то при компиляции он будет вырезан, и могут возникнуть ошибки "enableVertexAttribArray: index out of range"
 attribute float a_center_x;//игровые координаты центра круга
 attribute float a_center_y;
@@ -322,8 +322,9 @@ varying lowp vec4 v_color;
 
 void main(void) {
   float posDiff = a_game_radius + (a_center_x + a_center_y)/100.0;
-  v_color = a_color + vec4(cos(1.0*posDiff + a_angle + time*1.5), cos(1.5*posDiff + a_angle + time*2.0 + radians(120.0)), cos(2.0*posDiff + a_angle + time*2.5 + radians(240.0)), 0.0)*(sign(2.0*posDiff + a_game_radius)+0.3);
-  v_color = v_color - 0.4*(1.0 - sign(a_game_radius))*cos(time)*vec4(1.0,1.0,1.0,0.4);
+//  v_color = a_color + vec4(cos(1.0*posDiff + a_angle + time*1.5), cos(1.5*posDiff + a_angle + time*2.0 + radians(120.0)), cos(2.0*posDiff + a_angle + time*2.5 + radians(240.0)), 0.0)*(sign(2.0*posDiff + a_game_radius)+0.3);
+//  v_color = v_color - 0.4*(1.0 - sign(a_game_radius))*cos(time)*vec4(1.0,1.0,1.0,0.4);
+  v_color = a_color;
   //сейчас из png вырезается элипс, а ещё можно попробовать натягивать прямоугольник, чтобы попадали уголки png
   mat2 screenScale = mat2(2.0/u_game_width,       0.0,
                                 0.0,       2.0/u_game_height);
