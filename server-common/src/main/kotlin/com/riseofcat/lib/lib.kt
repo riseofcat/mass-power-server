@@ -144,7 +144,7 @@ object libObj {
   }
 
   var measurementsBegin:Time? = null
-  inline fun <T> skip_measure(hashTag:String,block:()->T) = block()
+  inline fun <T> skip_measure(hashTag:String,crossinline block:()->T) = measure(hashTag, block)
   inline fun <T>measure(hashTag:String, crossinline block:()->T):T {
     return releaseOrDebug({
       block()

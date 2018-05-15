@@ -14,8 +14,9 @@ object confs {
   val local = Conf(5000, "localhost")
   val heroku = Conf(80, "mass-power.herokuapp.com")
   val ramenki = Conf(5000, "192.168.100.5")
-  val tutu = Conf(5000,"192.168.43.176")
-  val current = local
+  val tutu = Conf(5000,"10.8.44.123")
+  val nexus = Conf(5000,"192.168.43.176")
+  val current = nexus
 
   val clientSayBinary = false
   val serverSayBinary = false

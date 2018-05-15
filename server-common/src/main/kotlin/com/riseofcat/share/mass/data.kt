@@ -35,7 +35,6 @@ inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
 }
 
 object GameConst {
-  val CHANGE_SIZE_PER_CAR=140
   val UPDATE = Duration(40)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   val MIN_SIZE = 20
@@ -268,7 +267,7 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
     }
   }
 
-  repeatTick(3) {
+  repeatTick(2) {
     cacheCars.clearCache()
     cars.forEach {cacheCars.get(it.storeCol(), it.storeRow()).value.add(it)}
   }
@@ -303,11 +302,17 @@ fun State.tick() = lib.measure("tick") {  //23.447441085 %    count:3250  avrg10
   repeatTick(10) {
     lib.skip_measure("tick.change size") {
       val delta = targetSize-size
-      if(delta > 0) {
+      if(delta != 0) {
         val oldW = width
         val oldH = height
-        val delta2 = (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
-        size += delta2.sign*min(abs(delta2),40)
+        val MAX_SIZE_DELTA = 40
+        val smallDelta = if(delta.absoluteValue > MAX_SIZE_DELTA) {
+          (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
+            .let {it.sign*min(abs(it),MAX_SIZE_DELTA)}
+        } else {
+          delta
+        }
+        size += smallDelta
         (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
       }
     }
@@ -321,8 +326,7 @@ val Int.sign
     else->0
   }
 val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
-val State.targetSize get() = cars.sumBy {it.size} * 3
-val State.targetSize2 get() = cars.size*GameConst.CHANGE_SIZE_PER_CAR//todo считать target size по суммарной массе
+val State.targetSize get() = cars.sumBy {it.size} * 2
 val widthCache:MutableMap<Int, Double> = mutableMapOf()
 val heightCache:MutableMap<Int, Double> = mutableMapOf()
 val State.width get() = widthCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_WIDTH*GameConst.BASE_WIDTH + size*size)}
