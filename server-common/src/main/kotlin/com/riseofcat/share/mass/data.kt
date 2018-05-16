@@ -17,29 +17,26 @@ fun mod(value:Int,module:Int) = when {//todo удалить если не буд
     value
   }
 }
-@Deprecated("") val MAX_W = 5
-@Deprecated("") val MAX_H = 5
-class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
-  val all = (0 until COLS*ROWS).map{Cell(it/ROWS,it%ROWS,init(it/ROWS,it%ROWS))}/*.toTypedArray()*/
+class Mattr2D(val COLS:Int, val ROWS:Int){
+  val all = (0 until COLS*ROWS).map{Cell(it/ROWS,it%ROWS)}
   val map:Map<Int,Map<Int,Cell>>
   init{
     map = mutableMapOf()
     for(col in 0 until COLS) {
       val m2 = mutableMapOf<Int,Cell>()
       map[col] = m2
-      for(row in 0 until ROWS) {
-        m2[row] = if(true) all[col*ROWS+row] else Cell(col,row,init(col,row))
-      }
+      for(row in 0 until ROWS) m2[row] = if(true) all[col*ROWS+row] else Cell(col,row)
     }
   }
-  inner class Cell(val col:Int, val row:Int, val value:T) {
+  inner class Cell(val col:Int, val row:Int) {
     val matrix = this@Mattr2D
+    val food:MutableList<Food> = mutableListOf()
+    val reactive:MutableList<Reactive> = mutableListOf()
   }
   inline operator fun get(col:Int,row:Int) = if(false) all[col*ROWS+row] else map[col]!![row]!!
 }
-fun <T>Mattr2D<MutableList<T>>.clearCache() {
-  all.forEach {it.value.clear()}
-}
+fun Mattr2D.clearFood() = all.forEach {it.food.clear()}
+fun Mattr2D.clearReactive() = all.forEach {it.reactive.clear()}
 inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
   repeatTickCalls++
   if((tick.tick-repeatTickCalls)%ticks==0) {
@@ -134,9 +131,7 @@ inline val Angle.cos get() = cos(radians)
   ,var size:Int = 0
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
-  ,@Transient val cacheFood:Mattr2D<MutableList<Food>> = Mattr2D(MAX_W,MAX_H) {col,row-> mutableListOf<Food>()}
-  ,@Transient val cacheReactive:Mattr2D<MutableList<Reactive>> = Mattr2D(MAX_W,MAX_H) {col,row-> mutableListOf<Reactive>()}
-  ,@Transient val cacheCars:Mattr2D<MutableList<Car>> = Mattr2D(MAX_W,MAX_H) {col,row-> mutableListOf<Car>()}
+  ,@Transient val cache:Mattr2D = Mattr2D(5,5)
 )
 fun State.getCar(id:PlayerId) = cars.firstOrNull {it.owner==id}
 fun State.deepCopy() = lib.measure("State.deepCopy") {
@@ -144,9 +139,7 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
     cars = cars.map {it.copy()}.toMutableList()
     ,reactive = reactive.map {it.copy()}.toMutableList()
     ,foods = foods.map {it.copy()}.toMutableList()//todo Если не делать такое копирование для food то странно применяются 2-3 действия подряд когда кушаем. Сначала уменьшается резко, потом увеличивается.
-    ,cacheFood = cacheFood
-    ,cacheReactive = cacheReactive
-//    ,cacheCars =  cacheCars
+    ,cache = cache
   )
 }
 @Serializable data class PlayerId(var id:Int)
@@ -224,30 +217,24 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
 
   fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
   fun Rect.alternativesIsOverlapRect(rect:Rect) = anyAlternative{points.any{rect.containsPoint(it)} || rect.points.any{containsPoint(it)}}
-  val w = width.toFloat()/MAX_W
-  val h = height.toFloat()/MAX_H
-
-//  @Deprecated("") fun SizeObject.isOverlapRect(rect:Rect) = toRect().anyAlternative{points.any{rect.containsPoint(it)} || rect.points.any{containsPoint(it)}}
-//  @Deprecated("") fun <T>SizeObject.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
-//    isOverlapRect(Rect(XY(it.col*width/matrix.COLS,it.row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS)))
-//  }
-
+  val w = width.toFloat()/cache.COLS
+  val h = height.toFloat()/cache.ROWS
   infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
-  fun <T>Rect.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
+  fun Rect.overlapCell(matrix:Mattr2D) = matrix.all.filter {
     alternativesIsOverlapRect(Rect(XY(it.col*width/matrix.COLS,it.row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS)))
   }
-  fun PosObject.storeCol() = mod((pos.x/w).toInt(),MAX_W)
-  fun PosObject.storeRow() = mod((pos.y/h).toInt(),MAX_H)
+  fun PosObject.storeCol() = mod((pos.x/w).toInt(),cache.COLS)
+  fun PosObject.storeRow() = mod((pos.y/h).toInt(),cache.ROWS)
 
   repeatTick(20) {//todo выполнять сразу если кэш пустой
     lib.skip_measure("tick.sortBuckets") {
-      cacheFood.clearCache()
-      foods.forEach {cacheFood.get(it.storeCol(), it.storeRow()).value.add(it)}
+      cache.clearFood()
+      foods.forEach {cache.get(it.storeCol(), it.storeRow()).food.add(it)}
     }
   }
   repeatTick(5) {
-    cacheReactive.clearCache()
-    reactive.forEach {cacheReactive.get(it.storeCol(), it.storeRow()).value.add(it)}
+    cache.clearReactive()
+    reactive.forEach {cache.get(it.storeCol(), it.storeRow()).reactive.add(it)}
   }
   repeatTick(5) {
     lib.measure("tick.eatFoods") {
@@ -256,8 +243,9 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
           val carRect = car.toRect()
-          carRect.overlapCell(cacheFood).forEach {cell->
-            val foodItr = cell.value.iterator()
+          carRect.overlapCell(cache).forEach {cell->
+
+            val foodItr = cell.food.iterator()
             while(foodItr.hasNext()) {
               val f = foodItr.next()
               if(car overlap f.pos) {
@@ -267,10 +255,8 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
                 }
               }
             }
-          }
 
-          lib.measure("overlap cell reactive"){carRect.overlapCell(cacheReactive)}.forEach {cell->
-            reactItr = cell.value.iterator()
+            reactItr = cell.reactive.iterator()
             while(reactItr.hasNext()) {
               val r = reactItr.next()
               if(r.owner!=car.owner) if(car overlap r.pos)
@@ -279,6 +265,7 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
                   changedSizeCars.add(car)
                 }
             }
+
           }
         }
         handleFoodCars = changedSizeCars.toMutableList()
@@ -286,10 +273,6 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
     }
   }
 
-  repeatTick(2) {
-    cacheCars.clearCache()
-    cars.forEach {cacheCars.get(it.storeCol(), it.storeRow()).value.add(it)}
-  }
   repeatTick(2) {
     lib.measure("tick.eatCars") {
       var handleCarsDestroy = true
