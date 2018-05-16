@@ -44,21 +44,20 @@ inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
   }
 }
 
-const val PERFORMANCE_KOEFF=5
+const val PERFORMANCE_KOEFF=2
 
 object GameConst {
-  val UPDATE = Duration(40)
+  val UPDATE = Duration(16)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
   const val MIN_SIZE = 20
   const val DEFAULT_CAR_SIZE = MIN_SIZE*6
   const val FOOD_SIZE = 20
   const val MIN_RADIUS = 1f
-  const val FOODS = 130*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF
-  const val FOOD_PER_CAR = 12
   const val BASE_WIDTH = 2500.0*PERFORMANCE_KOEFF
   const val BASE_HEIGHT = 2500.0*PERFORMANCE_KOEFF
   const val TITLE = "mass-power.io"
-  val REACTIVE_LIVE = Tick(60)
+  val REACTIVE_LIVE = Tick(Duration(2500)/UPDATE)
+  const val FRICTION:Double = 0.01
 }
 
 interface ICommand { fun act(state:State) }
@@ -173,7 +172,7 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
   lib.skip_measure("tick.move") {
     (cars+reactive).forEach {o->
       o.pos = o.pos msum o.speed*GameConst.UPDATE_S
-      o.speed = o.speed mscale 0.98
+      o.speed = o.speed mscale (1.0 - GameConst.FRICTION)
       if(o.pos.x>=width) o.pos.x = o.pos.x-width
       else if(o.pos.x<0) o.pos.x = o.pos.x+width
       if(o.pos.y>=height) o.pos.y = o.pos.y-height
@@ -226,17 +225,17 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
   fun PosObject.storeCol() = mod((pos.x/w).toInt(),cache.COLS)
   fun PosObject.storeRow() = mod((pos.y/h).toInt(),cache.ROWS)
 
-  repeatTick(20) {//todo выполнять сразу если кэш пустой
+  repeatTick(40) {//todo выполнять сразу если кэш пустой
     lib.skip_measure("tick.sortBuckets") {
       cache.clearFood()
       foods.forEach {cache.get(it.storeCol(), it.storeRow()).food.add(it)}
     }
   }
-  repeatTick(5) {
+  repeatTick(10) {
     cache.clearReactive()
     reactive.forEach {cache.get(it.storeCol(), it.storeRow()).reactive.add(it)}
   }
-  repeatTick(5) {
+  repeatTick(10) {
     lib.measure("tick.eatFoods") {
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
@@ -273,7 +272,7 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
     }
   }
 
-  repeatTick(2) {
+  repeatTick(4) {
     lib.measure("tick.eatCars") {
       var handleCarsDestroy = true
       while(handleCarsDestroy) {
@@ -300,12 +299,12 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
   repeatTick(10) {
-    lib.skip_measure("tick.change size") {
+    lib.measure("tick.change size") {
       val delta = targetSize-size
       if(delta != 0) {
         val oldW = width
         val oldH = height
-        val MAX_SIZE_DELTA = 40
+        val MAX_SIZE_DELTA = 30
         val smallDelta = if(delta.absoluteValue > MAX_SIZE_DELTA) {
           (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
             .let {it.sign*min(abs(it),MAX_SIZE_DELTA)}
@@ -325,7 +324,7 @@ val Int.sign
     this<0->-1
     else->0
   }
-val State.targetFoods get() = GameConst.FOODS + GameConst.FOOD_PER_CAR*cars.size
+val State.targetFoods get() = width.toInt()*height.toInt()/100_000
 val State.targetSize get() = cars.sumBy {it.size} * 2
 val widthCache:MutableMap<Int, Double> = mutableMapOf()
 val heightCache:MutableMap<Int, Double> = mutableMapOf()
