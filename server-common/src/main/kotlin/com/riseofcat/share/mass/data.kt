@@ -53,11 +53,10 @@ object GameConst {
   const val DEFAULT_CAR_SIZE = MIN_SIZE*6
   const val FOOD_SIZE = 20
   const val MIN_RADIUS = 1f
-  const val BASE_WIDTH = 2500.0*PERFORMANCE_KOEFF
-  const val BASE_HEIGHT = 2500.0*PERFORMANCE_KOEFF
   const val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(Duration(2500)/UPDATE)
   const val FRICTION:Double = 0.01
+  const val BASE_SIZE = 3_000
 }
 
 interface ICommand { fun act(state:State) }
@@ -71,7 +70,7 @@ interface EatMeWithSpeed:SizeObject, SpeedObject
     if(state.cars.none{it.owner == id}) {
       state.cars.add(Car(
         id,
-        GameConst.DEFAULT_CAR_SIZE,
+        GameConst.DEFAULT_CAR_SIZE,//todo расчитывать средний размер!
         speed = XY(),
          pos = state.rndPos2()
       ))
@@ -127,7 +126,7 @@ inline val Angle.cos get() = cos(radians)
   ,@Optional val reactive:MutableList<Reactive> = mutableListOf()
   ,var random:Int = 0
   ,var random2:Int = 0
-  ,var size:Int = 0
+  ,var size:Int = GameConst.BASE_SIZE
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
   ,@Transient val cache:Mattr2D = Mattr2D(5,5)
@@ -142,8 +141,9 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
   )
 }
 @Serializable data class PlayerId(var id:Int)
-@Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {
+@Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {//todo Int ?
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
+  constructor(x:Int,y:Int):this(x.toDouble(), y.toDouble())
 }
 val SizeObject.radius get() = size.radius
 val Int.radius get():Float = GameConst.MIN_RADIUS + 5*sqrt(this.toDouble()).toFloat()
@@ -312,7 +312,9 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
           delta
         }
         size += smallDelta
-        (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(width/oldW,height/oldH)}
+        val widthD = width.toDouble()
+        val heightD = height.toDouble()
+        (cars+reactive+foods).forEach {p-> p.pos = p.pos mscale XY(widthD/oldW,heightD/oldH)}
       }
     }
   }
@@ -324,12 +326,10 @@ val Int.sign
     this<0->-1
     else->0
   }
-val State.targetFoods get() = width.toInt()*height.toInt()/100_000
-val State.targetSize get() = cars.sumBy {it.size} * 2
-val widthCache:MutableMap<Int, Double> = mutableMapOf()
-val heightCache:MutableMap<Int, Double> = mutableMapOf()
-val State.width get() = widthCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_WIDTH*GameConst.BASE_WIDTH + size*size)}
-val State.height get() = heightCache.getOrPut(size){kotlin.math.sqrt(GameConst.BASE_HEIGHT*GameConst.BASE_HEIGHT + size*size)}
+val State.targetFoods get() = width*height/100_000
+val State.targetSize get():Int = 1000 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
+inline val State.width get() = size
+inline val State.height get() = size
 fun State.distance(a:XY,b:XY):Double {
   var dx = min(abs(b.x-a.x),b.x+width-a.x)
   dx = min(dx,a.x+width-b.x)
@@ -343,14 +343,14 @@ fun State.rnd(min:Int,max:Int):Int {
 }
 fun State.rnd(max:Int) = rnd(0,max)
 fun State.rnd(min:Double,max:Double) = min+rnd(999)/1000f*(max-min)//todo optimize
-fun State.rndPos() = XY(rnd(0.0,width),rnd(0.0,height))
+fun State.rndPos() = XY(rnd(0,width-1),rnd(0,height-1))
 fun State.rnd2(min:Int,max:Int):Int {
   random2 = random2*1664525+1013904223 and 0x7fffffff
   return min+random2%(max-min+1)
 }
 fun State.rnd2(max:Int) = rnd2(0,max)
 fun State.rnd2(min:Double,max:Double) = min+rnd2(999)/1000f*(max-min)//todo optimize
-fun State.rndPos2() = XY(rnd2(0.0,width),rnd2(0.0,height))
+fun State.rndPos2() = XY(rnd2(0,width-1),rnd2(0,height-1))
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}
