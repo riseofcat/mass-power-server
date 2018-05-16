@@ -144,7 +144,7 @@ object libObj {
   }
 
   var measurementsBegin:Time? = null
-  inline fun <T> skip_measure(hashTag:String,crossinline block:()->T) = measure(hashTag, block)
+  inline fun <T> skip_measure(hashTag:String,crossinline block:()->T) = block()
   inline fun <T>measure(hashTag:String, crossinline block:()->T):T {
     return releaseOrDebug({
       block()
@@ -194,7 +194,7 @@ object libObj {
       if(beginTime != null) {
         result += "sum%: ${lib.formatDouble(sum*100/(lib.time.s - beginTime.s), 9)} %    count:$count"
         average100s?.let{
-          result += "\navrg100: ${lib.formatDouble(it*1000, 9)} ms"
+          result += " | avrg100: ${lib.formatDouble(it*1000, 9)} ms"
         }
       }
       return result
