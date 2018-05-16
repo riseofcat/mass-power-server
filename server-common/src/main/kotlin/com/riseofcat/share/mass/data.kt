@@ -2,9 +2,21 @@ package com.riseofcat.share.mass
 
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
-import kotlin.coroutines.experimental.*
 import kotlin.math.*
 
+fun mod(value:Int,module:Int) = when {//todo удалить если не будут вылитать ошибки
+  value<0->{
+    lib.log.error("!!! value<0 !!!")
+    value+module
+  }
+  value>=module->{
+    lib.log.error("!!! value>=module !!!")
+    value-module
+  }
+  else->{
+    value
+  }
+}
 @Deprecated("") val MAX_W = 5
 @Deprecated("") val MAX_H = 5
 class Mattr2D<T>(val COLS:Int, val ROWS:Int, init:(Int, Int)->T){
@@ -165,7 +177,7 @@ class Bucket(val col:Int,val row:Int) {
 fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg100: 9.383111351 ms
   repeatTickCalls = 0
   tick+=1
-  lib.measure("tick.move") {
+  lib.skip_measure("tick.move") {
     (cars+reactive).forEach {o->
       o.pos = o.pos msum o.speed*GameConst.UPDATE_S
       o.speed = o.speed mscale 0.98
@@ -177,11 +189,11 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
   }
 
   var reactItr:MutableIterator<Reactive> = reactive.iterator()
-  lib.measure("tick.reactiveLife") {
+  lib.skip_measure("tick.reactiveLife") {
     while(reactItr.hasNext()) if(tick-reactItr.next().born > GameConst.REACTIVE_LIVE) reactItr.remove()
   }
 
-  lib.measure("tick.sortCars") {
+  lib.skip_measure("tick.sortCars") {
     cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   }
 
@@ -211,24 +223,24 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
   }
 
   fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
-  fun SizeObject.isOverlapRect(rect:Rect) = toRect().anyAlternative{points.any{rect.containsPoint(it)} || rect.points.any{containsPoint(it)}}
+  fun Rect.alternativesIsOverlapRect(rect:Rect) = anyAlternative{points.any{rect.containsPoint(it)} || rect.points.any{containsPoint(it)}}
   val w = width.toFloat()/MAX_W
   val h = height.toFloat()/MAX_H
 
+//  @Deprecated("") fun SizeObject.isOverlapRect(rect:Rect) = toRect().anyAlternative{points.any{rect.containsPoint(it)} || rect.points.any{containsPoint(it)}}
+//  @Deprecated("") fun <T>SizeObject.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
+//    isOverlapRect(Rect(XY(it.col*width/matrix.COLS,it.row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS)))
+//  }
+
   infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
-  fun <T>SizeObject.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
-    isOverlapRect(Rect(XY(it.col*width/matrix.COLS,it.row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS)))
-  }
-  fun mod(value:Int,module:Int) = when {
-    value<0->value+module
-    value>=module->value-module
-    else->value
+  fun <T>Rect.overlapCell(matrix:Mattr2D<T>) = matrix.all.filter {
+    alternativesIsOverlapRect(Rect(XY(it.col*width/matrix.COLS,it.row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS)))
   }
   fun PosObject.storeCol() = mod((pos.x/w).toInt(),MAX_W)
   fun PosObject.storeRow() = mod((pos.y/h).toInt(),MAX_H)
 
   repeatTick(20) {//todo выполнять сразу если кэш пустой
-    lib.measure("tick.sortBuckets") {
+    lib.skip_measure("tick.sortBuckets") {
       cacheFood.clearCache()
       foods.forEach {cacheFood.get(it.storeCol(), it.storeRow()).value.add(it)}
     }
@@ -243,7 +255,8 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
-          car.overlapCell(cacheFood).forEach {cell->
+          val carRect = car.toRect()
+          carRect.overlapCell(cacheFood).forEach {cell->
             val foodItr = cell.value.iterator()
             while(foodItr.hasNext()) {
               val f = foodItr.next()
@@ -256,7 +269,7 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
             }
           }
 
-          car.overlapCell(cacheReactive).forEach {cell->
+          lib.measure("overlap cell reactive"){carRect.overlapCell(cacheReactive)}.forEach {cell->
             reactItr = cell.value.iterator()
             while(reactItr.hasNext()) {
               val r = reactItr.next()
@@ -304,7 +317,7 @@ fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg10
   while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
 
   repeatTick(10) {
-    lib.measure("tick.change size") {
+    lib.skip_measure("tick.change size") {
       val delta = targetSize-size
       if(delta != 0) {
         val oldW = width
