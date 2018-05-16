@@ -342,15 +342,17 @@ fun State.rnd(min:Int,max:Int):Int {
   return min+random%(max-min+1)
 }
 fun State.rnd(max:Int) = rnd(0,max)
-fun State.rnd(min:Double,max:Double) = min+rnd(999)/1000f*(max-min)//todo optimize
-fun State.rndPos() = XY(rnd(0,width-1),rnd(0,height-1))
+val State.randomWidth get() = rnd(0,999).toFloat()/1000*width
+val State.randomHeight get() = rnd(0,999).toFloat()/1000*height
+fun State.rndPos() = XY(randomWidth,randomHeight)
 fun State.rnd2(min:Int,max:Int):Int {
   random2 = random2*1664525+1013904223 and 0x7fffffff
   return min+random2%(max-min+1)
 }
 fun State.rnd2(max:Int) = rnd2(0,max)
-fun State.rnd2(min:Double,max:Double) = min+rnd2(999)/1000f*(max-min)//todo optimize
-fun State.rndPos2() = XY(rnd2(0,width-1),rnd2(0,height-1))
+val State.randomWidth2 get() = rnd2(0,999).toFloat()/1000*width
+val State.randomHeight2 get() = rnd2(0,999).toFloat()/1000*height
+fun State.rndPos2() = XY(randomWidth2,randomHeight2)
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}
