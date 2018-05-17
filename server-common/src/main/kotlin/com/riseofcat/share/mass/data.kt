@@ -68,12 +68,8 @@ interface EatMeWithSpeed:SizeObject, SpeedObject
 @Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
     if(state.cars.none{it.owner == id}) {
-      state.cars.add(Car(
-        id,
-        GameConst.DEFAULT_CAR_SIZE,//todo расчитывать средний размер!
-        speed = XY(),
-         pos = state.rndPos2()
-      ))
+      val size = if(state.cars.size > 0) kotlin.math.max((state.cars.sumBy {it.size}/state.cars.size*0.7).toInt(), GameConst.MIN_SIZE) else GameConst.DEFAULT_CAR_SIZE
+      state.cars.add(Car(id,size = size,speed = XY(),pos = state.rndPos2()))
     }
   }
 }
