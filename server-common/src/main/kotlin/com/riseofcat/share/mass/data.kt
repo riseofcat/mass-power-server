@@ -58,14 +58,14 @@ object GameConst {
 interface ICommand { fun act(state:State) }
 interface PosObject { var pos:XY }
 interface SpeedObject:PosObject { var speed:XY }
-interface SizeObject:PosObject { var size:Int }
+interface SizeObject:PosObject { val size:Int }
 interface EatMeWithSpeed:SizeObject, SpeedObject
 
 @Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
     if(state.cars.none{it.owner == id}) {
       val size = if(state.cars.size > 0) kotlin.math.max((state.cars.sumBy {it.size}/state.cars.size*0.7).toInt(), GameConst.MIN_SIZE) else GameConst.DEFAULT_CAR_SIZE
-      state.cars.add(Car(id,size = size,speed = XY(),pos = state.rndPos2()))
+      state.cars.add(Car(id,size = size,speed = XY(),pos = state.random2.randomPos(state)))
     }
   }
 }
@@ -104,8 +104,9 @@ inline val Angle.cos get() = cos(radians)
   override var speed:XY,//todo speed and pos change order
   override var pos:XY):EatMeWithSpeed
 @Serializable data class Food(
-  override var size:Int,
-  override var pos:XY):SizeObject,PosObject
+  override var pos:XY):SizeObject,PosObject {
+  override val size get() = GameConst.FOOD_SIZE
+}
 @Serializable data class Reactive(
   var owner:PlayerId,
   override var size:Int,
@@ -116,8 +117,8 @@ inline val Angle.cos get() = cos(radians)
   @Optional val cars:MutableList<Car> = mutableListOf()
   ,@Optional val foods:MutableList<Food> = mutableListOf()
   ,@Optional val reactive:MutableList<Reactive> = mutableListOf()
-  ,var random:Int = 0
-  ,var random2:Int = 0
+  ,var random:Random = Random()
+  ,var random2:Random = Random()
   ,var size:Int = GameConst.BASE_SIZE
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
@@ -130,8 +131,11 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
     ,reactive = reactive.map {it.copy()}.toMutableList()
     ,foods = foods.map {it.copy()}.toMutableList()//todo Если не делать такое копирование для food то странно применяются 2-3 действия подряд когда кушаем. Сначала уменьшается резко, потом увеличивается.
     ,cache = cache
+    ,random = random.copy()
+    ,random2 = random2.copy()
   )
 }
+@Serializable data class Random(var seed:Int=0)
 @Serializable data class PlayerId(var id:Int)
 @Serializable data class XY(var x:Double=0.0,var y:Double=0.0) {//todo Int ?
   constructor(x:Float,y:Float):this(x.toDouble(), y.toDouble())
@@ -288,7 +292,9 @@ fun State.tick() = lib.measure("TICK") {
     }
   }
 
-  while(foods.size<targetFoods) foods.add(Food(GameConst.FOOD_SIZE + rnd(0,GameConst.FOOD_SIZE),rndPos()))
+  repeatTick(20) {
+    while(foods.size<targetFoods) foods.add(Food(random.randomPos(this)))
+  }
 
   repeatTick(10) {
     lib.measure("tick.change size") {
@@ -329,22 +335,6 @@ fun State.distance(a:XY,b:XY):Double {
   dy = min(dy,a.y+height-b.y)
   return sqrt(dx*dx+dy*dy)
 }
-fun State.rnd(min:Int,max:Int):Int {
-  random = random*1664525+1013904223 and 0x7fffffff
-  return min+random%(max-min+1)
-}
-fun State.rnd(max:Int) = rnd(0,max)
-val State.randomWidth get() = rnd(0,999).toFloat()/1000*width
-val State.randomHeight get() = rnd(0,999).toFloat()/1000*height
-fun State.rndPos() = XY(randomWidth,randomHeight)
-fun State.rnd2(min:Int,max:Int):Int {
-  random2 = random2*1664525+1013904223 and 0x7fffffff
-  return min+random2%(max-min+1)
-}
-fun State.rnd2(max:Int) = rnd2(0,max)
-val State.randomWidth2 get() = rnd2(0,999).toFloat()/1000*width
-val State.randomHeight2 get() = rnd2(0,999).toFloat()/1000*height
-fun State.rndPos2() = XY(randomWidth2,randomHeight2)
 inline operator fun XY.plus(a:XY) = copy(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = copy(x-a.x,y-a.y)
 internal inline infix fun XY.mscale(xy:XY) = copy()./*todo no copy*/apply {x *= xy.x;y *= xy.y}
@@ -357,3 +347,14 @@ operator fun XY.times(scl:Double) = this scale scl
 val XY.len get() = dst(XY(0.0,0.0))
 fun XY.dst(xy:XY) = sqrt(((xy.x-x)*(xy.x-x)+(xy.y-y)*(xy.y-y)))
 fun XY.calcAngle():Angle = Angle(atan2(y,x))
+
+private inline fun Random._rnd(min:Int, max:Int):Int {
+  seed = seed*1664525+1013904223 and 0x7fffffff
+  return min+seed%(max-min+1)
+}
+fun Random.rnd(min:Int, max:Int):Int {
+  val сдвиг = 0xffFe
+  val diapasone = max-min
+  return min + diapasone/сдвиг*_rnd(0,сдвиг) + diapasone%сдвиг*_rnd(0,сдвиг)/сдвиг
+}
+fun Random.randomPos(state:State) = XY(rnd(1,state.width-1), rnd(1, state.height-1))
