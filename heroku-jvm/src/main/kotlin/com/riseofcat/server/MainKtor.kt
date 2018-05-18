@@ -18,17 +18,21 @@ import io.ktor.util.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.io.ByteBuffer
-import java.nio.*
 import java.time.Duration
 import java.util.concurrent.atomic.*
 
+val rooms:MutableList<ServerModel> = mutableListOf()
 val incomeMessages = AtomicInteger()
-//val serverModel = UsageMonitorDecorator<ByteArray,ByteArray>(
-val serverModel = UsageMonitorDecorator<String,String>(
+var lastId = AtomicInteger()
+//val server = UsageMonitorDecorator<ByteArray,ByteArray>(
+val server = UsageMonitorDecorator<String,String>(
 ConvertDecorator(
 PingDecorator(
-RoomsDecorator<ClientPayload,ServerPayload>().apply {onRoomCreated.add({ room -> ServerModel(room) })},com.riseofcat.lib.Duration(1000)),
+  RoomsDecorator<ClientPayload,ServerPayload>().apply {
+    onRoomCreated.add{rooms.add(ServerModel(it))}
+  },
+  pingInterval = Duration(1000)
+),
 IConverter {obj ->
   Util.fromJsonClientSay(obj)
 },
@@ -41,6 +45,7 @@ fun main(args:Array<String>) {
   var port = 5000
   try { port = Integer.valueOf(System.getenv("PORT")) }
   catch(e:Exception) { }
+  startBots()
   if(true) {
     embeddedServer(CIO, port, module = Application::main).start(wait = true)
   } else {
@@ -48,7 +53,20 @@ fun main(args:Array<String>) {
   }
 }
 
-var lastId = 0
+fun startBots() {
+  launch {
+    while(true) {
+      for(room in rooms) {
+        if(room.bots.size < 10) {
+          room.bots.add(Bot(lastId.incrementAndGet()))
+        }
+        room.updateBots()
+        yield()
+      }
+      delay(650)
+    }
+  }
+}
 
 fun Application.main() {
   install(DefaultHeaders)
@@ -73,7 +91,7 @@ fun Application.main() {
 //      val s = object:Ses<ByteArray>() {
       val s = object:Ses<String>() {
         override val typeMap:TypeMap = TypeMap()
-        override val id = ++lastId
+        override val id = lastId.incrementAndGet()
         override fun stop() {
           async {close(CloseReason(CloseReason.Codes.NORMAL,"Good bye"))}
         }
@@ -86,7 +104,7 @@ fun Application.main() {
           }
         }
       }
-      serverModel.start(s)
+      server.start(s)
 
       incoming.mapNotNull { it as? Frame.Text }.consumeEach { frame ->
         incomeMessages.incrementAndGet()
@@ -94,7 +112,7 @@ fun Application.main() {
           lib.log.info("thread: " + Thread.currentThread().name)
           lib.log.info("incomeMessages: "+ incomeMessages)
         }
-        serverModel.message(s, frame.readText() as String)
+        server.message(s, frame.readText() as String)
       }
 
       incoming.mapNotNull { it as? Frame.Binary }.consumeEach { frame ->
@@ -103,7 +121,7 @@ fun Application.main() {
           lib.log.info("thread: " + Thread.currentThread().name)
           lib.log.info("incomeMessages: "+ incomeMessages)
         }
-        serverModel.message(s, frame.buffer.moveToByteArray() as String)
+        server.message(s, frame.buffer.moveToByteArray() as String)
       }
 
     }

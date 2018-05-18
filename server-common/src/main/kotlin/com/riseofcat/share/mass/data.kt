@@ -39,12 +39,8 @@ fun Mattr2D.clearFood() = all.forEach {it.food.clear()}
 fun Mattr2D.clearReactive() = all.forEach {it.reactive.clear()}
 inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
   repeatTickCalls++
-  if((tick.tick-repeatTickCalls)%ticks==0) {
-    lambda()
-  }
+  if((tick.tick-repeatTickCalls)%ticks==0) lambda()
 }
-
-const val PERFORMANCE_KOEFF=2
 
 object GameConst {
   val UPDATE = Duration(16)
@@ -162,7 +158,7 @@ class Bucket(val col:Int,val row:Int) {
   val reactive:MutableList<Food> = mutableListOf()
   override fun toString() = "[$col, $row]"
 }
-fun State.tick() = lib.measure("TICK") {  //23.447441085 %    count:3250  avrg100: 9.383111351 ms
+fun State.tick() = lib.measure("TICK") {
   repeatTickCalls = 0
   tick+=1
   lib.skip_measure("tick.move") {

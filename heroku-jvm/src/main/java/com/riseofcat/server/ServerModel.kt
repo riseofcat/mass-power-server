@@ -21,47 +21,34 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val recommendedLatency get() = averageLatency*2
   val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
   val maxDelay get() = recommendedDelay*2
-  val newCarDelay get() = recommendedDelay*2
-  val removeAfterDelay get() = recommendedDelay*3*100//todo remove 100 //Если 0 - значит всё что позже stable - удаляется
+  val removeAfterDelay get() = recommendedDelay*3 //Если 0 - значит всё что позже stable - удаляется
 
   init {
     room.onPlayerAdded.add {player->
       updateGame()
-      needSynchronized(this@ServerModel) {
-        if(false) commands.add(CommandAndVersion(AllCommand(realtimeTick+newCarDelay,player.id,newCarCmd = NewCarCommand(player.id))))
-        val payload = createStablePayload(Welcome(player.id, room.createTime))
-        player.session.send(payload)//todo тут произошёл ConcurrentModificationException
-      }
-      for(p in room.getPlayers()) updatePlayer(p)//Говорим другим, что пришёл новый игрок
+      needSynchronized(this@ServerModel) {player.session.send(createStablePayload(Welcome(player.id,room.createTime)))}
     }
-    room.onMessage.add {message->
-      updateGame()
-      lib.measure("room.onMessage") {
-        redundantSynchronize(this@ServerModel) {
-          for(a in message.payload.actions) {
-            if(a.tick<=state.tick-removeAfterDelay){
-              continue//Команда игнорируется
-            }
-            val t = if(a.tick>=state.tick) a.tick else state.tick
-            val allCmd = AllCommand(t,message.player.id)
-            if(a.newCar) {//todo валидировать клиента (но уже наверное на тиках в стейте)
-              allCmd.newCarCmd = NewCarCommand(message.player.id)
-            }
-            val moveDirection = a.moveDirection
-            if(moveDirection!= null) {
-              allCmd.moveCmd = MoveCommand(message.player.id,moveDirection)
-            }
-            commands.add(CommandAndVersion(allCmd))
-          }
-          val payload = ServerPayload(state.tick, recommendedLatency = recommendedLatency)
-          updatePlayerInPayload(payload,message.player)
-          message.player.session.send(payload)
-        }
+    room.onMessage.add(::handleIncomeMessage)
+  }
+
+  private fun handleIncomeMessage(message:RoomsDecorator<ClientPayload,ServerPayload>.PlayerMessage) {
+    updateGame()
+    redundantSynchronize(this@ServerModel) {
+      for(a in message.payload.actions) {
+        if(a.tick<=state.tick-removeAfterDelay)continue//Команда игнорируется
+        val allCmd = AllCommand(
+          tick = if(a.tick>=state.tick) a.tick else state.tick,
+          pid = message.player.id)
+        if(a.newCar) allCmd.newCarCmd = NewCarCommand(message.player.id)//todo валидировать клиента (но уже наверное на тиках в стейте)
+        val moveDirection = a.moveDirection
+        if(moveDirection!= null) allCmd.moveCmd = MoveCommand(message.player.id,moveDirection)
+        commands.add(CommandAndVersion(allCmd))
       }
-      lib.measure("for(p in room.getPlayers())") {
-        for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
-      }
+      val payload = ServerPayload(stableTick = state.tick, recommendedLatency = recommendedLatency)
+      updatePlayerInPayload(payload,message.player)
+      message.player.session.send(payload)
     }
+    for(p in room.getPlayers()) if(p!=message.player) updatePlayer(p)
   }
 
   private fun updateGame() {
@@ -121,6 +108,36 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
     stable = state,
     recommendedLatency = recommendedLatency
   )
+
+  val bots:MutableList<Bot> = mutableListOf()
+  suspend fun updateBots() {
+    updateGame()
+    yield()
+    val state = needSynchronized(this) {state.deepCopy()}
+    yield()
+    repeat(recommendedDelay.tick + (Duration(300)/GameConst.UPDATE).toInt()) {//Через 300 мс после принятия действия
+      state.tick()
+      yield()
+    }
+
+    bots.forEach{bot->
+      val cmd = AllCommand(realtimeTick+recommendedDelay,bot.playerId)
+      val car = state.cars.find{it.owner == bot.playerId}
+      if(car != null) {
+        val target = state.foods.minBy {state.distance(car.pos + car.speed*0.8,it.pos)}
+        if(target != null) cmd.moveCmd = MoveCommand(bot.playerId, (target.pos - car.pos).calcAngle())
+      } else {
+        cmd.newCarCmd = NewCarCommand(bot.playerId)
+      }
+      commands.add(CommandAndVersion(cmd))
+    }
+    for(p in room.getPlayers()) updatePlayer(p)
+  }
+
+}
+
+class Bot(id:Int) {
+  val playerId = PlayerId(id)
 }
 
 inline fun <R> redundantSynchronize(lock:ServerModel,crossinline block:()->R):R = if(true) block() else needSynchronized(lock, block)
