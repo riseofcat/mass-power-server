@@ -14,6 +14,6 @@ fun XY.rotate(angleA:Angle):XY {
 fun degreesAngle(degrees:Double) = Angle(degrees/180*PI)
 fun State.deepCopyOld() = copy(//todo data класс не копирует массивы
   cars = cars.map {it.copy()}.toMutableList(),//todo deep copy pos
-  foods = foods.map {it.copy()}.toMutableList(),
+//  foods = foods.map {it.copy()}.toMutableList(),
   reactive = reactive.map {it.copy()}.toMutableList()
 )

@@ -268,28 +268,34 @@ class SmoothByTime<T>(val lambda:()->Double) {
   }
 }
 
-class BooleanMatrix256 {
-  val arr:Array<Int> = Array(2048, {0})//Для хранения требуется 8 килобайт
-  operator fun get(col:Int, row:Int):Boolean = (arr[col*8 + row/32] and (0x1 shl row%32)) != 0x0
-  operator fun set(col:Int,row:Int,value:Boolean) {
-    if(get(col, row) != value) {
-      val index = col*8+row/32
-      arr[index] = arr[index] xor (0x1 shl row%32)
+fun Int.countOnes():Int {
+  if(false) {
+    //https://habr.com/post/276957/
+    //todo это работает не правильно!
+    var n = this
+    n -= (n ushr 1) and 0x55555555
+    n = ((n ushr 2) and 0x33333333)+(n and 0x33333333)
+    n = ((n ushr 4)+n) and 0x0F0F0F0F
+    n = ((n ushr 8)+n) and 0x00FF00FF
+    n = ((n ushr 16)+n)
+    return n
+  } else{
+    var n = this
+    var res = 0
+    while (n != 0) {
+      res += n and 1
+      n = n ushr 1
     }
+    return res
   }
 
-  fun countTrue():Int = arr.fold(0,{sum,it-> sum+it.countOnes()})
-
 }
 
-fun Int.countOnes():Int {
-  //https://habr.com/post/276957/
-  var n = this
-  n -= (n shr 1) and 0x55555555
-  n = ((n shr 2) and 0x33333333 ) + (n and 0x33333333)
-  n = ((n shr 4) + n) and 0x0F0F0F0F
-  n = ((n shr 8) + n) and 0x00FF00FF
-  n = ((n shr 16) + n)
-  return n
-}
+//val Int.sign//todo сделать бинарную логику
+//  get() = when {
+//    this>0->1
+//    this<0->-1
+//    else->0
+//  }
+
 

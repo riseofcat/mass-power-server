@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.*
 
 class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
   val mutex:Mutex = Mutex()
-  val STABLE_STATE_UPDATE:Duration? = Duration(2_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
+  val STABLE_STATE_UPDATE:Duration? = Duration(5_000)//todo сделать конрольную сумму (extension) для State. Если контрольная сумма (может подойдёт hashCode но его надо проверить с массивами) от клиента не совпала с серверной в определённом тике клиента, то передаём state для синхронизации
   private val state = State()
   private var commands:MutableList<CommandAndVersion> = Common.createConcurrentList()
   private val mapPlayerVersion = Common.createConcurrentHashMap<PlayerId,Int>()
@@ -124,8 +124,15 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       val cmd = AllCommand(realtimeTick+recommendedDelay,bot.playerId)
       val car = state.cars.find{it.owner == bot.playerId}
       if(car != null) {
-        val target = state.foods.minBy {state.distance(car.pos + car.speed*0.8,it.pos)}
-        if(target != null) cmd.moveCmd = MoveCommand(bot.playerId, (target.pos - car.pos).calcAngle())
+        val target = state.foods.trueIndexes().minBy {
+          state.distance(Food2(it.col,it.row).pos(state), car.pos)
+        }
+        if(target != null) cmd.moveCmd = MoveCommand(bot.playerId, (Food2(target.col, target.row).pos(state) - car.pos).calcAngle())
+
+        if(false) {
+//          val target = state.foods.minBy {state.distance(car.pos + car.speed*0.8,it.pos)}
+//          if(target != null) cmd.moveCmd = MoveCommand(bot.playerId, (target.pos - car.pos).calcAngle())
+        }
       } else {
         cmd.newCarCmd = NewCarCommand(bot.playerId)
       }

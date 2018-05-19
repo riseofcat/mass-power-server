@@ -57,7 +57,7 @@ fun startBots() {
   launch {
     while(true) {
       for(room in rooms) {
-        if(room.bots.size < 10) {
+        if(room.bots.size < 30) {
           room.bots.add(Bot(lastId.incrementAndGet()))
         }
         room.updateBots()
