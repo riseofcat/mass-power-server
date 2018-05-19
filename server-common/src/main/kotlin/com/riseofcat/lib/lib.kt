@@ -267,3 +267,29 @@ class SmoothByTime<T>(val lambda:()->Double) {
     return lambda()//todo time
   }
 }
+
+class BooleanMatrix256 {
+  val arr:Array<Int> = Array(2048, {0})//Для хранения требуется 8 килобайт
+  operator fun get(col:Int, row:Int):Boolean = (arr[col*8 + row/32] and (0x1 shl row%32)) != 0x0
+  operator fun set(col:Int,row:Int,value:Boolean) {
+    if(get(col, row) != value) {
+      val index = col*8+row/32
+      arr[index] = arr[index] xor (0x1 shl row%32)
+    }
+  }
+
+  fun countTrue():Int = arr.fold(0,{sum,it-> sum+it.countOnes()})
+
+}
+
+fun Int.countOnes():Int {
+  //https://habr.com/post/276957/
+  var n = this
+  n -= (n shr 1) and 0x55555555
+  n = ((n shr 2) and 0x33333333 ) + (n and 0x33333333)
+  n = ((n shr 4) + n) and 0x0F0F0F0F
+  n = ((n shr 8) + n) and 0x00FF00FF
+  n = ((n shr 16) + n)
+  return n
+}
+
