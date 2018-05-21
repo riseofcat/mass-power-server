@@ -4,7 +4,7 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.coroutines.experimental.*
 import kotlin.math.*
-
+const val PERFORMANCE_KOEFF = 6
 fun mod(value:Int,module:Int) = when {//todo удалить если не будут вылитать ошибки
   value<0->{
     lib.log.error("!!! value<0 !!!")
@@ -153,7 +153,6 @@ fun BooleanMatrix256.trueIndexes() = buildSequence {
   ,var size:Int = GameConst.BASE_SIZE
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
-//  ,@Transient val cache:Mattr2D = Mattr2D(5,5)
 )
 fun State.getCar(id:PlayerId) = cars.firstOrNull {it.owner==id}
 fun State.deepCopy() = lib.measure("State.deepCopy") {
@@ -249,21 +248,19 @@ fun State.tick() = lib.measure("TICK") {
 //  fun PosObject.storeRow() = mod((pos.y/h).toInt(),cache.ROWS)
 
   repeatTick(6) {
+    lib.measure("tick.eatFoods") {
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
 
-          lib.measure("tick.eatFoods") {
-            car.toRect().overlap256Indexes(this).forEach {
-              if(foods[it.col, it.row]) {
-//              lib.log.info("$it")
-                val f = Food2(it.col,it.row)
-                if(distance(car.pos,f.pos(this)) < car.radius) {
-                  foods[it.col, it.row] = false
-                  car.size += GameConst.FOOD_SIZE
-                  changedSizeCars.add(car)
-                }
+          car.toRect().overlap256Indexes(this).forEach {
+            if(foods[it.col, it.row]) {
+              val f = Food2(it.col,it.row)
+              if(distance(car.pos,f.pos(this)) < car.radius) {
+                foods[it.col, it.row] = false
+                car.size += GameConst.FOOD_SIZE
+                changedSizeCars.add(car)
               }
             }
           }
@@ -283,6 +280,7 @@ fun State.tick() = lib.measure("TICK") {
         }
         handleFoodCars = changedSizeCars.toMutableList()
       }
+    }
   }
 
   repeatTick(2) {
@@ -318,7 +316,7 @@ fun State.tick() = lib.measure("TICK") {
     if(delta != 0) {
       val oldW = width
       val oldH = height
-      val MAX_SIZE_DELTA = 10
+      val MAX_SIZE_DELTA = 10*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF
       val smallDelta = if(delta.absoluteValue > MAX_SIZE_DELTA) {
         (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
           .let {it.sign*min(abs(it),MAX_SIZE_DELTA)}
@@ -351,8 +349,8 @@ fun Rect.overlap256Indexes(state:State) = buildSequence {
 
 fun SizeObject.toRect() = Rect(pos-XY(radius,radius),XY(2*radius,2*radius))
 
-val State.targetFoods get() = width*height/100_000
-val State.targetSize get():Int = 1000 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
+val State.targetFoods get() = width*height/100_000*PERFORMANCE_KOEFF
+val State.targetSize get():Int = PERFORMANCE_KOEFF*1000 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
 inline val State.width get() = size
 inline val State.height get() = size
 fun State.distance(a:XY,b:XY):Double {
