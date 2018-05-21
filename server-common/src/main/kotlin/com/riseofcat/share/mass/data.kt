@@ -238,14 +238,10 @@ fun State.tick() = lib.measure("TICK") {
   }
 
   fun Rect.alternativesIsOverlapRect(rect:Rect) = anyAlternative{points.any{rect.containsPoint(it)} || rect.points.any{containsPoint(it)}}
-//  val w = width.toFloat()/cache.COLS
-//  val h = height.toFloat()/cache.ROWS
   infix fun SizeObject.overlap(xy:XY) = distance(this.pos, xy) <= this.radius
   fun Rect.overlapCell(matrix:Mattr2D) = matrix.all.filter {
     alternativesIsOverlapRect(Rect(XY(it.col*width/matrix.COLS,it.row*height/matrix.ROWS),XY(width/matrix.COLS,height/matrix.ROWS)))
   }
-//  fun PosObject.storeCol() = mod((pos.x/w).toInt(),cache.COLS)
-//  fun PosObject.storeRow() = mod((pos.y/h).toInt(),cache.ROWS)
 
   repeatTick(6) {
     lib.measure("tick.eatFoods") {
