@@ -3,6 +3,7 @@ package com.riseofcat.client
 import com.riseofcat.common.*
 import com.riseofcat.lib.*
 import com.riseofcat.share.mass.*
+import kotlin.math.*
 
 class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpoke:Boolean=false):IClientModel {
   val FREEZE_TICKS = Tick(Duration(1000)/GameConst.UPDATE+1)//todo сделать плавное ускорение времени после фриза?
@@ -105,14 +106,17 @@ class ClientModel(val ping:IPingClient<ServerPayload, ClientPayload>, val slowpo
   }
 }
 
-fun ClientModel.touch(pos:XY) {
+fun ClientModel.touch(pos:SXY) {
   val car = myCar
   _touch(car?.pos, pos)
 }
 
-fun ClientModel._touch(myCarPos:XY?, pos:XY) {
+fun ClientModel._touch(myCarPos:SXY?, pos:SXY) {
+  fun SXY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()))
+  fun XY.calcAngle():Angle = Angle(atan2(y,x))
+
   if(myCarPos != null) {
-    val direction = (pos - myCarPos).calcAngle() + degreesAngle(0*180)
+    val direction = (pos - myCarPos/*calcDisplayState().realXY(myCarPos)*/).calcAngle() + degreesAngle(0*180)
     move(direction)
   } else {
     newCar()
