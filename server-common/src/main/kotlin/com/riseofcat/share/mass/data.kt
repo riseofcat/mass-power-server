@@ -4,7 +4,7 @@ import com.riseofcat.lib.*
 import kotlinx.serialization.*
 import kotlin.coroutines.experimental.*
 import kotlin.math.*
-const val PERFORMANCE_KOEFF = 1
+const val PERFORMANCE_KOEFF = 5
 inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
   repeatTickCalls++
   if((tick.tick-repeatTickCalls)%ticks==0) lambda()
@@ -43,7 +43,7 @@ interface EatMeWithSpeed:SizeObject, SpeedObject
   override fun act(state:State) {
     fun Angle.xy(size:Double) = SXY((cos*size).toShort(),(sin*size).toShort())
     val car = state.cars.find{ it.owner == id}?:return
-    car.speed = car.speed+direction.xy(Short.MAX_VALUE/10.0)
+    car.speed = car.speed+direction.xy(Short.MAX_VALUE/100.0)
     val size = car.size/20+1
     if(car.size-size>=GameConst.MIN_SIZE) car.size = car.size-size
     state.reactive.add(Reactive(id,size,car.speed + (direction+degreesAngle(180)).xy(400.0),car.pos.copy(),state.tick.copy()))
@@ -173,7 +173,7 @@ fun State.tick() = lib.measure("TICK") {
   tick+=1
   reactive.removeAll {tick-it.born>GameConst.REACTIVE_LIVE}
   (cars+reactive).forEach {o->
-    o.pos = o.pos msum o.speed*(GameConst.UPDATE_S*1000/size)
+    o.pos = o.pos msum o.speed*(GameConst.UPDATE_S*15_000/size)
     o.speed = o.speed * (1.0 - GameConst.FRICTION)//todo mutable?
   }
 
@@ -183,7 +183,7 @@ fun State.tick() = lib.measure("TICK") {
 
   infix fun SizeObject.overlap(xy:SXY) = distance(this.pos, xy) <= this.radius
 
-  repeatTick(6) {
+  repeatTick(1) {
     lib.measure("tick.eatFoods") {
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
