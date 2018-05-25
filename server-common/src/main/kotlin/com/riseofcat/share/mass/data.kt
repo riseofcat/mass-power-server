@@ -94,6 +94,7 @@ inline val Angle.cos get() = cos(radians)
 ) {
   val semiWidth get() = width
   val Float.short get() = (this/semiWidth*(1 shl 16)).toShort()
+  val Double.int get() = (this/semiWidth*(1 shl 16)).toInt()
   val Float.byte get() = (this/semiWidth*(1 shl 8)).toByte()
   val Double.short get() = (this/semiWidth*(1 shl 16)).toShort()
   val Double.byte get() = (this/semiWidth*(1 shl 8)).toByte()
@@ -103,6 +104,7 @@ inline val Angle.cos get() = cos(radians)
   val Byte.real get() = this*semiWidth/(1 shl 8)
 
   fun floatToShort(f:Float) = f.short
+  fun floatToShortInt(f:Double) = f.int
   fun doubleToShort(d:Double) = d.toFloat().short
   fun shortToReal(s:Short) = s.real
   fun shortToReal(s:Int) = s.realLikeShortResult
@@ -186,7 +188,7 @@ fun State.tick() = lib.measure("TICK") {
     }
   }
 
-  if(false)repeatTick(2) {
+  repeatTick(1) {
     lib.measure("tick.eatCars") {
       var handleCarsDestroy = true
       while(handleCarsDestroy) {
