@@ -2,9 +2,8 @@ package com.riseofcat.share.mass
 
 import com.riseofcat.lib.*
 import kotlinx.serialization.*
-import kotlin.coroutines.experimental.*
 import kotlin.math.*
-const val PERFORMANCE_KOEFF = 5
+const val PERFORMANCE_KOEFF = 1
 inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
   repeatTickCalls++
   if((tick.tick-repeatTickCalls)%ticks==0) lambda()
@@ -27,13 +26,13 @@ interface ICommand { fun act(state:State) }
 interface PosObject { var pos:SXY }
 interface SpeedObject:PosObject { var speed:SXY }
 interface SizeObject:PosObject { val size:Int }
-interface EatMeWithSpeed:SizeObject, SpeedObject
+interface MovedObject:SizeObject, SpeedObject
 
 @Serializable class NewCarCommand(var id:PlayerId):ICommand {
   override fun act(state:State) {
     if(state.cars.none{it.owner == id}) {
       val size = if(state.cars.size > 0) kotlin.math.max((state.cars.sumBy {it.size}/state.cars.size*0.7).toInt(), GameConst.MIN_SIZE) else GameConst.DEFAULT_CAR_SIZE
-      state.cars.add(Car(id,size = size,speed = SXY(),pos = state.random2.randomPos(state)))
+      state.cars.add(Car(id,size = size,speed = SXY(),pos = state.random2.randomPos()))
     }
   }
 }
@@ -70,44 +69,22 @@ inline val Angle.cos get() = cos(radians)
   var owner:PlayerId,
   override var size:Int,
   override var speed:SXY,//todo speed and pos change order
-  override var pos:SXY):EatMeWithSpeed
-class Food2(val i:Byte, val j:Byte)
-val Food2.pos get()= SXY((i*256).toShort(), (j*256).toShort())
-val Food2.radius get()=GameConst.FOOD_SIZE.radius
+  override var pos:SXY):MovedObject
+@Serializable data class Food(
+  override var pos:SXY
+):SizeObject {
+  override val size:Int = GameConst.FOOD_SIZE
+}
 @Serializable data class Reactive(
   var owner:PlayerId,
   override var size:Int,
   override var speed:SXY,
   override var pos:SXY,
-  val born:Tick):EatMeWithSpeed
-
-@Serializable class BooleanMatrix256(
-  val arr:Array<Int> = Array(2048, {0})//Для хранения требуется 8 килобайт
-)
-fun BooleanMatrix256.copy() = BooleanMatrix256(arr.copyOf())
-operator fun BooleanMatrix256.get(col:Byte, row:Byte):Boolean = (arr[(col-Byte.MIN_VALUE)*8 + (row-Byte.MIN_VALUE)/32] and (0x1 shl (row-Byte.MIN_VALUE)%32)) != 0x0
-operator fun BooleanMatrix256.set(col:Byte,row:Byte,value:Boolean) {//todo Unsigned Byte
-  if(get(col, row) != value) {
-    val index = (col-Byte.MIN_VALUE)*8+(row-Byte.MIN_VALUE)/32
-    arr[index] = arr[index] xor (0x1 shl (row-Byte.MIN_VALUE)%32)
-  }
-}
-fun BooleanMatrix256.countTrue() = arr.fold(0,{sum,it-> sum+it.countOnes()})
-data class Matrix256Index(val col:Byte, val row:Byte) {//todo можно сделать inline class Short
-  override fun toString() = "[$col, $row]"
-}
-
-fun BooleanMatrix256.trueIndexes() = buildSequence {
-  for(i in 0 until arr.size)
-    if(arr[i] != 0x0)
-      for(left in 0 until 32)
-        if((arr[i] ushr left) and 0x1 != 0x0)
-          yield(Matrix256Index((i/8).toByte(),(i%8*32+left).toByte()))
-}
+  val born:Tick):MovedObject
 
 @Serializable data class State(
   @Optional val cars:MutableList<Car> = mutableListOf()
-  ,@Optional val foods:BooleanMatrix256 = BooleanMatrix256()
+  ,@Optional val foods:MutableList<Food> = mutableListOf()
   ,@Optional val reactive:MutableList<Reactive> = mutableListOf()
   ,var random:Random = Random()
   ,var random2:Random = Random()
@@ -115,15 +92,22 @@ fun BooleanMatrix256.trueIndexes() = buildSequence {
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
 ) {
-  val Float.short get() = (this/width*(1 shl 16)).toShort()
-  val Float.byte get() = (this/width*(1 shl 8)).toByte()
-  val Short.real get() = this*width/(1 shl 16)
-  val Byte.real get() = this*width/(1 shl 8)
+  val semiWidth get() = width
+  val Float.short get() = (this/semiWidth*(1 shl 16)).toShort()
+  val Float.byte get() = (this/semiWidth*(1 shl 8)).toByte()
+  val Double.short get() = (this/semiWidth*(1 shl 16)).toShort()
+  val Double.byte get() = (this/semiWidth*(1 shl 8)).toByte()
+  val Short.real get() = this*semiWidth/(1 shl 16)
+  val Int.realLikeShortResult get() = this*semiWidth/(1 shl 16)
+  val Float.realLikeShortResult get() = this*semiWidth/(1 shl 16)
+  val Byte.real get() = this*semiWidth/(1 shl 8)
 
   fun floatToShort(f:Float) = f.short
   fun doubleToShort(d:Double) = d.toFloat().short
   fun shortToReal(s:Short) = s.real
+  fun shortToReal(s:Int) = s.realLikeShortResult
   fun realXY(pos:SXY) = XY(pos.x.real, pos.y.real)
+  fun realToShort(pos:XY) = SXY(pos.x.short, pos.y.short)
 
   val SizeObject.shortRadius get() = size.radius.short
   val SizeObject.shortDiameter get() = (size.radius.short*2).toShort()
@@ -134,8 +118,7 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
   copy(
     cars = cars.map {it.copy()}.toMutableList()
     ,reactive = reactive.map {it.copy()}.toMutableList()
-    ,foods = foods.copy()
-//    ,cache = cache
+    ,foods = foods.map{it.copy()}.toMutableList()
     ,random = random.copy()
     ,random2 = random2.copy()
   )
@@ -156,19 +139,7 @@ infix fun State.act(actions:Iterator<ICommand>):State {
 val Short.leftByte get() = (this/256).toByte()
 val Short.rightByte get() = (this%256).toByte()
 
-fun overlap256Indexes(xy:SXY, width:Int, height:Int) = buildSequence{
-  for(i in xy.x.leftByte..(xy.x.leftByte+width/256))
-    for(j in xy.y.leftByte..(xy.y.leftByte+height/256))
-      yield(Matrix256Index(i.toByte(),j.toByte()))
-}
-
 fun State.tick() = lib.measure("TICK") {
-  fun SizeObject.overlap256Indexes() = overlap256Indexes(
-    SXY(pos.x - shortRadius, pos.y - shortRadius),
-    shortDiameter.toInt(),
-    shortDiameter.toInt()
-  )
-
   repeatTickCalls = 0
   tick+=1
   reactive.removeAll {tick-it.born>GameConst.REACTIVE_LIVE}
@@ -184,32 +155,28 @@ fun State.tick() = lib.measure("TICK") {
   infix fun SizeObject.overlap(xy:SXY) = distance(this.pos, xy) <= this.radius
 
   repeatTick(1) {
-    lib.measure("tick.eatFoods") {
+    lib.measure("tick.eatFoods and reactive") {
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
-
-          car.overlap256Indexes().forEach {
-            if(foods[it.col, it.row]) {
-              val f = Food2(it.col,it.row)
-              if(distance(car.pos,f.pos) < car.radius) {
-                foods[it.col, it.row] = false
-                car.size += GameConst.FOOD_SIZE
-                changedSizeCars.add(car)
-              }
+          val foodItr = foods.iterator()
+          while(foodItr.hasNext()) {
+            val f = foodItr.next()
+            if(car overlap f.pos) {
+              foodItr.remove()
+              car.size += f.size
+              changedSizeCars.add(car)
             }
           }
 
-          if(false)lib.measure("tick.eatReactive") {//todo reactive
-            val reactItr = reactive.iterator()
-            while(reactItr.hasNext()) {
-              val r = reactItr.next()
-              if(r.owner!=car.owner) if(car overlap r.pos) {
-                reactItr.remove()
-                car.size += r.size
-                changedSizeCars.add(car)
-              }
+          val reactItr = reactive.iterator()
+          while(reactItr.hasNext()) {
+            val r = reactItr.next()
+            if(r.owner!=car.owner) if(car overlap r.pos) {
+              reactItr.remove()
+              car.size += r.size
+              changedSizeCars.add(car)
             }
           }
 
@@ -241,11 +208,9 @@ fun State.tick() = lib.measure("TICK") {
     }
   }
 
-  repeatTick(20) {
-    while(foods.countTrue() < targetFoods) {//todo замерить countTrue
-      repeat(5) {
-        foods[random.rnd(0,255).toByte(), random.rnd(0,255).toByte()] = true
-      }
+  repeatTick(1) {
+    while(foods.size < targetFoods) {
+      foods.add(Food(random.randomPos()))
     }
   }
 
@@ -265,16 +230,18 @@ fun State.tick() = lib.measure("TICK") {
 }
 
 val State.targetFoods get() = width*height/100_000*PERFORMANCE_KOEFF
-val State.targetSize get():Int = PERFORMANCE_KOEFF*1000 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
+val State.targetSize get():Int = PERFORMANCE_KOEFF*100 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
 inline val State.width get() = size.toDouble()
 inline val State.height get() = size
+const val relativeWidth = Short.MAX_VALUE-Short.MIN_VALUE//2^16-1
+fun sabs(a:Int) = abs(a.toShort().toInt())
+inline fun dx(a:SXY,b:SXY) = min(sabs(b.x-a.x),sabs(b.x-a.x+relativeWidth))
+inline fun dy(a:SXY,b:SXY) = min(sabs(b.y-a.y),sabs(b.y-a.y+relativeWidth))
 fun State.distance(a:SXY,b:SXY):Double {
-  fun sabs(a:Int) = abs(a.toShort().toInt())
-  val relativeWidth = Short.MAX_VALUE-Short.MIN_VALUE
-  val dx = min(sabs(b.x-a.x),sabs(b.x-a.x+relativeWidth))
-  val dy = min(abs(b.y-a.y),b.y-a.y+relativeWidth)
-  val sqrt = sqrt((dx*dx+dy*dy).toFloat())//todo можно закэшировать
-  return sqrt.toShort().real
+  val dx = dx(a,b)
+  val dy = dy(a,b)
+  val sqrt = 2*sqrt((dx*dx/4+dy*dy/4).toFloat())//todo можно закэшировать
+  return sqrt.realLikeShortResult
 }
 inline operator fun SXY.plus(a:SXY) = SXY(x+a.x,y+a.y)
 inline operator fun SXY.minus(a:SXY) = SXY(x-a.x,y-a.y)
@@ -298,4 +265,4 @@ fun Random.rnd(min:Int, max:Int):Int {
   val diapasone = max-min
   return min + diapasone/сдвиг*_rnd(0,сдвиг) + diapasone%сдвиг*_rnd(0,сдвиг)/сдвиг
 }
-fun Random.randomPos(state:State) = SXY(rnd(Short.MIN_VALUE, Short.MAX_VALUE), rnd(Short.MIN_VALUE, Short.MAX_VALUE))
+fun Random.randomPos() = SXY(rnd(Short.MIN_VALUE, Short.MAX_VALUE), rnd(Short.MIN_VALUE, Short.MAX_VALUE))
