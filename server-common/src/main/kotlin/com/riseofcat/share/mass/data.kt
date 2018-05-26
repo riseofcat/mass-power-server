@@ -91,29 +91,26 @@ inline val Angle.cos get() = cos(radians)
   ,var size:Int = GameConst.BASE_SIZE
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
-) {
-  val semiWidth get() = width
-  val Float.short get() = (this/semiWidth*(1 shl 16)).toShort()
-  val Double.int get() = (this/semiWidth*(1 shl 16)).toInt()
-  val Float.byte get() = (this/semiWidth*(1 shl 8)).toByte()
-  val Double.short get() = (this/semiWidth*(1 shl 16)).toShort()
-  val Double.byte get() = (this/semiWidth*(1 shl 8)).toByte()
-  val Short.real get() = this*semiWidth/(1 shl 16)
-  val Int.realLikeShortResult get() = this*semiWidth/(1 shl 16)
-  val Float.realLikeShortResult get() = this*semiWidth/(1 shl 16)
-  val Byte.real get() = this*semiWidth/(1 shl 8)
+)
+fun Float.short(s:State) = (this/s.semiWidth*(1 shl 16)).toShort()
+fun Double.int(s:State) = (this/s.semiWidth*(1 shl 16)).toInt()
+fun Float.byte(s:State) = (this/s.semiWidth*(1 shl 8)).toByte()
+fun Double.short(s:State) = (this/s.semiWidth*(1 shl 16)).toShort()
+fun Double.byte(s:State) = (this/s.semiWidth*(1 shl 8)).toByte()
+fun Short.real(s:State) = this*s.semiWidth/(1 shl 16)
+fun Int.realLikeShortResult(s:State) = this*s.semiWidth/(1 shl 16)
+fun Float.realLikeShortResult(s:State) = this*s.semiWidth/(1 shl 16)
+fun Byte.real(s:State) = this*s.semiWidth/(1 shl 8)
 
-  fun floatToShort(f:Float) = f.short
-  fun floatToShortInt(f:Double) = f.int
-  fun doubleToShort(d:Double) = d.toFloat().short
-  fun shortToReal(s:Short) = s.real
-  fun shortToReal(s:Int) = s.realLikeShortResult
-  fun realXY(pos:SXY) = XY(pos.x.real, pos.y.real)
-  fun realToShort(pos:XY) = SXY(pos.x.short, pos.y.short)
+fun State.floatToShort(f:Float) = f.short(this)
+fun State.floatToShortInt(f:Double) = f.int(this)
+fun State.doubleToShort(d:Double) = d.toFloat().short(this)
+fun State.shortToReal(s:Short) = s.real(this)
+fun State.shortToReal(s:Int) = s.realLikeShortResult(this)
+fun State.realXY(pos:SXY) = XY(pos.x.real(this), pos.y.real(this))
+fun State.realToShort(pos:XY) = SXY(pos.x.short(this), pos.y.short(this))
 
-  val SizeObject.shortRadius get() = size.radius.short
-  val SizeObject.shortDiameter get() = (size.radius.short*2).toShort()
-}
+val State.semiWidth get() = width
 val SizeObject.radius get() = size.radius
 fun State.getCar(id:PlayerId) = cars.firstOrNull {it.owner==id}
 fun State.deepCopy() = lib.measure("State.deepCopy") {
@@ -127,9 +124,8 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
 }
 @Serializable data class Random(var seed:Int=0)
 @Serializable data class PlayerId(var id:Int)
-@Serializable data class SXY(var x:Short=0,var y:Short=0) {
-  constructor(x:Int, y:Int):this(x.toShort(), y.toShort())
-}
+@Serializable data class SXY(var x:Short=0,var y:Short=0)
+fun newSXY(x:Int, y:Int) = SXY(x.toShort(), y.toShort())
 data class XY(var x:Double=0.0, var y:Double=0.0)
 val Int.radius get():Float = GameConst.MIN_RADIUS + 5*sqrt(this.toDouble()).toFloat()
 fun degreesAngle(degrees:Int) = Angle(degrees/180.0*PI)
@@ -243,10 +239,10 @@ fun State.distance(a:SXY,b:SXY):Double {
   val dx = dx(a,b)
   val dy = dy(a,b)
   val sqrt = 2*sqrt((dx*dx/4+dy*dy/4).toFloat())//todo можно закэшировать
-  return sqrt.realLikeShortResult
+  return sqrt.realLikeShortResult(this)
 }
-inline operator fun SXY.plus(a:SXY) = SXY(x+a.x,y+a.y)
-inline operator fun SXY.minus(a:SXY) = SXY(x-a.x,y-a.y)
+inline operator fun SXY.plus(a:SXY) = newSXY((x+a.x),y+a.y)
+inline operator fun SXY.minus(a:SXY) = newSXY(x-a.x,y-a.y)
 inline operator fun XY.plus(a:XY) = XY(x+a.x,y+a.y)
 inline operator fun XY.minus(a:XY) = XY(x-a.x,y-a.y)
 internal inline infix fun SXY.msum(b:SXY) = copy()./*todo no copy*/apply {x = (x+ b.x).toShort(); y = (y + b.y).toShort()}
@@ -267,4 +263,7 @@ fun Random.rnd(min:Int, max:Int):Int {
   val diapasone = max-min
   return min + diapasone/сдвиг*_rnd(0,сдвиг) + diapasone%сдвиг*_rnd(0,сдвиг)/сдвиг
 }
-fun Random.randomPos() = SXY(rnd(Short.MIN_VALUE, Short.MAX_VALUE), rnd(Short.MIN_VALUE, Short.MAX_VALUE))
+fun Random.randomPos() = newSXY(rnd(Short.MIN_VALUE, Short.MAX_VALUE), rnd(Short.MIN_VALUE, Short.MAX_VALUE))
+
+fun SXY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()))
+fun XY.calcAngle():Angle = Angle(atan2(y,x))

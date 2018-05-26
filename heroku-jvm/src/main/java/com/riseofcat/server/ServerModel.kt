@@ -18,10 +18,10 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
 
   val realtimeTick get() = Tick((lib.time - room.createTime)/GameConst.UPDATE)
   val averageLatency get() = room.getPlayers().averageSqrt{it.session.get(PingDecorator.Extra::class.java)!!.lastPingDelay?.sd}?.let {Duration((it*1000).toLong())}
-  val recommendedLatency get() = averageLatency*2
-  val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE + 1)
-  val maxDelay get() = recommendedDelay*2
-  val removeAfterDelay get() = recommendedDelay*3 //Если 0 - значит всё что позже stable - удаляется
+  val recommendedLatency get() = averageLatency*2 + Duration(10)
+  val recommendedDelay get() = Tick(recommendedLatency/GameConst.UPDATE) + Tick(1)
+  val maxDelay get() = recommendedDelay*2 + Tick(1)
+  val removeAfterDelay get() = recommendedDelay*3 + Tick(1) //Если 0 - значит всё что позже stable - удаляется
 
   init {
     room.onPlayerAdded.add {player->
@@ -124,10 +124,10 @@ class ServerModel(val room:RoomsDecorator<ClientPayload,ServerPayload>.Room) {
       val cmd = AllCommand(realtimeTick+recommendedDelay,bot.playerId)
       val car = state.cars.find{it.owner == bot.playerId}
       if(car != null) {
-        val target = state.foods.trueIndexes().minBy {
-          state.distance(Food2(it.col,it.row).pos(state), car.pos)
+        val target = state.foods.minBy {
+          state.distance(it.pos, car.pos)
         }
-        if(target != null) cmd.moveCmd = MoveCommand(bot.playerId, (Food2(target.col, target.row).pos(state) - car.pos).calcAngle())
+        if(target != null) cmd.moveCmd = MoveCommand(bot.playerId, (target.pos - car.pos).calcAngle())
 
         if(false) {
 //          val target = state.foods.minBy {state.distance(car.pos + car.speed*0.8,it.pos)}

@@ -112,9 +112,6 @@ fun ClientModel.touch(pos:SXY) {
 }
 
 fun ClientModel._touch(myCarPos:SXY?, pos:SXY) {
-  fun SXY.calcAngle():Angle = Angle(atan2(y.toDouble(),x.toDouble()))
-  fun XY.calcAngle():Angle = Angle(atan2(y,x))
-
   if(myCarPos != null) {
     val direction = (pos - myCarPos/*calcDisplayState().realXY(myCarPos)*/).calcAngle() + degreesAngle(0*180)
     move(direction)
