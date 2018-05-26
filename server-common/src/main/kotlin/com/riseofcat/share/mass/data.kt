@@ -12,14 +12,13 @@ inline fun State.repeatTick(ticks:Int, lambda:()->Unit) {
 object GameConst {
   val UPDATE = Duration(16)
   val UPDATE_S = UPDATE.ms/lib.MILLIS_IN_SECOND
-  const val MIN_SIZE = 20
+  const val MIN_SIZE = 500
   const val DEFAULT_CAR_SIZE = MIN_SIZE*6
-  const val FOOD_SIZE = 20
-  const val MIN_RADIUS = 1f
+  const val FOOD_SIZE = 400
   const val TITLE = "mass-power.io"
   val REACTIVE_LIVE = Tick(Duration(2500)/UPDATE)
   const val FRICTION:Double = 0.01
-  const val BASE_SIZE = 3_000
+  const val INIT_SIZE = 3_000
 }
 
 interface ICommand { fun act(state:State) }
@@ -88,7 +87,7 @@ inline val Angle.cos get() = cos(radians)
   ,@Optional val reactive:MutableList<Reactive> = mutableListOf()
   ,var random:Random = Random()
   ,var random2:Random = Random()
-  ,var size:Int = GameConst.BASE_SIZE
+  ,var size:Int = GameConst.INIT_SIZE
   ,var tick:Tick = Tick(0)
   ,@Transient var repeatTickCalls:Int = 0
 )
@@ -111,7 +110,8 @@ fun State.realXY(pos:SXY) = XY(pos.x.real(this), pos.y.real(this))
 fun State.realToShort(pos:XY) = SXY(pos.x.short(this), pos.y.short(this))
 
 val State.semiWidth get() = width
-val SizeObject.radius get() = size.radius
+inline val SizeObject.radius get() = sqrt(size.toFloat())//todo для Foods можно сделать hardcode radius и замерить performance
+
 fun State.getCar(id:PlayerId) = cars.firstOrNull {it.owner==id}
 fun State.deepCopy() = lib.measure("State.deepCopy") {
   copy(
@@ -127,7 +127,7 @@ fun State.deepCopy() = lib.measure("State.deepCopy") {
 @Serializable data class SXY(var x:Short=0,var y:Short=0)
 fun newSXY(x:Int, y:Int) = SXY(x.toShort(), y.toShort())
 data class XY(var x:Double=0.0, var y:Double=0.0)
-val Int.radius get():Float = GameConst.MIN_RADIUS + 5*sqrt(this.toDouble()).toFloat()
+
 fun degreesAngle(degrees:Int) = Angle(degrees/180.0*PI)
 infix fun State.act(actions:Iterator<ICommand>):State {
   actions.forEach {it.act(this)}
@@ -151,7 +151,7 @@ fun State.tick() = lib.measure("TICK") {
   }
 
   repeatTick(1) {
-    lib.measure("tick.eatFoods and reactive") {
+    lib.measure("tick.eatFoods and reactive") {//sum%: 45.297084462 %    count:2496 | avrg100: 7.352888834 ms
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
@@ -213,20 +213,24 @@ fun State.tick() = lib.measure("TICK") {
   repeatTick(4) {
     val delta = targetSize-size
     if(delta != 0) {
-      val MAX_SIZE_DELTA = 10*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF
-      val smallDelta = if(delta.absoluteValue > MAX_SIZE_DELTA) {
-        (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
-          .let {it.sign*min(abs(it),MAX_SIZE_DELTA)}
+      if(true) {//todo false
+        size += delta
       } else {
-        delta
+        val MAX_SIZE_DELTA = 10*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF*PERFORMANCE_KOEFF
+        val smallDelta = if(delta.absoluteValue > MAX_SIZE_DELTA) {
+          (delta*lib.Fun.arg0toInf(abs(delta),50)).toInt()
+            .let {it.sign*min(abs(it),MAX_SIZE_DELTA)}
+        } else {
+          delta
+        }
+        size += smallDelta
       }
-      size += smallDelta
     }
   }
 }
 
 val State.targetFoods get() = width*height/100_000*PERFORMANCE_KOEFF
-val State.targetSize get():Int = PERFORMANCE_KOEFF*100 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
+val State.targetSize get():Int = PERFORMANCE_KOEFF*100 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 700 ).toInt()
 inline val State.width get() = size.toDouble()
 inline val State.height get() = size
 inline fun abs(x:Int):Int {//todo pull request to kotlin js
