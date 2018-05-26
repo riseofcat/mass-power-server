@@ -150,8 +150,6 @@ fun State.tick() = lib.measure("TICK") {
     cars.sortBy {it.owner.id}//todo примешивать рандом, основанный на tick. Чтобы в разный момент времени превосходство было у разных игроков
   }
 
-  infix fun SizeObject.overlap(xy:SXY) = distance(this.pos, xy) <= this.radius
-
   repeatTick(1) {
     lib.measure("tick.eatFoods and reactive") {
       var handleFoodCars = cars
@@ -161,7 +159,7 @@ fun State.tick() = lib.measure("TICK") {
           val foodItr = foods.iterator()
           while(foodItr.hasNext()) {
             val f = foodItr.next()
-            if(car overlap f.pos) {
+            if(overlap(car, f.pos)) {
               foodItr.remove()
               car.size += f.size
               changedSizeCars.add(car)
@@ -171,7 +169,7 @@ fun State.tick() = lib.measure("TICK") {
           val reactItr = reactive.iterator()
           while(reactItr.hasNext()) {
             val r = reactItr.next()
-            if(r.owner!=car.owner) if(car overlap r.pos) {
+            if(r.owner!=car.owner) if(overlap(car,r.pos)) {
               reactItr.remove()
               car.size += r.size
               changedSizeCars.add(car)
@@ -194,7 +192,7 @@ fun State.tick() = lib.measure("TICK") {
         while(carItr.hasNext()) {
           val del = carItr.next()
           for(c in copy) {
-            if(del != c) if(del.size < c.size) if(distance(c.pos, del.pos)<=c.radius) if(cars.contains(c)) {
+            if(del != c) if(del.size < c.size) if(overlap(c, del.pos)) if(cars.contains(c)) {
               c.size += del.size
               carItr.remove()
               handleCarsDestroy = true
@@ -231,15 +229,30 @@ val State.targetFoods get() = width*height/100_000*PERFORMANCE_KOEFF
 val State.targetSize get():Int = PERFORMANCE_KOEFF*100 + kotlin.math.sqrt(cars.sumBy {it.size}.toDouble() * 7000 ).toInt()
 inline val State.width get() = size.toDouble()
 inline val State.height get() = size
-const val relativeWidth = Short.MAX_VALUE-Short.MIN_VALUE//2^16-1
-fun sabs(a:Int) = abs(a.toShort().toInt())
-inline fun dx(a:SXY,b:SXY) = min(sabs(b.x-a.x),sabs(b.x-a.x+relativeWidth))
-inline fun dy(a:SXY,b:SXY) = min(sabs(b.y-a.y),sabs(b.y-a.y+relativeWidth))
+inline fun abs(x:Int):Int {//todo pull request to kotlin js
+  val mask = x shr 0x1F//0x1F = 31   // 0 если >=0 1 если <0
+  return (mask xor x) - mask
+}
+inline fun shortAbs(a:Int) = abs((a shl 16) shr 16)//abs(a.toShort().toInt())
+inline fun dx(a:SXY,b:SXY) = shortAbs(b.x-a.x)
+inline fun dy(a:SXY,b:SXY) = shortAbs(b.y-a.y)
+
+fun State.overlap(obj:SizeObject, xy:SXY):Boolean {
+  val shortRadius = floatToShort(obj.radius)
+  val dx = dx(obj.pos,xy)
+  if(dx > shortRadius) return false
+  val dy = dy(obj.pos,xy)
+  if(dy > shortRadius) return false
+  return distance(dx, dy) <= obj.radius
+}
+fun State.distance(dx:Int, dy:Int):Double {
+  val sqrt = 2*sqrt((dx*dx/4+dy*dy/4).toFloat())//todo можно закэшировать
+  return sqrt.realLikeShortResult(this)
+}
 fun State.distance(a:SXY,b:SXY):Double {
   val dx = dx(a,b)
   val dy = dy(a,b)
-  val sqrt = 2*sqrt((dx*dx/4+dy*dy/4).toFloat())//todo можно закэшировать
-  return sqrt.realLikeShortResult(this)
+  return distance(dx, dy)
 }
 inline operator fun SXY.plus(a:SXY) = newSXY((x+a.x),y+a.y)
 inline operator fun SXY.minus(a:SXY) = newSXY(x-a.x,y-a.y)
