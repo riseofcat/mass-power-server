@@ -93,6 +93,7 @@ inline val Angle.cos get() = cos(radians)
 )
 fun Float.short(s:State) = (this/s.semiWidth*(1 shl 16)).toShort()
 fun Double.int(s:State) = (this/s.semiWidth*(1 shl 16)).toInt()
+fun Float.int(s:State) = (this/s.semiWidth*(1 shl 16)).toInt()
 fun Float.byte(s:State) = (this/s.semiWidth*(1 shl 8)).toByte()
 fun Double.short(s:State) = (this/s.semiWidth*(1 shl 16)).toShort()
 fun Double.byte(s:State) = (this/s.semiWidth*(1 shl 8)).toByte()
@@ -103,7 +104,8 @@ fun Byte.real(s:State) = this*s.semiWidth/(1 shl 8)
 
 fun State.floatToShort(f:Float) = f.short(this)
 fun State.floatToShortInt(f:Double) = f.int(this)
-fun State.doubleToShort(d:Double) = d.toFloat().short(this)
+fun State.floatToShortInt(f:Float) = f.int(this)
+fun State.doubleToShort(d:Double) = d.short(this)
 fun State.shortToReal(s:Short) = s.real(this)
 fun State.shortToReal(s:Int) = s.realLikeShortResult(this)
 fun State.realXY(pos:SXY) = XY(pos.x.real(this), pos.y.real(this))
@@ -151,15 +153,16 @@ fun State.tick() = lib.measure("TICK") {
   }
 
   repeatTick(1) {
-    lib.measure("tick.eatFoods and reactive") {//sum%: 45.297084462 %    count:2496 | avrg100: 7.352888834 ms
+    lib.measure("tick.eatFoods and reactive") {
       var handleFoodCars = cars
       while(handleFoodCars.size > 0) {
         val changedSizeCars:MutableSet<Car> = mutableSetOf()
         for(car in handleFoodCars) {//очерёдность съедания вкусняшек важна. Если маленький съел вкусняшку первым, то большой его не съест
+          val rad:Int = floatToShortInt(car.radius)
           val foodItr = foods.iterator()
           while(foodItr.hasNext()) {
             val f = foodItr.next()
-            if(overlap(car, f.pos)) {
+            if(overlap(car.pos, rad, f.pos)) {
               foodItr.remove()
               car.size += f.size
               changedSizeCars.add(car)
@@ -169,7 +172,7 @@ fun State.tick() = lib.measure("TICK") {
           val reactItr = reactive.iterator()
           while(reactItr.hasNext()) {
             val r = reactItr.next()
-            if(r.owner!=car.owner) if(overlap(car,r.pos)) {
+            if(r.owner!=car.owner) if(overlap(car.pos,rad,r.pos)) {
               reactItr.remove()
               car.size += r.size
               changedSizeCars.add(car)
@@ -192,7 +195,8 @@ fun State.tick() = lib.measure("TICK") {
         while(carItr.hasNext()) {
           val del = carItr.next()
           for(c in copy) {
-            if(del != c) if(del.size < c.size) if(overlap(c, del.pos)) if(cars.contains(c)) {
+            val rad:Int = floatToShortInt(c.radius)//todo поменять местами циклы?
+            if(del != c) if(del.size < c.size) if(overlap(c.pos, rad, del.pos)) if(cars.contains(c)) {
               c.size += del.size
               carItr.remove()
               handleCarsDestroy = true
@@ -241,13 +245,12 @@ inline fun shortAbs(a:Int) = abs((a shl 16) shr 16)//abs(a.toShort().toInt())
 inline fun dx(a:SXY,b:SXY) = shortAbs(b.x-a.x)
 inline fun dy(a:SXY,b:SXY) = shortAbs(b.y-a.y)
 
-fun State.overlap(obj:SizeObject, xy:SXY):Boolean {
-  val shortRadius = floatToShort(obj.radius)
-  val dx = dx(obj.pos,xy)
-  if(dx > shortRadius) return false
-  val dy = dy(obj.pos,xy)
-  if(dy > shortRadius) return false
-  return distance(dx, dy) <= obj.radius
+fun State.overlap(car:SXY, radius:Int, f:SXY):Boolean {
+  val dx = dx(car,f)
+  if(dx > radius) return false
+  val dy = dy(car,f)
+  if(dy > radius) return false
+  return distance(dx, dy) <= radius
 }
 fun State.distance(dx:Int, dy:Int):Double {
   val sqrt = 2*sqrt((dx*dx/4+dy*dy/4).toFloat())//todo можно закэшировать
