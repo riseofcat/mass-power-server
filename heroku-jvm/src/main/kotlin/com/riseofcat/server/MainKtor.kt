@@ -99,6 +99,9 @@ fun Application.main() {
         """.trimIndent()
       )
     }
+    get("/telegram") {
+      call.respondText("True")
+    }
     webSocket("/socket") {
       val ktorSes:DefaultWebSocketSession = this
 //      val s = object:Ses<ByteArray>() {
