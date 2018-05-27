@@ -6,9 +6,11 @@ import com.riseofcat.lib_gwt.*
 import com.riseofcat.share.mass.*
 import io.ktor.application.*
 import io.ktor.features.*
+import io.ktor.http.*
 import io.ktor.http.cio.websocket.*
 import io.ktor.http.cio.websocket.CloseReason
 import io.ktor.http.cio.websocket.Frame
+import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.server.cio.*
@@ -42,22 +44,21 @@ IConverter {ss->
 ))
 
 fun main(args:Array<String>) {
-  var port = 5000
-  try { port = Integer.valueOf(System.getenv("PORT")) }
-  catch(e:Exception) { }
-  startBots()
-  if(true) {
-    embeddedServer(CIO, port, module = Application::main).start(wait = true)
-  } else {
-    embeddedServer(Netty, port, module = Application::main).start(wait = true)
+  val port:Int = try {
+    Integer.valueOf(System.getenv("PORT"))
+  } catch(e:Exception) {
+    5000
   }
+  startBots()
+  embeddedServer(if(true) CIO else Netty, port, module = Application::main).start(wait = true)
+  //После этого код не выполняется, такак как embeddedServer блокирует этот поток
 }
 
 fun startBots() {
   launch {
     while(true) {
       for(room in rooms) {
-        if(room.bots.size < 30) {
+        if(room.bots.size<30) {
           room.bots.add(Bot(lastId.incrementAndGet()))
         }
         room.updateBots()
@@ -70,14 +71,26 @@ fun startBots() {
 
 fun Application.main() {
   install(DefaultHeaders)
-  install(CallLogging)
+  lib.debug {
+    install(CallLogging)
+  }
   install(WebSockets) {
     pingPeriod = Duration.ofSeconds(60) // Disabled (null) by default
     timeout = Duration.ofSeconds(15)
     maxFrameSize = Long.MAX_VALUE // Disabled (max value). The connection will be closed if surpassed this length.
     masking = false
   }
-  install(Routing) {
+
+  intercept(ApplicationCallPipeline.Infrastructure) {
+    lib.log.info("""
+      ${call.request.origin.uri}
+      headers: ${call.request.headers.toMap().map {"${it.key}: ${it.value}"}}
+      recieve: ${call.receiveOrNull<String>()}
+    """.trimIndent())
+    call.request.queryParameters
+  }
+
+  routing {
     get("/") {
       call.respondText(
         """
