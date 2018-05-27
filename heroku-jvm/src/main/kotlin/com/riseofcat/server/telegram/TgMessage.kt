@@ -1,39 +1,40 @@
 package com.riseofcat.server.telegram
 
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 
 @Serializable data class TgMessage(
-    val message: Message
+    @Optional val update_id: Int?=null,
+    @Optional val message: Message?=null
 )
 
 @Serializable data class Message(
-    val message_id: Int,
-    val from: From,
-    val chat: Chat,
-    val date: Int,
-    val text: String,
-    val entities: List<Entity>
+    @Optional val message_id: Int?=null,
+    @Optional val from: From?=null,
+    @Optional val chat: Chat?=null,
+    @Optional val date: Int?=null,
+    @Optional val text: String?=null,
+    @Optional val entities: List<Entity>?=null
 )
 
 @Serializable data class Entity(
-    val offset: Int,
-    val length: Int,
-    val type: String
+    @Optional val offset: Int?=null,
+    @Optional val length: Int?=null,
+    @Optional val type: String?=null
 )
 
 @Serializable data class From(
-    val id: Int,
-    val is_bot: Boolean,
-    val first_name: String,
-    val last_name: String,
-    val username: String,
-    val language_code: String
+    @Optional val id: Int?=null,
+    @Optional val is_bot: Boolean?=null,
+    @Optional val first_name: String?=null,
+    @Optional val last_name: String?=null,
+    @Optional val username: String?=null,
+    @Optional val language_code: String?=null
 )
 
 @Serializable data class Chat(
-    val id: Int,
-    val first_name: String,
-    val last_name: String,
-    val username: String,
-    val type: String
+    @Optional val id: Int?=null,
+    @Optional val first_name: String?=null,
+    @Optional val last_name: String?=null,
+    @Optional val username: String?=null,
+    @Optional val type: String?=null
 )
