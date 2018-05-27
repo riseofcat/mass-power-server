@@ -103,8 +103,11 @@ fun Application.main() {
     }
     post("/telegram") {
       call.respondText("True")
-      val fromJson = Gson().fromJson(call.receive<String>(),TgMessage::class.java)
-      lib.log.info("chat: ${fromJson.message.chat}")
+      val str = call.receiveOrNull<String>()
+      if(str != null) {
+        val fromJson = Gson().fromJson(str,TgMessage::class.java)
+        lib.log.info("chat: ${fromJson.message.chat}")
+      }
     }
     webSocket("/socket") {
       val ktorSes:DefaultWebSocketSession = this
