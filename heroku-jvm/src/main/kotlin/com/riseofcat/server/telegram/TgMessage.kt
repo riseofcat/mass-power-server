@@ -1,10 +1,12 @@
 package com.riseofcat.server.telegram
 
-data class TgMessage(
+import kotlinx.serialization.Serializable
+
+@Serializable data class TgMessage(
     val message: Message
 )
 
-data class Message(
+@Serializable data class Message(
     val message_id: Int,
     val from: From,
     val chat: Chat,
@@ -13,13 +15,13 @@ data class Message(
     val entities: List<Entity>
 )
 
-data class Entity(
+@Serializable data class Entity(
     val offset: Int,
     val length: Int,
     val type: String
 )
 
-data class From(
+@Serializable data class From(
     val id: Int,
     val is_bot: Boolean,
     val first_name: String,
@@ -28,7 +30,7 @@ data class From(
     val language_code: String
 )
 
-data class Chat(
+@Serializable data class Chat(
     val id: Int,
     val first_name: String,
     val last_name: String,
