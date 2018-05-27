@@ -22,6 +22,7 @@ import io.ktor.util.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
+import kotlinx.serialization.json.*
 import java.time.Duration
 import java.util.concurrent.atomic.*
 
@@ -105,7 +106,7 @@ fun Application.main() {
       call.respondText("True")
       val str = call.receiveOrNull<String>()
       if(str != null) {
-        val fromJson:TgMessage = lib.json.parse(str)
+        val fromJson:TgMessage = JSON(unquoted = false, nonstrict = true).parse(str)//todo вываливается ошибка
         lib.log.info("chat: ${fromJson}")
       }
     }
