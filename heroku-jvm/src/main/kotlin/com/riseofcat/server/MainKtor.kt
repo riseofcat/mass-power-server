@@ -105,8 +105,8 @@ fun Application.main() {
       call.respondText("True")
       val str = call.receiveOrNull<String>()
       if(str != null) {
-        val fromJson = Gson().fromJson(str,TgMessage::class.java)
-        lib.log.info("chat: ${fromJson.message.chat}")
+        val fromJson:TgMessage = Gson().fromJson(str,TgMessage::class.java)
+        lib.log.info("chat: ${fromJson}")
       }
     }
     webSocket("/socket") {
