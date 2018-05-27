@@ -57,7 +57,7 @@ dependencies {
   compile("com.sparkjava:spark-core:2.7.1")//http://sparkjava.com/documentation//todo delete
   compile("org.slf4j:slf4j-simple:1.8.0-beta1")//todo update to stable
 
-  val ktorVersion = "0.9.2"
+  val ktorVersion = "0.9.3-alpha-1"
 
   compile("io.ktor:ktor-server-core:$ktorVersion")
   compile("io.ktor:ktor-websockets:$ktorVersion")

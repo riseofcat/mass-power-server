@@ -1,7 +1,7 @@
 import org.gradle.kotlin.dsl.*
 //import org.jetbrains.kotlin.gradle.dsl.Coroutines
 
-val serialization_version by project
+val serialization_version = project.property("serialization_version")
 
 plugins {
     id("kotlin-platform-common")
