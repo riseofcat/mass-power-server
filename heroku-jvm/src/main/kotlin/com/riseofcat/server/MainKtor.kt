@@ -1,8 +1,10 @@
 package com.riseofcat.server
 
+import com.google.gson.*
 import com.riseofcat.client.*
 import com.riseofcat.lib.*
 import com.riseofcat.lib_gwt.*
+import com.riseofcat.server.telegram.*
 import com.riseofcat.share.mass.*
 import io.ktor.application.*
 import io.ktor.features.*
@@ -101,6 +103,8 @@ fun Application.main() {
     }
     post("/telegram") {
       call.respondText("True")
+      val fromJson = Gson().fromJson(call.receive<String>(),TgMessage::class.java)
+      lib.log.info("chat: ${fromJson.message.chat}")
     }
     webSocket("/socket") {
       val ktorSes:DefaultWebSocketSession = this
