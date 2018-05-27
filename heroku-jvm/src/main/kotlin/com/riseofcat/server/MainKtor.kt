@@ -99,7 +99,7 @@ fun Application.main() {
         """.trimIndent()
       )
     }
-    get("/telegram") {
+    post("/telegram") {
       call.respondText("True")
     }
     webSocket("/socket") {
