@@ -64,6 +64,10 @@ dependencies {
   compile("io.ktor:ktor-server-cio:$ktorVersion")
   compile("io.ktor:ktor-server-netty:$ktorVersion")
 
+  compile("io.ktor:ktor-client-core:$ktorVersion")
+  compile("io.ktor:ktor-client-cio:$ktorVersion")
+
+
 //    compile("io.ktor:ktor-server-jetty:$ktorVersion")
 
   compile("org.jetbrains.kotlinx:kotlinx-html-jvm:0.6.3")

@@ -7,6 +7,8 @@ import com.riseofcat.lib_gwt.*
 import com.riseofcat.server.telegram.*
 import com.riseofcat.share.mass.*
 import io.ktor.application.*
+import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.features.*
 import io.ktor.http.cio.websocket.*
 import io.ktor.http.cio.websocket.CloseReason
@@ -112,7 +114,12 @@ fun Application.main() {
         JSON(unquoted = false, nonstrict = true).parse<Update>(bodyStr)//todo вываливается ошибка
       }
       lib.log.info("message_id: ${fromJson.message?.messageId}")
-
+      val chatId = fromJson.message?.chat?.id
+      if(chatId!= null) {
+        val text = "Hello!"
+        HttpClient(io.ktor.client.engine.cio.CIO)
+          .call("https://api.telegram.org/bot596709583:AAGBbxRAvPT3PmwrXwlpCHhlzXbd2CIkmKQ/sendMessage?chat_id=$chatId&text=$text")
+      }
       call.respondText("True")
     }
     webSocket("/socket") {
