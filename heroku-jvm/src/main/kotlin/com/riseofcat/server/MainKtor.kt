@@ -22,6 +22,7 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.serialization.json.*
+import org.yanex.telegram.entities.*
 import java.time.Duration
 import java.util.concurrent.atomic.*
 
@@ -107,11 +108,12 @@ fun Application.main() {
     post("/telegram") {
       val bodyStr = call.attributes.get(bodyKey)
       val fromJson = if(true) {
-        Gson().fromJson(bodyStr, TgMessage::class.java)
+        //todo  https://github.com/yanex/kotlin-telegram-bot-api/tree/master/bot-api/src/main/java/org/yanex/telegram/entities
+        Gson().fromJson(bodyStr, Update::class.java)
       } else {
-        JSON(unquoted = false, nonstrict = true).parse<TgMessage>(bodyStr)//todo вываливается ошибка
+        JSON(unquoted = false, nonstrict = true).parse<Update>(bodyStr)//todo вываливается ошибка
       }
-      lib.log.info("message_id: ${fromJson.message?.message_id}")
+      lib.log.info("message_id: ${fromJson.message?.messageId}")
 
       call.respondText("True")
     }
