@@ -84,14 +84,12 @@ fun Application.main() {
     masking = false
   }
 
-  val bodyKey = AttributeKey<String>("body")
   intercept(ApplicationCallPipeline.Infrastructure) {
-    call.attributes.put(bodyKey, call.receiveText())//todo второй раз вызвать receiveText - приходит пустая строка
     call.request.document()
     lib.log.info("""
       ${call.request.origin.uri}
       headers: ${call.request.headers.toMap().map {"${it.key}: ${it.value}"}}
-      recieve: ${call.receiveText()}
+      recieve: ${call.requestBodyText()}
     """.trimIndent())
     call.request.queryParameters
   }
@@ -106,7 +104,7 @@ fun Application.main() {
       )
     }
     post("/telegram") {
-      val bodyStr = call.attributes.get(bodyKey)
+      val bodyStr = call.requestBodyText()
       val fromJson = if(true) {
         //todo  https://github.com/yanex/kotlin-telegram-bot-api/tree/master/bot-api/src/main/java/org/yanex/telegram/entities
         Gson().fromJson(bodyStr, Update::class.java)
@@ -158,3 +156,10 @@ fun Application.main() {
     }
   }
 }
+
+val key = AttributeKey<String>("body")
+suspend fun ApplicationCall.requestBodyText() =
+  attributes.getOrNull(key)
+    ?: receiveText().also {
+      attributes.put(key,it)
+    }

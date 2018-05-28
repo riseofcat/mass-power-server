@@ -1,3 +1,3 @@
-package org.yanex.telegram.handler
-
-class StopProcessingException : RuntimeException()
+//package org.yanex.telegram.handler
+//
+//class StopProcessingException : RuntimeException()
