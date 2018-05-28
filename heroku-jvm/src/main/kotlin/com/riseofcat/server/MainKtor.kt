@@ -8,7 +8,6 @@ import com.riseofcat.server.telegram.*
 import com.riseofcat.share.mass.*
 import io.ktor.application.*
 import io.ktor.features.*
-import io.ktor.http.*
 import io.ktor.http.cio.websocket.*
 import io.ktor.http.cio.websocket.CloseReason
 import io.ktor.http.cio.websocket.Frame
@@ -84,11 +83,14 @@ fun Application.main() {
     masking = false
   }
 
+  val bodyKey = AttributeKey<String>("body")
   intercept(ApplicationCallPipeline.Infrastructure) {
+    call.attributes.put(bodyKey, call.receiveText())//todo второй раз вызвать receiveText - приходит пустая строка
+    call.request.document()
     lib.log.info("""
       ${call.request.origin.uri}
       headers: ${call.request.headers.toMap().map {"${it.key}: ${it.value}"}}
-      recieve: ${call.receiveOrNull<String>()}
+      recieve: ${call.receiveText()}
     """.trimIndent())
     call.request.queryParameters
   }
@@ -103,12 +105,15 @@ fun Application.main() {
       )
     }
     post("/telegram") {
-      call.respondText("True")
-      val str = call.receiveOrNull<String>()
-      if(str != null) {
-        val fromJson:TgMessage = JSON(unquoted = false, nonstrict = true).parse(str)//todo вываливается ошибка
-        lib.log.info("chat: ${fromJson}")
+      val bodyStr = call.attributes.get(bodyKey)
+      val fromJson = if(true) {
+        Gson().fromJson(bodyStr, TgMessage::class.java)
+      } else {
+        JSON(unquoted = false, nonstrict = true).parse<TgMessage>(bodyStr)//todo вываливается ошибка
       }
+      lib.log.info("message_id: ${fromJson.message?.message_id}")
+
+      call.respondText("True")
     }
     webSocket("/socket") {
       val ktorSes:DefaultWebSocketSession = this
