@@ -4,7 +4,6 @@ import com.google.gson.*
 import com.riseofcat.client.*
 import com.riseofcat.lib.*
 import com.riseofcat.lib_gwt.*
-import com.riseofcat.server.telegram.*
 import com.riseofcat.share.mass.*
 import io.ktor.application.*
 import io.ktor.client.*
@@ -107,14 +106,18 @@ fun Application.main() {
     }
     post("/telegram") {
       val bodyStr = call.requestBodyText()
-      val fromJson = if(true) {
+      val tgMsg = if(true) {
         //todo  https://github.com/yanex/kotlin-telegram-bot-api/tree/master/bot-api/src/main/java/org/yanex/telegram/entities
         Gson().fromJson(bodyStr, Update::class.java)
       } else {
         JSON(unquoted = false, nonstrict = true).parse<Update>(bodyStr)//todo вываливается ошибка
       }
-      lib.log.info("message_id: ${fromJson.message?.messageId}")
-      val chatId = fromJson.message?.chat?.id
+      if(tgMsg.callbackQuery?.id != null) {
+        val url = "http://n8cats.herokuapp.com/mass/tg"
+        HttpClient(io.ktor.client.engine.cio.CIO)
+          .call("https://api.telegram.org/bot596709583:AAGBbxRAvPT3PmwrXwlpCHhlzXbd2CIkmKQ/answerCallbackQuery?callback_query_id=${tgMsg.callbackQuery.id}&url=${url}")
+      }
+      val chatId = tgMsg.message?.chat?.id
       if(chatId!= null) {
         val text = "Hello!"
         HttpClient(io.ktor.client.engine.cio.CIO)
